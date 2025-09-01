@@ -8,10 +8,9 @@ version = "0.1.0"
 description = "Simple mutants2 game"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
-
-[project.optional-dependencies]
-cli = ["prompt_toolkit>=3.0.39"]
+dependencies = [
+    "prompt_toolkit>=3.0.39",
+]
 
 [tool.pytest.ini_options]
 addopts = "-q"

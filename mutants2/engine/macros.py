@@ -4,41 +4,20 @@ import re
 import time
 from pathlib import Path
 from typing import Callable, List
-from ..cli.keynames import keypad_fallback
+from ..cli.keynames import REV_KEYPAD_CHAR
 
 
 def resolve_bound_script(store: "MacroStore", key_or_char: str) -> str | None:
     """Return bound script for ``key_or_char`` considering keypad fallbacks."""
     bindings = store._bindings
-    # direct match first (chars or named keys)
     script = bindings.get(key_or_char)
-    if script is not None:
+    if script:
         return script
-    # keypad name to char fallback (kp4 -> '4')
-    fb = keypad_fallback(key_or_char)
-    if fb and fb in bindings:
-        return bindings[fb]
-    # reverse: char to keypad alias ("4" -> "kp4")
-    rev = {
-        "0": "kp0",
-        "1": "kp1",
-        "2": "kp2",
-        "3": "kp3",
-        "4": "kp4",
-        "5": "kp5",
-        "6": "kp6",
-        "7": "kp7",
-        "8": "kp8",
-        "9": "kp9",
-        "+": "kp_plus",
-        "-": "kp_minus",
-        "*": "kp_mul",
-        "/": "kp_div",
-        ".": "kp_dot",
-    }
-    alias = rev.get(key_or_char)
-    if alias and alias in bindings:
-        return bindings[alias]
+    alias = REV_KEYPAD_CHAR.get(key_or_char)
+    if alias:
+        script = bindings.get(alias)
+        if script:
+            return script
     return None
 
 

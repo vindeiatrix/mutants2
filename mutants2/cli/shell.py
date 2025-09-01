@@ -5,11 +5,7 @@ import sys
 
 try:  # Optional prompt_toolkit for richer key handling
     from prompt_toolkit import PromptSession
-    from prompt_toolkit.application.current import get_app
-    from prompt_toolkit.filters import Condition
-    from prompt_toolkit.key_binding import KeyBindings, merge_key_bindings
-    from prompt_toolkit.key_binding.bindings.defaults import load_key_bindings
-    from prompt_toolkit.keys import Keys
+    from prompt_toolkit.key_binding import KeyBindings
 except Exception:  # pragma: no cover - optional
     PromptSession = None  # type: ignore
 
@@ -194,24 +190,41 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
     use_ptk = PromptSession is not None and sys.stdin.isatty()
     if use_ptk:
         kb = KeyBindings()
-        default_kb = load_key_bindings()
 
-        @kb.add(Keys.Any, filter=Condition(lambda: macro_store.keys_enabled and not get_app().current_buffer.text))
-        def _any(event):
-            kp = event.key_sequence[0]
-            cand = kp.data or (kp.key.value if isinstance(kp.key, Keys) else kp.key)
-            cand = cand.lower()
-            script = resolve_bound_script(macro_store, cand)
-            if script:
-                event.app.current_buffer.reset()
-                macro_store.expand_and_run_script(script, dispatch)
-            elif kp.data:
-                event.app.current_buffer.insert_text(kp.data)
-            else:
-                for k in event.key_sequence:
-                    event.app.key_processor.feed(k)
+        def try_fire(event, key_id: str | None, char: str | None) -> bool:
+            buf = event.app.current_buffer
+            if not macro_store.keys_enabled or buf.text:
+                return False
+            script = None
+            if key_id:
+                script = resolve_bound_script(macro_store, key_id)
+            if not script and char:
+                script = resolve_bound_script(macro_store, char)
+            if not script:
+                return False
+            event.prevent_default()
+            buf.reset()
+            macro_store.expand_and_run_script(script, dispatch)
+            return True
 
-        session = PromptSession(key_bindings=merge_key_bindings([kb, default_kb]))
+        @kb.add("<any>")
+        def _(event):
+            ch = event.data
+            if ch and try_fire(event, None, ch):
+                return
+
+        for name in [
+            "up","down","left","right","home","end","pageup","pagedown",
+            "tab","escape","space",
+        ] + [f"f{i}" for i in range(1,13)]:
+            try:
+                @kb.add(name)
+                def _(event, _name=name):
+                    try_fire(event, _name, None)
+            except Exception:
+                pass
+
+        session = PromptSession(key_bindings=kb, enable_history_search=True)
 
         def get_line() -> str:
             return session.prompt("> ")

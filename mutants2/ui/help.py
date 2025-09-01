@@ -23,7 +23,9 @@ Key bindings
   Keypad aliases: kp0..kp9, kp_plus, kp_minus, kp_mul, kp_div, kp_enter, kp_dot (fallback to top-row if indistinguishable)
 
   Behavior:
-    • In most terminals, keypad digits behave like top-row digits. Binding kp4 will also trigger on 4 when the input line is empty.
+    • Bindings fire on single keypress when the line is empty.
+    • In many terminals, keypad digits behave like top-row digits. Binding kp4 will also
+      trigger on 4 when the line is empty.
 
 
 Profiles (saved outside the savegame)
