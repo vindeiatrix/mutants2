@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
@@ -6,7 +8,9 @@ from .senses import SensesBuffer
 
 # Available player classes. These are simple placeholders for now and do not
 # affect gameplay beyond being tracked and persisted.
-CLASSES = ["Warrior", "Mage", "Wizard", "Thief", "Priest"]
+CLASS_LIST = ["Warrior", "Mage", "Wizard", "Thief", "Priest"]
+CLASS_BY_NUM = {str(i + 1): c for i, c in enumerate(CLASS_LIST)}
+CLASS_BY_NAME = {c.lower(): c for c in CLASS_LIST}
 
 
 @dataclass
@@ -17,7 +21,7 @@ class Player:
     positions: Dict[int, Tuple[int, int]] = field(
         default_factory=lambda: {2000: (0, 0), 2100: (0, 0)}
     )
-    clazz: str = CLASSES[0]
+    clazz: str | None = None
     senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
 
     @property

@@ -16,7 +16,7 @@ def cli_runner(tmp_path):
             cmd = [sys.executable, "-m", "mutants2"]
             env = os.environ.copy()
             env.setdefault("HOME", str(tmp_path))
-            inp = "back\n" + "\n".join(commands + ["exit"]) + "\n"
+            inp = "1\n" + "\n".join(commands + ["exit"]) + "\n"
             result = subprocess.run(cmd, input=inp, text=True, capture_output=True, env=env)
             return result.stdout
 
@@ -44,7 +44,7 @@ def test_shadow_and_footsteps_render_once(cli_runner):
     assert "You hear footsteps nearby." in out
     parts = out.split("On the ground lies:")
     assert len(parts) >= 3
-    seg = parts[2]
+    seg = parts[-1]
     assert "A shadow flickers" not in seg
     assert "footsteps" not in seg
 

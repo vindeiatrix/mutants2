@@ -4,31 +4,57 @@ import sys
 from mutants2.engine import persistence
 
 
-def run_cli(inp, home):
+def run_cli(inp, home, env_extra=None):
     cmd = [sys.executable, '-m', 'mutants2']
-    return subprocess.run(cmd, input=inp, text=True, capture_output=True, env={'HOME': str(home)})
+    env = {'HOME': str(home)}
+    if env_extra:
+        env.update(env_extra)
+    return subprocess.run(cmd, input=inp, text=True, capture_output=True, env=env)
 
 
-def test_default_class(tmp_path, monkeypatch):
-    monkeypatch.setenv('HOME', str(tmp_path))
-    player = persistence.load()
-    assert player.clazz == 'Warrior'
-    player2 = persistence.load()
-    assert player2.clazz == 'Warrior'
+def test_class_selection_digits_enters_game(tmp_path):
+    result = run_cli('1\nexit\n', tmp_path)
+    out = result.stdout
+    assert 'Class: Warrior' in out
+    assert '0E : 0N' in out
+    assert '***' in out
 
 
-def test_select_and_switch_class(tmp_path):
+def test_class_selection_names_enters_game(tmp_path):
+    result = run_cli('wizard\nexit\n', tmp_path)
+    out = result.stdout
+    assert 'Class: Wizard' in out
+    assert '***' in out
+
+
+def test_invalid_then_valid(tmp_path):
+    result = run_cli('xyz\n2\nexit\n', tmp_path)
+    out = result.stdout
+    assert 'Invalid selection.' in out
+    assert 'Class: Mage' in out
+
+
+def test_back_behavior(tmp_path):
+    inp = 'back\n1\nclass\nback\nlook\nexit\n'
+    result = run_cli(inp, tmp_path)
+    out = result.stdout
+    assert 'Pick a class to begin.' in out
+    assert out.count('Class: Warrior') >= 2
+
+
+def test_persistence_of_class(tmp_path):
     home = tmp_path
-    # First run: should default to Warrior
-    result = run_cli('back\nlook\nexit\n', home)
-    assert 'Class: Warrior' in result.stdout
-    # Choose Mage
-    run_cli('2\nback\nexit\n', home)
-    # Verify persisted Mage
-    result = run_cli('back\nlook\nexit\n', home)
-    assert 'Class: Mage' in result.stdout
-    # Switch to Thief
-    run_cli('4\nback\nexit\n', home)
-    # Verify persisted Thief
-    result = run_cli('back\nlook\nexit\n', home)
-    assert 'Class: Thief' in result.stdout
+    run_cli('4\nnorth\nexit\n', home)
+    result = run_cli('exit\n', home)
+    out = result.stdout
+    assert 'Class: Thief' in out
+    assert 'Choose your class' not in out
+
+
+def test_debug_unavailable_in_menu(tmp_path):
+    home = tmp_path
+    env = {'MUTANTS2_DEV': '1'}
+    result = run_cli('debug footsteps 2\n1\ndebug footsteps 2\nexit\n', home, env)
+    out = result.stdout
+    assert 'Debug commands are available only in dev mode (in-game).' in out
+    assert 'OK.' in out  # debug works in-game
