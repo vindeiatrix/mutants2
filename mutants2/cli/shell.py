@@ -4,6 +4,14 @@ from ..engine import world, persistence, render
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 
 
+DIRECTION_ALIASES = {
+    "n": "north", "north": "north",
+    "s": "south", "south": "south",
+    "e": "east", "east": "east",
+    "w": "west", "west": "west",
+}
+
+
 def class_menu(p, *, in_game: bool) -> bool:
     """Show the class selection menu.
 
@@ -52,60 +60,66 @@ def main(*, dev_mode: bool = False) -> None:
             cmd_raw = input("> ")
         except EOFError:
             cmd_raw = ""
-        cmd = cmd_raw.strip().lower()
-        if not cmd:
+        parts = cmd_raw.strip().split()
+        if not parts:
             continue
-        if cmd.startswith("debug"):
+        cmd = parts[0].lower()
+        args = parts[1:]
+
+        # Resolve direction aliases and handle traditional prefixes.
+        direction = DIRECTION_ALIASES.get(cmd)
+        if direction is None:
+            if cmd.startswith("nor"):
+                direction = "north"
+            elif cmd.startswith("sou"):
+                direction = "south"
+            elif cmd.startswith("eas"):
+                direction = "east"
+            elif cmd.startswith("wes"):
+                direction = "west"
+
+        if cmd == "debug":
             if not dev_mode:
                 print("Debug commands are available only in dev mode.")
             else:
-                parts = cmd.split()
-                if len(parts) >= 2 and parts[1] == "shadow" and len(parts) == 3:
-                    direction = parts[2]
+                if args and args[0] == "shadow" and len(args) == 2:
+                    direction = args[1]
                     if direction in {"north", "south", "east", "west"}:
                         p.senses.add_shadow(direction)
                         print("OK.")
                     else:
                         print("Invalid direction.")
-                elif len(parts) >= 2 and parts[1] == "footsteps" and len(parts) == 3:
+                elif args and args[0] == "footsteps" and len(args) == 2:
                     try:
-                        p.senses.set_footsteps(int(parts[2]))
+                        p.senses.set_footsteps(int(args[1]))
                         print("OK.")
                     except ValueError:
                         print("footsteps distance must be 1..4")
-                elif len(parts) >= 2 and parts[1] == "clear":
+                elif args and args[0] == "clear" and len(args) == 1:
                     p.senses.clear()
                     print("OK.")
                 else:
                     print("Invalid debug command.")
             persistence.save(p)
             continue
-        if cmd.startswith("loo"):
+        elif cmd == "look":
             render.render(p, w)
-        elif cmd.startswith("nor"):
-            if p.move("north", w):
-                last_move = "north"
-        elif cmd.startswith("sou"):
-            if p.move("south", w):
-                last_move = "south"
-        elif cmd.startswith("eas"):
-            if p.move("east", w):
-                last_move = "east"
-        elif cmd.startswith("wes"):
-            if p.move("west", w):
-                last_move = "west"
-        elif cmd.startswith("las"):
+        elif direction in {"north", "south", "east", "west"}:
+            if p.move(direction, w):
+                last_move = direction
+            render.render(p, w)
+        elif cmd == "last":
             if last_move:
                 p.move(last_move, w)
-        elif cmd.startswith("tra"):
-            parts = cmd.split()
-            year = int(parts[1]) if len(parts) > 1 else None
+                render.render(p, w)
+        elif cmd == "travel":
+            year = int(args[0]) if args else None
             p.travel(w, year)
-        elif cmd.startswith("cla"):
+        elif cmd == "class":
             changed = class_menu(p, in_game=True)
             if changed:
                 render.render(p, w)
-        elif cmd.startswith("exi"):
+        elif cmd == "exit":
             persistence.save(p)
             break
         else:
