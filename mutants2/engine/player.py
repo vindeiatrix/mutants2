@@ -22,15 +22,22 @@ class Player:
     def move(self, direction: str, world) -> bool:
         x, y = self.positions.setdefault(self.year, (0, 0))
         grid = world.year(self.year).grid
+        if direction not in {"north", "south", "east", "west"}:
+            print("can't go that way.")
+            return False
         neighbors = grid.neighbors(x, y)
         if direction in neighbors:
             self.positions[self.year] = neighbors[direction]
             return True
+        print("can't go that way.")
         return False
 
-    def travel(self, world) -> None:
-        """Switch between the two available years."""
-        self.year = 2100 if self.year == 2000 else 2000
+    def travel(self, world, target_year: int | None = None) -> None:
+        """Travel to ``target_year`` resetting position to origin."""
+        if target_year is None:
+            self.year = 2100 if self.year == 2000 else 2000
+        else:
+            self.year = target_year
         world.year(self.year)  # ensure world generation
-        self.positions.setdefault(self.year, (0, 0))
+        self.positions[self.year] = (0, 0)
 

@@ -28,7 +28,9 @@ def main() -> None:
             if last_move:
                 p.move(last_move, w)
         elif cmd.startswith('tra'):
-            p.travel(w)
+            parts = cmd.split()
+            year = int(parts[1]) if len(parts) > 1 else None
+            p.travel(w, year)
         elif cmd.startswith('exi'):
             persistence.save(p)
             break
