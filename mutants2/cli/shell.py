@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..engine import world, persistence, render
+from ..engine import world, persistence, render, items
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 
 
@@ -12,7 +12,7 @@ DIRECTION_ALIASES = {
 }
 
 
-def class_menu(p, *, in_game: bool) -> bool:
+def class_menu(p, w, *, in_game: bool) -> bool:
     """Show the class selection menu.
 
     Returns ``True`` if the player's class was changed, ``False`` otherwise.
@@ -44,16 +44,16 @@ def class_menu(p, *, in_game: bool) -> bool:
             print("Invalid selection.")
             continue
         p.clazz = picked
-        persistence.save(p)
+        persistence.save(p, w)
         return True
 
 
 def main(*, dev_mode: bool = False) -> None:
-    w = world.World()
-    p = persistence.load()
+    p, ground, seeded = persistence.load()
+    w = world.World(ground, seeded)
     last_move = None
     if p.clazz is None:
-        class_menu(p, in_game=False)
+        class_menu(p, w, in_game=False)
     render.render(p, w)
     while True:
         try:
@@ -100,7 +100,7 @@ def main(*, dev_mode: bool = False) -> None:
                     print("OK.")
                 else:
                     print("Invalid debug command.")
-            persistence.save(p)
+            persistence.save(p, w)
             continue
         elif cmd == "look":
             render.render(p, w)
@@ -116,12 +116,43 @@ def main(*, dev_mode: bool = False) -> None:
             year = int(args[0]) if args else None
             p.travel(w, year)
         elif cmd == "class":
-            changed = class_menu(p, in_game=True)
+            changed = class_menu(p, w, in_game=True)
             if changed:
                 render.render(p, w)
+        elif cmd in {"inventory", "inv", "i"}:
+            if p.inventory:
+                for key, count in p.inventory.items():
+                    print(f"{items.REGISTRY[key].name} x{count}")
+            else:
+                print("(empty)")
+        elif cmd in {"get", "take"}:
+            name = " ".join(args)
+            item = items.find_by_name(name)
+            ground_key = w.ground_item(p.year, p.x, p.y)
+            if item and ground_key == item.key:
+                w.set_ground_item(p.year, p.x, p.y, None)
+                p.inventory[item.key] = p.inventory.get(item.key, 0) + 1
+                print(f"You pick up {item.name}.")
+                render.render(p, w)
+            else:
+                print("You don't see that here.")
+        elif cmd == "drop":
+            name = " ".join(args)
+            item = items.find_by_name(name)
+            if not item or p.inventory.get(item.key, 0) == 0:
+                print("You don't have that.")
+            elif w.ground_item(p.year, p.x, p.y):
+                print("You can only drop when the ground is empty here.")
+            else:
+                p.inventory[item.key] -= 1
+                if p.inventory[item.key] == 0:
+                    del p.inventory[item.key]
+                w.set_ground_item(p.year, p.x, p.y, item.key)
+                print(f"You drop {item.name}.")
+                render.render(p, w)
         elif cmd == "exit":
-            persistence.save(p)
+            persistence.save(p, w)
             break
         else:
-            print("Commands: look, north, south, east, west, last, travel, class, exit")
-        persistence.save(p)
+            print("Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit")
+        persistence.save(p, w)

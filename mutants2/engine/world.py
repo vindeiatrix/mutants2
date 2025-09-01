@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple, Set
+from typing import Dict, Tuple, Set, Optional
 
 from .senses import Direction
 Coordinate = Tuple[int, int]
@@ -48,8 +48,20 @@ class Year:
 
 
 class World:
-    def __init__(self):
+    def __init__(self, ground: Optional[Dict[Tuple[int, int, int], str]] = None, seeded_years: Optional[Set[int]] = None):
         self.years: Dict[int, Year] = {}
+        self.ground: Dict[Tuple[int, int, int], str] = ground or {}
+        self.seeded_years: Set[int] = set(seeded_years or [])
+
+    def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
+        return self.ground.get((year, x, y))
+
+    def set_ground_item(self, year: int, x: int, y: int, item_key: Optional[str]) -> None:
+        key = (year, x, y)
+        if item_key is None:
+            self.ground.pop(key, None)
+        else:
+            self.ground[key] = item_key
 
     def year(self, value: int) -> Year:
         """Return the :class:`Year` for ``value`` generating it if needed."""
@@ -61,4 +73,5 @@ class World:
             if not grid.is_walkable(0, 0):
                 raise ValueError("start tile (0,0) must be open")
             self.years[value] = Year(value, grid)
+            gen.seed_items(self, value, grid)
         return self.years[value]
