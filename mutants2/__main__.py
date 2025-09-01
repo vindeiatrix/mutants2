@@ -1,6 +1,7 @@
 import argparse
 import os
 import atexit
+import sys
 
 from .cli.shell import main
 
@@ -32,15 +33,31 @@ except Exception:  # pragma: no cover - best-effort only
     pass
 
 
-def _parse_args() -> tuple[bool, str | None]:
+def _parse_args() -> tuple[bool, str | None, bool, bool]:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dev", action="store_true", help="enable dev mode")
     parser.add_argument("--macro-profile", help="load macro profile on start")
+    parser.add_argument("--ptk", action="store_true", help="force prompt_toolkit mode")
+    parser.add_argument("--no-ptk", action="store_true", help="disable prompt_toolkit")
     args = parser.parse_args()
     dev = args.dev or os.environ.get("MUTANTS2_DEV") == "1"
-    return dev, args.macro_profile
+    no_ptk = args.no_ptk or os.environ.get("MUTANTS2_NO_PTK") == "1"
+    return dev, args.macro_profile, args.ptk, no_ptk
 
 
 if __name__ == '__main__':
-    dev_mode, macro_profile = _parse_args()
-    main(dev_mode=dev_mode, macro_profile=macro_profile)
+    dev_mode, macro_profile, force_ptk, no_ptk = _parse_args()
+    if force_ptk and no_ptk:
+        print("Cannot use both --ptk and --no-ptk")
+        sys.exit(1)
+    use_ptk = False
+    if force_ptk:
+        if prompt_toolkit is None:
+            print("prompt_toolkit is required but not installed")
+            sys.exit(1)
+        use_ptk = True
+    elif no_ptk:
+        use_ptk = False
+    else:
+        use_ptk = prompt_toolkit is not None and sys.stdin.isatty()
+    main(dev_mode=dev_mode, macro_profile=macro_profile, use_ptk=use_ptk)

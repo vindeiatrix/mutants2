@@ -35,6 +35,8 @@ class MacroStore:
         self.echo: bool = True
         self._call_depth: int = 0
         self.keys_enabled: bool = True
+        self.keys_debug: bool = False
+        self.repl_mode: str = "Fallback"
         self._bindings: dict[str, str] = {}
 
     # basic management -------------------------------------------------

@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import re
 import sys
+from types import SimpleNamespace
 
-try:  # Optional prompt_toolkit for richer key handling
-    from prompt_toolkit import PromptSession
-    from prompt_toolkit.key_binding import KeyBindings
-except Exception:  # pragma: no cover - optional
-    PromptSession = None  # type: ignore
+from .repl import FallbackRepl, PtkRepl
 
 from ..engine import world, persistence, render, items
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
@@ -82,7 +79,7 @@ def class_menu(p, w, *, in_game: bool) -> bool:
         return True
 
 
-def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
+def main(*, dev_mode: bool = False, macro_profile: str | None = None, use_ptk: bool = False) -> None:
     p, ground, seeded = persistence.load()
     w = world.World(ground, seeded)
     macro_store = MacroStore()
@@ -96,14 +93,14 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
         except FileNotFoundError:
             pass
     last_move = None
-    running = True
 
     if p.clazz is None:
         class_menu(p, w, in_game=False)
     render.render(p, w)
+    context = SimpleNamespace(macro_store=macro_store, running=True)
 
     def dispatch(line: str) -> bool:
-        nonlocal last_move, running
+        nonlocal last_move
         s = line.strip()
         parts = s.split()
         if not parts:
@@ -202,7 +199,7 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
                 print(f"You drop {item.name}.")
                 render.render(p, w)
         elif cmd == "exit":
-            running = False
+            context.running = False
             return False
         else:
             if macro_store.keys_enabled and is_single_key(s):
@@ -215,59 +212,10 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
         persistence.save(p, w)
         return True
 
-    use_ptk = PromptSession is not None and sys.stdin.isatty()
-    if use_ptk:
-        kb = KeyBindings()
-
-        def try_fire(event, key_id: str | None, char: str | None) -> bool:
-            buf = event.app.current_buffer
-            if not macro_store.keys_enabled or buf.text:
-                return False
-            script = None
-            if key_id:
-                script = resolve_bound_script(macro_store, key_id)
-            if not script and char:
-                script = resolve_bound_script(macro_store, char)
-            if not script:
-                return False
-            event.prevent_default()
-            buf.reset()
-            macro_store.expand_and_run_script(script, dispatch)
-            return True
-
-        @kb.add("<any>")
-        def _(event):
-            ch = event.data
-            if ch and try_fire(event, None, ch):
-                return
-
-        for name in [
-            "up","down","left","right","home","end","pageup","pagedown",
-            "tab","escape","space",
-        ] + [f"f{i}" for i in range(1,13)]:
-            try:
-                @kb.add(name)
-                def _(event, _name=name):
-                    try_fire(event, _name, None)
-            except Exception:
-                pass
-
-        session = PromptSession(key_bindings=kb, enable_history_search=True)
-
-        def get_line() -> str:
-            return session.prompt("> ")
-    else:
-        def get_line() -> str:
-            return input("> ")
-
-    while running:
-        try:
-            cmd_raw = get_line()
-        except EOFError:
-            cmd_raw = ""
+    def dispatch_line(cmd_raw: str) -> None:
         cmd_raw = cmd_raw.strip()
         if not cmd_raw:
-            continue
+            return
         m = re.fullmatch(r"/macro\s+(\S+)\s+\{(.+)\}\s*", cmd_raw)
         if m:
             key = normalize_key(m.group(1))
@@ -275,14 +223,14 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
                 print("Unknown key name.")
             else:
                 macro_store.bind(key, m.group(2))
-            continue
+            return
         if cmd_raw.startswith("press "):
             key = normalize_key(cmd_raw[6:].strip())
             if key is None:
                 print("Unknown key name.")
             else:
                 macro_store.press(key, dispatch)
-            continue
+            return
         if cmd_raw.startswith("@"):
             content = cmd_raw[1:].strip()
             if content:
@@ -340,11 +288,21 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
                 for k, v in sorted(macro_store.bindings().items()):
                     print(f"{k} = {v}")
             elif rest.startswith("keys "):
-                val = rest[5:].strip().lower()
-                if val in {"on", "off"}:
-                    macro_store.keys_enabled = val == "on"
+                sub = rest[5:].strip().lower()
+                if sub in {"on", "off"}:
+                    macro_store.keys_enabled = sub == "on"
+                elif sub.startswith("debug "):
+                    val = sub[6:].strip()
+                    if val in {"on", "off"}:
+                        macro_store.keys_debug = val == "on"
+                    else:
+                        print("Usage: macro keys debug on|off")
+                elif sub == "status":
+                    print(
+                        f"mode={macro_store.repl_mode}, keys_enabled={macro_store.keys_enabled}, debug={macro_store.keys_debug}"
+                    )
                 else:
-                    print("Usage: macro keys on|off")
+                    print("Usage: macro keys on|off | debug on|off | status")
             elif rest == "clear":
                 confirm = input("Clear all macros? type yes to confirm: ").strip().lower()
                 if confirm == "yes":
@@ -368,6 +326,12 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
                 print("Invalid macro command.")
         else:
             dispatch(cmd_raw)
-        if not running:
-            break
+        if not context.running:
+            return
+
+    context.dispatch_line = dispatch_line
+    context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch)
+
+    repl = PtkRepl(context) if use_ptk else FallbackRepl(context)
+    repl.run()
 
