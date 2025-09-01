@@ -4,6 +4,12 @@ import atexit
 
 from .cli.shell import main
 
+# Try to enable prompt_toolkit for richer key handling if available.
+try:  # pragma: no cover
+    import prompt_toolkit  # noqa: F401
+except Exception:  # pragma: no cover
+    prompt_toolkit = None
+
 # Enable command history and line editing if ``readline`` is available. The
 # history is persisted across sessions in ``~/.mutants2/history``. Importing
 # ``readline`` has the side effect of enabling arrow key navigation in

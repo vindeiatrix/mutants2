@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
+
 from ..engine import world, persistence, render, items
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.macros import MacroStore
+from .keynames import normalize_key
 from ..ui.help import MACROS_HELP
 
 
@@ -185,6 +188,21 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
         cmd_raw = cmd_raw.strip()
         if not cmd_raw:
             continue
+        m = re.fullmatch(r"/macro\s+(\S+)\s+\{(.+)\}\s*", cmd_raw)
+        if m:
+            key = normalize_key(m.group(1))
+            if key is None:
+                print("Unknown key name.")
+            else:
+                macro_store.bind(key, m.group(2))
+            continue
+        if cmd_raw.startswith("press "):
+            key = normalize_key(cmd_raw[6:].strip())
+            if key is None:
+                print("Unknown key name.")
+            else:
+                macro_store.press(key, dispatch)
+            continue
         if cmd_raw.startswith("@"):
             content = cmd_raw[1:].strip()
             if content:
@@ -221,6 +239,32 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
                     print("No such macro")
             elif rest.startswith("rm "):
                 macro_store.remove(rest[3:].strip())
+            elif rest.startswith("bind "):
+                after = rest[5:]
+                if "=" in after:
+                    key_part, script = after.split("=", 1)
+                    key = normalize_key(key_part.strip())
+                    if key is None:
+                        print("Unknown key name.")
+                    else:
+                        macro_store.bind(key, script.strip())
+                else:
+                    print("Usage: macro bind <key> = <script>")
+            elif rest.startswith("unbind "):
+                key = normalize_key(rest[7:].strip())
+                if key is None:
+                    print("Unknown key name.")
+                else:
+                    macro_store.unbind(key)
+            elif rest == "bindings":
+                for k, v in sorted(macro_store.bindings().items()):
+                    print(f"{k} = {v}")
+            elif rest.startswith("keys "):
+                val = rest[5:].strip().lower()
+                if val in {"on", "off"}:
+                    macro_store.keys_enabled = val == "on"
+                else:
+                    print("Usage: macro keys on|off")
             elif rest == "clear":
                 confirm = input("Clear all macros? type yes to confirm: ").strip().lower()
                 if confirm == "yes":
