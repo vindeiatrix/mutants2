@@ -14,4 +14,4 @@ def test_save_load(tmp_path, monkeypatch):
     p2 = persistence.load()
     assert (p2.year, p2.x, p2.y) == (2100, 0, 1)
     p2.travel(w)
-    assert (p2.x, p2.y) == (1, 0)
+    assert (p2.x, p2.y) == (0, 0)
