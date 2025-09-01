@@ -26,6 +26,8 @@ Key bindings
     • Bindings fire on single keypress when the line is empty.
     • In many terminals, keypad digits behave like top-row digits. Binding kp4 will also
       trigger on 4 when the line is empty.
+    • If your terminal doesn't support single-keypress interception, type the key and
+      press Enter (e.g., 4 then Enter for kp4).
 
 
 Profiles (saved outside the savegame)

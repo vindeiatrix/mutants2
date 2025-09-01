@@ -24,6 +24,28 @@ DIRECTION_ALIASES = {
 }
 
 
+def is_single_key(s: str) -> bool:
+    s = s.lower()
+    if len(s) == 1:
+        return True
+    if s.startswith("f") and s[1:].isdigit():
+        i = int(s[1:])
+        return 1 <= i <= 12
+    return s in {
+        "up",
+        "down",
+        "left",
+        "right",
+        "home",
+        "end",
+        "pageup",
+        "pagedown",
+        "tab",
+        "escape",
+        "space",
+    }
+
+
 def class_menu(p, w, *, in_game: bool) -> bool:
     """Show the class selection menu.
 
@@ -82,7 +104,8 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
 
     def dispatch(line: str) -> bool:
         nonlocal last_move, running
-        parts = line.strip().split()
+        s = line.strip()
+        parts = s.split()
         if not parts:
             return True
         cmd = parts[0].lower()
@@ -182,6 +205,11 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
             running = False
             return False
         else:
+            if macro_store.keys_enabled and is_single_key(s):
+                script = resolve_bound_script(macro_store, s.lower())
+                if script:
+                    macro_store.expand_and_run_script(script, dispatch)
+                    return True
             print("Unknown command.")
             return False
         persistence.save(p, w)
