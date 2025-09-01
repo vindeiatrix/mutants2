@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Tuple, Set
 
-
-Direction = str
+from .senses import Direction
 Coordinate = Tuple[int, int]
 
 

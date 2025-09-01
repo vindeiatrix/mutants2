@@ -14,3 +14,11 @@ python -m mutants2
 ```bash
 pytest
 ```
+
+### Dev mode
+Set `MUTANTS2_DEV=1` or run `python -m mutants2 --dev` to enable `debug` commands:
+
+- `debug shadow <north|south|east|west>`
+- `debug footsteps <1..4>`
+- `debug clear`
+Cues are shown on the next `look` and then consumed.

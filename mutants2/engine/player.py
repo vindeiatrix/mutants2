@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
+from .senses import SensesBuffer
+
 
 # Available player classes. These are simple placeholders for now and do not
 # affect gameplay beyond being tracked and persisted.
@@ -16,6 +18,7 @@ class Player:
         default_factory=lambda: {2000: (0, 0), 2100: (0, 0)}
     )
     clazz: str = CLASSES[0]
+    senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
 
     @property
     def x(self) -> int:
