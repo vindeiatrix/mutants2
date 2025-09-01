@@ -26,13 +26,15 @@ except Exception:  # pragma: no cover - best-effort only
     pass
 
 
-def _parse_args() -> bool:
+def _parse_args() -> tuple[bool, str | None]:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dev", action="store_true", help="enable dev mode")
+    parser.add_argument("--macro-profile", help="load macro profile on start")
     args = parser.parse_args()
-    return args.dev or os.environ.get("MUTANTS2_DEV") == "1"
+    dev = args.dev or os.environ.get("MUTANTS2_DEV") == "1"
+    return dev, args.macro_profile
 
 
 if __name__ == '__main__':
-    dev_mode = _parse_args()
-    main(dev_mode=dev_mode)
+    dev_mode, macro_profile = _parse_args()
+    main(dev_mode=dev_mode, macro_profile=macro_profile)

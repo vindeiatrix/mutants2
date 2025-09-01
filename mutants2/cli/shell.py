@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from ..engine import world, persistence, render, items
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
+from ..engine.macros import MacroStore
+from ..ui.help import MACROS_HELP
 
 
 DIRECTION_ALIASES = {
@@ -48,25 +50,34 @@ def class_menu(p, w, *, in_game: bool) -> bool:
         return True
 
 
-def main(*, dev_mode: bool = False) -> None:
+def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
     p, ground, seeded = persistence.load()
     w = world.World(ground, seeded)
+    macro_store = MacroStore()
+    try:
+        macro_store.load_profile("default")
+    except FileNotFoundError:
+        pass
+    if macro_profile:
+        try:
+            macro_store.load_profile(macro_profile)
+        except FileNotFoundError:
+            pass
     last_move = None
+    running = True
+
     if p.clazz is None:
         class_menu(p, w, in_game=False)
     render.render(p, w)
-    while True:
-        try:
-            cmd_raw = input("> ")
-        except EOFError:
-            cmd_raw = ""
-        parts = cmd_raw.strip().split()
+
+    def dispatch(line: str) -> bool:
+        nonlocal last_move, running
+        parts = line.strip().split()
         if not parts:
-            continue
+            return True
         cmd = parts[0].lower()
         args = parts[1:]
 
-        # Resolve direction aliases and handle traditional prefixes.
         direction = DIRECTION_ALIASES.get(cmd)
         if direction is None:
             if cmd.startswith("nor"):
@@ -78,6 +89,13 @@ def main(*, dev_mode: bool = False) -> None:
             elif cmd.startswith("wes"):
                 direction = "west"
 
+        if cmd == "help":
+            topic = " ".join(args).strip().lower() if args else ""
+            if topic in {"macros", "macro"}:
+                print(MACROS_HELP)
+            else:
+                print("Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do")
+            return True
         if cmd == "debug":
             if not dev_mode:
                 print("Debug commands are available only in dev mode.")
@@ -101,7 +119,7 @@ def main(*, dev_mode: bool = False) -> None:
                 else:
                     print("Invalid debug command.")
             persistence.save(p, w)
-            continue
+            return True
         elif cmd == "look":
             render.render(p, w)
         elif direction in {"north", "south", "east", "west"}:
@@ -151,8 +169,81 @@ def main(*, dev_mode: bool = False) -> None:
                 print(f"You drop {item.name}.")
                 render.render(p, w)
         elif cmd == "exit":
-            persistence.save(p, w)
-            break
+            running = False
+            return False
         else:
-            print("Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit")
+            print("Unknown command.")
+            return False
         persistence.save(p, w)
+        return True
+
+    while running:
+        try:
+            cmd_raw = input("> ")
+        except EOFError:
+            cmd_raw = ""
+        cmd_raw = cmd_raw.strip()
+        if not cmd_raw:
+            continue
+        if cmd_raw.startswith("@"):
+            content = cmd_raw[1:].strip()
+            if content:
+                parts = content.split()
+                name = parts[0]
+                args = parts[1:]
+                macro_store.run_named(name, args, dispatch)
+        elif cmd_raw.startswith("do "):
+            script = cmd_raw[3:].strip()
+            macro_store.run(script, [], dispatch)
+        elif cmd_raw.startswith("macro"):
+            rest = cmd_raw[5:].strip()
+            if rest.startswith("add "):
+                after = rest[4:]
+                if "=" in after:
+                    name_part, script = after.split("=", 1)
+                    macro_store.add(name_part.strip(), script.strip())
+                else:
+                    print("Usage: macro add <name> = <script>")
+            elif rest.startswith("run "):
+                parts = rest[4:].split()
+                if parts:
+                    name = parts[0]
+                    args = parts[1:]
+                    macro_store.run_named(name, args, dispatch)
+            elif rest == "list":
+                for n in macro_store.list():
+                    print(n)
+            elif rest.startswith("show "):
+                name = rest[5:].strip()
+                if name in macro_store.list():
+                    print(macro_store.get(name))
+                else:
+                    print("No such macro")
+            elif rest.startswith("rm "):
+                macro_store.remove(rest[3:].strip())
+            elif rest == "clear":
+                confirm = input("Clear all macros? type yes to confirm: ").strip().lower()
+                if confirm == "yes":
+                    macro_store.clear()
+            elif rest.startswith("echo "):
+                val = rest[5:].strip().lower()
+                macro_store.echo = val == "on"
+            elif rest.startswith("save "):
+                profile = rest[5:].strip()
+                macro_store.save_profile(profile)
+            elif rest.startswith("load "):
+                profile = rest[5:].strip()
+                try:
+                    macro_store.load_profile(profile)
+                except FileNotFoundError:
+                    print("No such profile")
+            elif rest == "profiles":
+                for n in macro_store.list_profiles():
+                    print(n)
+            else:
+                print("Invalid macro command.")
+        else:
+            dispatch(cmd_raw)
+        if not running:
+            break
+
