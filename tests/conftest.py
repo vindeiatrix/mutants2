@@ -16,7 +16,7 @@ def cli_runner(tmp_path):
         def run_commands(self, commands):
             cmd = [sys.executable, "-m", "mutants2"]
             env = os.environ.copy()
-            env.setdefault("HOME", str(tmp_path))
+            env["HOME"] = str(tmp_path)
             inp = "1\n" + "\n".join(commands + ["exit"]) + "\n"
             result = subprocess.run(cmd, input=inp, text=True, capture_output=True, env=env)
             return result.stdout
