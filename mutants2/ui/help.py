@@ -23,7 +23,8 @@ Key bindings
   Keypad aliases: kp0..kp9, kp_plus, kp_minus, kp_mul, kp_div, kp_enter, kp_dot (fallback to top-row if indistinguishable)
 
   Behavior:
-    • Bindings fire on single keypress when the line is empty.
+    • Bindings fire on single keypress when the line is empty. Use `macro keys debug on` to
+      print the key names seen by the shell.
     • In many terminals, keypad digits behave like top-row digits. Binding kp4 will also
       trigger on 4 when the line is empty.
     • If your terminal doesn't support single-keypress interception, type the key and
