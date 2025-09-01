@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 
-from .player import Player, CLASSES
+from .player import Player
 
 SAVE_PATH = Path(os.path.expanduser('~/.mutants2/save.json'))
 
@@ -17,7 +17,7 @@ def load() -> Player:
             int(k): (v.get("x", 0), v.get("y", 0))
             for k, v in data.get("positions", {}).items()
         }
-        clazz = data.get("class", CLASSES[0])
+        clazz = data.get("class")
         player = Player(year=year, clazz=clazz)
         player.positions.update(positions)
         # Senses are ephemeral and intentionally not loaded
