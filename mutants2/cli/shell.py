@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import re
+import sys
+
+try:  # Optional prompt_toolkit for richer key handling
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.application.current import get_app
+    from prompt_toolkit.filters import Condition
+    from prompt_toolkit.key_binding import KeyBindings, merge_key_bindings
+    from prompt_toolkit.key_binding.bindings.defaults import load_key_bindings
+    from prompt_toolkit.keys import Keys
+except Exception:  # pragma: no cover - optional
+    PromptSession = None  # type: ignore
 
 from ..engine import world, persistence, render, items
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
-from ..engine.macros import MacroStore
+from ..engine.macros import MacroStore, resolve_bound_script
 from .keynames import normalize_key
 from ..ui.help import MACROS_HELP
 
@@ -180,9 +191,37 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None) -> None:
         persistence.save(p, w)
         return True
 
+    use_ptk = PromptSession is not None and sys.stdin.isatty()
+    if use_ptk:
+        kb = KeyBindings()
+        default_kb = load_key_bindings()
+
+        @kb.add(Keys.Any, filter=Condition(lambda: macro_store.keys_enabled and not get_app().current_buffer.text))
+        def _any(event):
+            kp = event.key_sequence[0]
+            cand = kp.data or (kp.key.value if isinstance(kp.key, Keys) else kp.key)
+            cand = cand.lower()
+            script = resolve_bound_script(macro_store, cand)
+            if script:
+                event.app.current_buffer.reset()
+                macro_store.expand_and_run_script(script, dispatch)
+            elif kp.data:
+                event.app.current_buffer.insert_text(kp.data)
+            else:
+                for k in event.key_sequence:
+                    event.app.key_processor.feed(k)
+
+        session = PromptSession(key_bindings=merge_key_bindings([kb, default_kb]))
+
+        def get_line() -> str:
+            return session.prompt("> ")
+    else:
+        def get_line() -> str:
+            return input("> ")
+
     while running:
         try:
-            cmd_raw = input("> ")
+            cmd_raw = get_line()
         except EOFError:
             cmd_raw = ""
         cmd_raw = cmd_raw.strip()
