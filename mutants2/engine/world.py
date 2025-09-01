@@ -50,9 +50,16 @@ class Year:
 
 class World:
     def __init__(self):
-        from . import gen
-        grid = gen.generate()
-        self.years: Dict[int, Year] = {2000: Year(2000, grid)}
+        self.years: Dict[int, Year] = {}
 
     def year(self, value: int) -> Year:
+        """Return the :class:`Year` for ``value`` generating it if needed."""
+        if value not in self.years:
+            from . import gen
+
+            grid = gen.generate(seed=value)
+            # Ensure starting location is always open
+            if not grid.is_walkable(0, 0):
+                raise ValueError("start tile (0,0) must be open")
+            self.years[value] = Year(value, grid)
         return self.years[value]

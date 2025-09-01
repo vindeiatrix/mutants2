@@ -27,9 +27,11 @@ def main() -> None:
         elif cmd.startswith('las'):
             if last_move:
                 p.move(last_move, w)
+        elif cmd.startswith('tra'):
+            p.travel(w)
         elif cmd.startswith('exi'):
             persistence.save(p)
             break
         else:
-            print('Commands: look, north, south, east, west, last, exit')
+            print('Commands: look, north, south, east, west, last, travel, exit')
         persistence.save(p)

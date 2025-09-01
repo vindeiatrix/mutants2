@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Dict, Tuple
 
 from .player import Player
 
@@ -11,7 +12,14 @@ def load() -> Player:
     try:
         with open(SAVE_PATH) as fh:
             data = json.load(fh)
-        return Player(x=data.get('x', 0), y=data.get('y', 0), year=data.get('year', 2000))
+        year = data.get("year", 2000)
+        positions: Dict[int, Tuple[int, int]] = {
+            int(k): (v.get("x", 0), v.get("y", 0))
+            for k, v in data.get("positions", {}).items()
+        }
+        player = Player(year=year)
+        player.positions.update(positions)
+        return player
     except FileNotFoundError:
         player = Player()
         save(player)
@@ -20,5 +28,12 @@ def load() -> Player:
 
 def save(player: Player) -> None:
     SAVE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(SAVE_PATH, 'w') as fh:
-        json.dump({'x': player.x, 'y': player.y, 'year': player.year}, fh)
+    with open(SAVE_PATH, "w") as fh:
+        data = {
+            "year": player.year,
+            "positions": {
+                str(y): {"x": x, "y": yy}
+                for y, (x, yy) in player.positions.items()
+            },
+        }
+        json.dump(data, fh)
