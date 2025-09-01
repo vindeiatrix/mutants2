@@ -4,6 +4,7 @@ import re
 import time
 from pathlib import Path
 from typing import Callable, List
+from ..cli.keynames import keypad_fallback
 
 
 class MacroError(Exception):
@@ -19,6 +20,8 @@ class MacroStore:
         self._macros: dict[str, str] = {}
         self.echo: bool = True
         self._call_depth: int = 0
+        self.keys_enabled: bool = True
+        self._bindings: dict[str, str] = {}
 
     # basic management -------------------------------------------------
     def add(self, name: str, script: str) -> None:
@@ -35,12 +38,37 @@ class MacroStore:
 
     def clear(self) -> None:
         self._macros.clear()
+        self._bindings.clear()
+
+    # binding management -----------------------------------------------
+    def bind(self, key: str, script: str) -> None:
+        self._bindings[key] = script
+
+    def unbind(self, key: str) -> None:
+        self._bindings.pop(key, None)
+
+    def bindings(self) -> dict[str, str]:
+        return dict(self._bindings)
+
+    def press(self, key: str, dispatch: Callable[[str], bool]) -> bool:
+        if not self.keys_enabled:
+            return False
+        script = self._bindings.get(key)
+        if script is None:
+            for k, s in self._bindings.items():
+                if keypad_fallback(k) == key:
+                    script = s
+                    break
+        if script is None:
+            return False
+        self.expand_and_run_script(script, dispatch)
+        return True
 
     # profile IO -------------------------------------------------------
     def save_profile(self, profile: str) -> None:
         self.MACRO_DIR.mkdir(parents=True, exist_ok=True)
         path = self.MACRO_DIR / f"{profile}.json"
-        data = {"macros": self._macros, "echo": self.echo}
+        data = {"macros": self._macros, "bindings": self._bindings, "echo": self.echo, "keys_enabled": self.keys_enabled}
         with path.open("w", encoding="utf-8") as f:
             json.dump(data, f)
 
@@ -49,8 +77,11 @@ class MacroStore:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
         self._macros.update(data.get("macros", {}))
+        self._bindings.update(data.get("bindings", {}))
         if "echo" in data:
             self.echo = data["echo"]
+        if "keys_enabled" in data:
+            self.keys_enabled = data["keys_enabled"]
 
     def list_profiles(self) -> List[str]:
         if not self.MACRO_DIR.is_dir():
@@ -165,6 +196,9 @@ class MacroStore:
         finally:
             self._call_depth -= 1
 
+    def expand_and_run_script(self, script: str, dispatch: Callable[[str], bool]) -> None:
+        self.run(script, [], dispatch)
+
     def run_named(self, name: str, args: List[str], dispatch: Callable[[str], bool]) -> None:
         script = self._macros.get(name)
         if script is None:
@@ -173,4 +207,4 @@ class MacroStore:
         self.run(script, args, dispatch)
 
     def run_script(self, script: str, dispatch: Callable[[str], bool]) -> None:
-        self.run(script, [], dispatch)
+        self.expand_and_run_script(script, dispatch)
