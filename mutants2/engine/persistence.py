@@ -20,6 +20,7 @@ def load() -> Player:
         clazz = data.get("class", CLASSES[0])
         player = Player(year=year, clazz=clazz)
         player.positions.update(positions)
+        # Senses are ephemeral and intentionally not loaded
         return player
     except FileNotFoundError:
         player = Player()
@@ -37,5 +38,6 @@ def save(player: Player) -> None:
                 for y, (x, yy) in player.positions.items()
             },
             "class": player.clazz,
+            # no senses data; cues are never persisted
         }
         json.dump(data, fh)

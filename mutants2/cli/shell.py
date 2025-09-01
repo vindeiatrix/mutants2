@@ -17,7 +17,7 @@ def class_menu(p):
             print("Choose 1-5 or 'back'.")
 
 
-def main() -> None:
+def main(*, dev_mode: bool = False) -> None:
     w = world.World()
     p = persistence.load()
     class_menu(p)
@@ -27,6 +27,30 @@ def main() -> None:
             cmd = input('> ').strip().lower()
         except EOFError:
             break
+        if cmd.startswith('debug'):
+            if not dev_mode:
+                print('Debug commands are available only in dev mode.')
+            else:
+                parts = cmd.split()
+                if len(parts) >= 2 and parts[1] == 'shadow' and len(parts) == 3:
+                    direction = parts[2]
+                    if direction in {'north', 'south', 'east', 'west'}:
+                        p.senses.add_shadow(direction)
+                        print('OK.')
+                    else:
+                        print('Invalid direction.')
+                elif len(parts) >= 2 and parts[1] == 'footsteps' and len(parts) == 3:
+                    try:
+                        p.senses.set_footsteps(int(parts[2]))
+                        print('OK.')
+                    except ValueError:
+                        print('footsteps distance must be 1..4')
+                elif len(parts) >= 2 and parts[1] == 'clear':
+                    p.senses.clear()
+                    print('OK.')
+                else:
+                    print('Invalid debug command.')
+            continue
         if cmd.startswith('loo'):
             render.render(p, w)
         elif cmd.startswith('nor'):
