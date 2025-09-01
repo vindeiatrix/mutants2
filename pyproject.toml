@@ -10,5 +10,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+cli = ["prompt_toolkit>=3.0.39"]
+
 [tool.pytest.ini_options]
 addopts = "-q"
