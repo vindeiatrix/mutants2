@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 
-from .player import Player
+from .player import Player, CLASSES
 
 SAVE_PATH = Path(os.path.expanduser('~/.mutants2/save.json'))
 
@@ -17,7 +17,8 @@ def load() -> Player:
             int(k): (v.get("x", 0), v.get("y", 0))
             for k, v in data.get("positions", {}).items()
         }
-        player = Player(year=year)
+        clazz = data.get("class", CLASSES[0])
+        player = Player(year=year, clazz=clazz)
         player.positions.update(positions)
         return player
     except FileNotFoundError:
@@ -35,5 +36,6 @@ def save(player: Player) -> None:
                 str(y): {"x": x, "y": yy}
                 for y, (x, yy) in player.positions.items()
             },
+            "class": player.clazz,
         }
         json.dump(data, fh)

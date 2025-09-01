@@ -2,6 +2,11 @@ from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
 
+# Available player classes. These are simple placeholders for now and do not
+# affect gameplay beyond being tracked and persisted.
+CLASSES = ["Warrior", "Mage", "Wizard", "Thief", "Priest"]
+
+
 @dataclass
 class Player:
     """Player state including position for each year."""
@@ -10,6 +15,7 @@ class Player:
     positions: Dict[int, Tuple[int, int]] = field(
         default_factory=lambda: {2000: (0, 0), 2100: (0, 0)}
     )
+    clazz: str = CLASSES[0]
 
     @property
     def x(self) -> int:
