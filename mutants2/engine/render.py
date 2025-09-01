@@ -4,6 +4,7 @@ from .player import Player
 
 def render(player: Player, world: World) -> None:
     print("---")
+    print(f"Class: {player.clazz}")
     print(f"{player.x}E : {player.y}N")
     grid = world.year(player.year).grid
     neighbors = grid.neighbors(player.x, player.y)
