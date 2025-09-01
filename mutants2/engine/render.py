@@ -1,6 +1,7 @@
 from .world import World
 from .player import Player
 from .senses import SensesCues
+from . import items
 
 
 def render(player: Player, world: World, *, consume_cues: bool = True) -> None:
@@ -12,7 +13,12 @@ def render(player: Player, world: World, *, consume_cues: bool = True) -> None:
     for direction in sorted(neighbors):
         print(f"{direction} - open passage.")
     print("***")
-    print("On the ground lies: ")
+    item_key = world.ground_item(player.year, player.x, player.y)
+    if item_key:
+        name = items.REGISTRY[item_key].name
+        print(f"On the ground lies: {name}")
+    else:
+        print("On the ground lies: (nothing)")
     if consume_cues:
         cues = player.senses.pop()
     else:

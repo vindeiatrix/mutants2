@@ -23,6 +23,7 @@ class Player:
     )
     clazz: str | None = None
     senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
+    inventory: Dict[str, int] = field(default_factory=dict)
 
     @property
     def x(self) -> int:

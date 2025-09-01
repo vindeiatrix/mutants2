@@ -1,14 +1,15 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Set
 
 from .player import Player
+from .world import World
 
 SAVE_PATH = Path(os.path.expanduser('~/.mutants2/save.json'))
 
 
-def load() -> Player:
+def load() -> Tuple[Player, Dict[Tuple[int, int, int], str], Set[int]]:
     try:
         with open(SAVE_PATH) as fh:
             data = json.load(fh)
@@ -20,15 +21,22 @@ def load() -> Player:
         clazz = data.get("class")
         player = Player(year=year, clazz=clazz)
         player.positions.update(positions)
-        # Senses are ephemeral and intentionally not loaded
-        return player
+        player.inventory.update({k: int(v) for k, v in data.get("inventory", {}).items()})
+        ground = {
+            tuple(int(n) for n in key.split(',')): val
+            for key, val in data.get("ground", {}).items()
+        }
+        seeded = {int(y) for y in data.get("seeded_years", [])}
+        return player, ground, seeded
     except FileNotFoundError:
         player = Player()
-        save(player)
-        return player
+        ground: Dict[Tuple[int, int, int], str] = {}
+        seeded: Set[int] = set()
+        save(player, World(ground, seeded))
+        return player, ground, seeded
 
 
-def save(player: Player) -> None:
+def save(player: Player, world: World) -> None:
     SAVE_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(SAVE_PATH, "w") as fh:
         data = {
@@ -38,6 +46,12 @@ def save(player: Player) -> None:
                 for y, (x, yy) in player.positions.items()
             },
             "class": player.clazz,
+            "inventory": {k: v for k, v in player.inventory.items()},
+            "ground": {
+                f"{y},{x},{yy}": item_key
+                for (y, x, yy), item_key in world.ground.items()
+            },
+            "seeded_years": list(world.seeded_years),
             # no senses data; cues are never persisted
         }
         json.dump(data, fh)
