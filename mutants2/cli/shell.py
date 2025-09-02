@@ -2,18 +2,60 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from ..engine import world, persistence, render, items
+from ..engine import world, persistence, items
+from ..engine.render import render_room_view
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.macros import MacroStore
-from ..ui.help import MACROS_HELP
+from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE
 
 
-DIRECTION_ALIASES = {
-    "n": "north", "north": "north",
-    "s": "south", "south": "south",
-    "e": "east", "east": "east",
-    "w": "west", "west": "west",
+CANON = {
+    "look": "look",
+    "travel": "travel",
+    "class": "class",
+    "last": "last",
+    "exit": "exit",
+    "inventory": "inventory",
+    "drop": "drop",
+    "get": "get",
+    "take": "get",
+    "macro": "macro",
+    "help": "help",
+    "do": "do",
+    "debug": "debug",
+    "north": "north",
+    "south": "south",
+    "east": "east",
+    "west": "west",
 }
+
+EXPLICIT_ALIASES = {
+    "n": "north",
+    "s": "south",
+    "e": "east",
+    "w": "west",
+    "i": "inventory",
+    "inv": "inventory",
+}
+
+NONDIR_CANON = [c for c in CANON if c not in ("north", "south", "east", "west")]
+
+
+def resolve_command(token: str) -> str | None:
+    t = token.strip().lower()
+    if not t:
+        return None
+    if t in EXPLICIT_ALIASES:
+        return EXPLICIT_ALIASES[t]
+    if t in CANON:
+        return CANON[t]
+    if any(w.startswith(t) for w in ("north", "south", "east", "west")):
+        return None
+    if len(t) >= 3:
+        matches = {CANON[c] for c in NONDIR_CANON if c.startswith(t)}
+        if len(matches) == 1:
+            return next(iter(matches))
+    return None
 
 
 def class_menu(p, w, *, in_game: bool) -> bool:
@@ -64,43 +106,120 @@ def make_context(*, dev: bool = False):
 
     if p.clazz is None:
         class_menu(p, w, in_game=False)
-    render.render(p, w)
-    context = SimpleNamespace(
-        macro_store=macro_store,
-        running=True,
-    )
+    render_room_view(p, w)
+    context = SimpleNamespace(macro_store=macro_store, running=True)
 
-    def dispatch_game(line: str) -> bool:
+    def handle_macro(rest: str) -> None:
+        if rest.startswith("add "):
+            after = rest[4:]
+            if "=" in after:
+                name_part, script = after.split("=", 1)
+                macro_store.add(name_part.strip(), script.strip())
+            else:
+                print("Usage: macro add <name> = <script>")
+        elif rest.startswith("run "):
+            parts = rest[4:].split()
+            if parts:
+                name = parts[0]
+                args = parts[1:]
+                macro_store.run_named(name, args, dispatch_macro)
+        elif rest == "list":
+            for n in macro_store.list():
+                print(n)
+        elif rest.startswith("show "):
+            name = rest[5:].strip()
+            if name in macro_store.list():
+                print(macro_store.get(name))
+            else:
+                print("No such macro")
+        elif rest.startswith("rm "):
+            macro_store.remove(rest[3:].strip())
+        elif rest == "clear":
+            confirm = input("Clear all macros? type yes to confirm: ").strip().lower()
+            if confirm == "yes":
+                macro_store.clear()
+        elif rest.startswith("echo "):
+            val = rest[5:].strip().lower()
+            macro_store.echo = val == "on"
+        elif rest.startswith("save "):
+            profile = rest[5:].strip()
+            macro_store.save_profile(profile)
+        elif rest.startswith("load "):
+            profile = rest[5:].strip()
+            try:
+                macro_store.load_profile(profile)
+            except FileNotFoundError:
+                print("No such profile")
+        elif rest == "profiles":
+            for n in macro_store.list_profiles():
+                print(n)
+        else:
+            print("Invalid macro command.")
+
+    def handle_travel(args: list[str]) -> bool:
+        if args:
+            try:
+                year = int(args[0])
+            except ValueError:
+                print("Invalid year.")
+                return False
+        else:
+            year = None
+        p.travel(w, year)
+        return True
+
+    def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
-        s = line.strip()
-        parts = s.split()
-        if not parts:
-            return True
-        cmd = parts[0].lower()
-        args = parts[1:]
-
-        direction = DIRECTION_ALIASES.get(cmd)
-        if direction is None:
-            if cmd.startswith("nor"):
-                direction = "north"
-            elif cmd.startswith("sou"):
-                direction = "south"
-            elif cmd.startswith("eas"):
-                direction = "east"
-            elif cmd.startswith("wes"):
-                direction = "west"
-
-        if cmd == "help":
+        if cmd == "look":
+            render_room_view(p, w)
+        elif cmd == "last":
+            if last_move:
+                p.move(last_move, w)
+            render_room_view(p, w)
+        elif cmd == "class":
+            changed = class_menu(p, w, in_game=True)
+            if changed:
+                render_room_view(p, w)
+        elif cmd == "inventory":
+            if p.inventory:
+                for key, count in p.inventory.items():
+                    print(f"{items.REGISTRY[key].name} x{count}")
+            else:
+                print("(empty)")
+        elif cmd == "get":
+            name = " ".join(args)
+            item = items.find_by_name(name)
+            ground_key = w.ground_item(p.year, p.x, p.y)
+            if item and ground_key == item.key:
+                w.set_ground_item(p.year, p.x, p.y, None)
+                p.inventory[item.key] = p.inventory.get(item.key, 0) + 1
+                print(f"You pick up {item.name}.")
+                render_room_view(p, w)
+            else:
+                print("You don't see that here.")
+        elif cmd == "drop":
+            name = " ".join(args)
+            item = items.find_by_name(name)
+            if not item or p.inventory.get(item.key, 0) == 0:
+                print("You don't have that.")
+            elif w.ground_item(p.year, p.x, p.y):
+                print("You can only drop when the ground is empty here.")
+            else:
+                p.inventory[item.key] -= 1
+                if p.inventory[item.key] == 0:
+                    del p.inventory[item.key]
+                w.set_ground_item(p.year, p.x, p.y, item.key)
+                print(f"You drop {item.name}.")
+                render_room_view(p, w)
+        elif cmd == "help":
             topic = " ".join(args).strip().lower() if args else ""
             if topic in {"macros", "macro"}:
                 print(MACROS_HELP)
             else:
-                print(
-                    "Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do"
-                )
-            persistence.save(p, w)
-            return True
-        if cmd == "debug":
+                print("Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do")
+                print()
+                print(ABBREVIATIONS_NOTE)
+        elif cmd == "debug":
             if not dev:
                 print("Debug commands are available only in dev mode.")
             else:
@@ -122,66 +241,25 @@ def make_context(*, dev: bool = False):
                     print("OK.")
                 else:
                     print("Invalid debug command.")
-            persistence.save(p, w)
-            return True
-        elif cmd == "look":
-            render.render(p, w)
-        elif direction in {"north", "south", "east", "west"}:
-            if p.move(direction, w):
-                last_move = direction
-            render.render(p, w)
-        elif cmd == "last":
-            if last_move:
-                p.move(last_move, w)
-                render.render(p, w)
+        elif cmd in {"north", "south", "east", "west"}:
+            if p.move(cmd, w):
+                last_move = cmd
+            render_room_view(p, w)
         elif cmd == "travel":
-            year = int(args[0]) if args else None
-            p.travel(w, year)
-        elif cmd == "class":
-            changed = class_menu(p, w, in_game=True)
-            if changed:
-                render.render(p, w)
-        elif cmd in {"inventory", "inv", "i"}:
-            if p.inventory:
-                for key, count in p.inventory.items():
-                    print(f"{items.REGISTRY[key].name} x{count}")
-            else:
-                print("(empty)")
-        elif cmd in {"get", "take"}:
-            name = " ".join(args)
-            item = items.find_by_name(name)
-            ground_key = w.ground_item(p.year, p.x, p.y)
-            if item and ground_key == item.key:
-                w.set_ground_item(p.year, p.x, p.y, None)
-                p.inventory[item.key] = p.inventory.get(item.key, 0) + 1
-                print(f"You pick up {item.name}.")
-                render.render(p, w)
-            else:
-                print("You don't see that here.")
-        elif cmd == "drop":
-            name = " ".join(args)
-            item = items.find_by_name(name)
-            if not item or p.inventory.get(item.key, 0) == 0:
-                print("You don't have that.")
-            elif w.ground_item(p.year, p.x, p.y):
-                print("You can only drop when the ground is empty here.")
-            else:
-                p.inventory[item.key] -= 1
-                if p.inventory[item.key] == 0:
-                    del p.inventory[item.key]
-                w.set_ground_item(p.year, p.x, p.y, item.key)
-                print(f"You drop {item.name}.")
-                render.render(p, w)
-        elif cmd in {"exit", "quit"}:
+            ok = handle_travel(args)
+            if ok:
+                render_room_view(p, w)
+        elif cmd == "exit":
             print("Goodbye.")
             context.running = False
             return False
         else:
+            print("Unknown command.")
             return False
         persistence.save(p, w)
         return True
 
-    def try_dispatch_builtin(cmd_raw: str) -> bool:
+    def dispatch_macro(cmd_raw: str) -> bool:
         cmd_raw = cmd_raw.strip()
         if not cmd_raw:
             return True
@@ -191,80 +269,34 @@ def make_context(*, dev: bool = False):
                 parts = content.split()
                 name = parts[0]
                 args = parts[1:]
-                macro_store.run_named(name, args, try_dispatch_builtin)
+                macro_store.run_named(name, args, dispatch_macro)
             return True
         if cmd_raw.startswith("do "):
             script = cmd_raw[3:].strip()
-            macro_store.run(script, [], try_dispatch_builtin)
+            macro_store.run(script, [], dispatch_macro)
             return True
-        if cmd_raw.startswith("macro"):
-            rest = cmd_raw[5:].strip()
-            if rest.startswith("add "):
-                after = rest[4:]
-                if "=" in after:
-                    name_part, script = after.split("=", 1)
-                    macro_store.add(name_part.strip(), script.strip())
-                else:
-                    print("Usage: macro add <name> = <script>")
-            elif rest.startswith("run "):
-                parts = rest[4:].split()
-                if parts:
-                    name = parts[0]
-                    args = parts[1:]
-                    macro_store.run_named(name, args, try_dispatch_builtin)
-            elif rest == "list":
-                for n in macro_store.list():
-                    print(n)
-            elif rest.startswith("show "):
-                name = rest[5:].strip()
-                if name in macro_store.list():
-                    print(macro_store.get(name))
-                else:
-                    print("No such macro")
-            elif rest.startswith("rm "):
-                macro_store.remove(rest[3:].strip())
-            elif rest == "clear":
-                confirm = input("Clear all macros? type yes to confirm: ").strip().lower()
-                if confirm == "yes":
-                    macro_store.clear()
-            elif rest.startswith("echo "):
-                val = rest[5:].strip().lower()
-                macro_store.echo = val == "on"
-            elif rest.startswith("save "):
-                profile = rest[5:].strip()
-                macro_store.save_profile(profile)
-            elif rest.startswith("load "):
-                profile = rest[5:].strip()
-                try:
-                    macro_store.load_profile(profile)
-                except FileNotFoundError:
-                    print("No such profile")
-            elif rest == "profiles":
-                for n in macro_store.list_profiles():
-                    print(n)
-            else:
-                print("Invalid macro command.")
+        parts = cmd_raw.split(maxsplit=1)
+        head = parts[0]
+        tail = parts[1] if len(parts) > 1 else ""
+        cmd = resolve_command(head)
+        if cmd is None:
+            print("Unknown command.")
+            return False
+        if cmd == "macro":
+            handle_macro(tail)
             return True
-        return dispatch_game(cmd_raw)
+        args = tail.split()
+        return handle_command(cmd, args)
 
     def dispatch_line(line: str) -> bool:
-        s = line.strip()
-        if not s:
-            return False
-        if s in ("exit", "quit"):
-            print("Goodbye.")
+        dispatch_macro(line)
+        if not context.running:
             return True
-        handled = try_dispatch_builtin(s)
-        if handled:
-            if not context.running:
-                return True
-            return False
-        print("Unknown command.")
         return False
 
-    context.run_script = lambda script: macro_store.expand_and_run_script(script, try_dispatch_builtin)
+    context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch_macro)
     context.dispatch_line = dispatch_line
-    context.try_dispatch_builtin = try_dispatch_builtin
+    context.try_dispatch_builtin = dispatch_macro
 
     return context
 

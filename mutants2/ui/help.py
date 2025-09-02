@@ -49,3 +49,11 @@ Examples
   do 7e3n; look
 """
 
+
+ABBREVIATIONS_NOTE = """Abbreviations
+-------------
+• Most commands accept the first 3 letters, e.g. `tra 2000`, `loo`, `cla`, `las`, `exi`, `inv`.
+• Directions: use 1-letter (`n/s/e/w`) or the full word (`north/south/east/west`).
+  Partials like `nor` or `sou` are not accepted.
+"""
+
