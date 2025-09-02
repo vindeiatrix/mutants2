@@ -24,6 +24,8 @@ class Player:
     clazz: str | None = None
     senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
     inventory: Dict[str, int] = field(default_factory=dict)
+    hp: int = 10
+    max_hp: int = 10
 
     @property
     def x(self) -> int:
@@ -54,4 +56,15 @@ class Player:
             self.year = target_year
         world.year(self.year)  # ensure world generation
         self.positions[self.year] = (0, 0)
+
+    # Combat helpers ---------------------------------------------------------
+
+    def heal_full(self) -> None:
+        self.hp = self.max_hp
+
+    def take_damage(self, dmg: int) -> None:
+        self.hp = max(0, self.hp - max(0, dmg))
+
+    def is_dead(self) -> bool:
+        return self.hp <= 0
 

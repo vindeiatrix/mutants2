@@ -1,7 +1,7 @@
 from .world import World
 from .player import Player
 from .senses import SensesCues
-from . import items
+from . import items, monsters
 
 
 def _adjacent_dirs() -> tuple[str, ...]:
@@ -31,6 +31,10 @@ def render_room_view(player: Player, world: World, *, consume_cues: bool = True)
     for d in ("north", "south", "east", "west"):
         if d in cues.shadow_dirs:
             lines.append(f"A shadow flickers to the {d}.")
+    m = world.monster_here(player.year, player.x, player.y)
+    if m:
+        name = monsters.REGISTRY[m["key"]].name
+        lines.append(f"A {name} is here.")
     for line in lines:
         print(line)
     grid = world.year(player.year).grid

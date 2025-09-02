@@ -26,6 +26,9 @@ CANON = {
     "help": "help",
     "do": "do",
     "debug": "debug",
+    "attack": "attack",
+    "rest": "rest",
+    "status": "status",
     "north": "north",
     "south": "south",
     "east": "east",
@@ -121,6 +124,9 @@ def make_context(p, w, save, *, dev: bool = False):
         pass
     last_move = None
 
+    PLAYER_DMG = 2
+    MONSTER_DMG = 1
+
     context = SimpleNamespace(macro_store=macro_store, running=True, player=p, world=w, save=save)
 
     def handle_macro(rest: str) -> None:
@@ -181,6 +187,36 @@ def make_context(p, w, save, *, dev: bool = False):
             year = None
         p.travel(w, year)
         return True
+
+    def handle_attack() -> None:
+        m = w.monster_here(p.year, p.x, p.y)
+        if not m:
+            print("There is nothing here to attack.")
+            return
+        dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
+        if dead:
+            print("You defeat the Mutant.")
+            render_room_view(p, w)
+            return
+        p.take_damage(MONSTER_DMG)
+        print(f"The Mutant hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
+        if p.is_dead():
+            print("You have died.")
+            p.heal_full()
+            p.positions[p.year] = (0, 0)
+        render_room_view(p, w)
+
+    def handle_rest() -> None:
+        if w.monster_here(p.year, p.x, p.y):
+            print("You can’t rest while a monster is here.")
+            return
+        p.heal_full()
+        print(f"You rest and recover. (HP: {p.hp}/{p.max_hp})")
+
+    def handle_status() -> None:
+        print(
+            f"Class: {p.clazz} | HP: {p.hp}/{p.max_hp} | Year: {p.year} @ {p.x}E : {p.y}N"
+        )
 
     def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
@@ -255,6 +291,12 @@ def make_context(p, w, save, *, dev: bool = False):
                         del p.inventory[item.key]
                     w.set_ground_item(p.year, p.x, p.y, item.key)
                     print(f"You drop {item.name}.")
+        elif cmd == "attack":
+            handle_attack()
+        elif cmd == "rest":
+            handle_rest()
+        elif cmd == "status":
+            handle_status()
         elif cmd == "help":
             topic = " ".join(args).strip().lower() if args else ""
             if topic in {"macros", "macro"}:
