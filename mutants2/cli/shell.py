@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 import datetime
 
-from ..engine import world, persistence, items
+from ..engine import world, persistence, items, monsters
 from ..engine.render import render_room_view
 from ..engine.player import Player, CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.gen import daily_topup_if_needed
@@ -127,7 +127,9 @@ def make_context(p, w, save, *, dev: bool = False):
     PLAYER_DMG = 2
     MONSTER_DMG = 1
 
-    context = SimpleNamespace(macro_store=macro_store, running=True, player=p, world=w, save=save)
+    context = SimpleNamespace(
+        macro_store=macro_store, running=True, player=p, world=w, save=save, _footsteps_this_tick=False
+    )
 
     def handle_macro(rest: str) -> None:
         if rest.startswith("add "):
@@ -188,6 +190,36 @@ def make_context(p, w, save, *, dev: bool = False):
         p.travel(w, year)
         return True
 
+    def handle_look(args: list[str]) -> bool:
+        if not args:
+            render_room_view(p, w, context)
+            return False
+        d = parse_dir(args[0])
+        if d:
+            if not w.is_open(p.year, p.x, p.y, d):
+                print("You can't look that way.")
+                return False
+            ax, ay = w.step(p.x, p.y, d)
+            tmp = Player()
+            tmp.clazz = p.clazz
+            tmp.year = p.year
+            tmp.positions = {p.year: (ax, ay)}
+            render_room_view(tmp, w, context, consume_cues=False)
+            return False
+        q = " ".join(args)
+        ground_names = w.items_here(p.year, p.x, p.y)
+        inv_names = [items.REGISTRY[k].name for k in p.inventory]
+        name = items.resolve_prefix(q, ground_names, inv_names)
+        if name:
+            print(items.describe(name))
+            return False
+        mkey = w.resolve_monster_prefix_nearby(p.year, p.x, p.y, q)
+        if mkey:
+            print(monsters.describe(mkey))
+            return False
+        print("You can't look that way.")
+        return False
+
     def handle_attack() -> None:
         m = w.monster_here(p.year, p.x, p.y)
         if not m:
@@ -196,7 +228,7 @@ def make_context(p, w, save, *, dev: bool = False):
         dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
         if dead:
             print("You defeat the Mutant.")
-            render_room_view(p, w)
+            render_room_view(p, w, context)
             return
         p.take_damage(MONSTER_DMG)
         print(f"The Mutant hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
@@ -204,7 +236,7 @@ def make_context(p, w, save, *, dev: bool = False):
             print("You have died.")
             p.heal_full()
             p.positions[p.year] = (0, 0)
-        render_room_view(p, w)
+        render_room_view(p, w, context)
 
     def handle_rest() -> None:
         if w.monster_here(p.year, p.x, p.y):
@@ -220,28 +252,23 @@ def make_context(p, w, save, *, dev: bool = False):
 
     def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
+        turn = False
+        footsteps_checked = False
         if cmd == "look":
-            if args:
-                d = parse_dir(args[0])
-                if not d or not w.is_open(p.year, p.x, p.y, d):
-                    print("You can't look that way.")
-                else:
-                    ax, ay = w.step(p.x, p.y, d)
-                    tmp = Player()
-                    tmp.clazz = p.clazz
-                    tmp.year = p.year
-                    tmp.positions = {p.year: (ax, ay)}
-                    render_room_view(tmp, w, consume_cues=False)
-            else:
-                render_room_view(p, w)
+            handle_look(args)
         elif cmd == "last":
+            moved = False
             if last_move:
-                p.move(last_move, w)
-            render_room_view(p, w)
+                moved = p.move(last_move, w)
+            if moved:
+                context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4)
+                footsteps_checked = True
+                turn = True
+            render_room_view(p, w, context)
         elif cmd == "class":
             changed = class_menu(p, w, save, in_game=True)
             if changed:
-                render_room_view(p, w)
+                render_room_view(p, w, context)
         elif cmd == "inventory":
             if p.inventory:
                 for key, count in p.inventory.items():
@@ -253,7 +280,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 print(GET_WHAT)
                 return False
             ground_key = w.ground_item(p.year, p.x, p.y)
-            ground_names = []
+            ground_names: list[str] = []
             if ground_key:
                 ground_names.append(items.REGISTRY[ground_key].name)
             name, amb = items.resolve_item_prefix(" ".join(args), ground_names)
@@ -269,6 +296,7 @@ def make_context(p, w, save, *, dev: bool = False):
                     print(f"You pick up {item.name}.")
                 else:
                     print("You don't see that here.")
+            turn = True
         elif cmd == "drop":
             if not args:
                 print(DROP_WHAT)
@@ -291,10 +319,13 @@ def make_context(p, w, save, *, dev: bool = False):
                         del p.inventory[item.key]
                     w.set_ground_item(p.year, p.x, p.y, item.key)
                     print(f"You drop {item.name}.")
+            turn = True
         elif cmd == "attack":
             handle_attack()
+            turn = True
         elif cmd == "rest":
             handle_rest()
+            turn = True
         elif cmd == "status":
             handle_status()
         elif cmd == "help":
@@ -375,13 +406,20 @@ def make_context(p, w, save, *, dev: bool = False):
                 else:
                     print("Invalid debug command.")
         elif cmd in {"north", "south", "east", "west"}:
-            if p.move(cmd, w):
+            moved = p.move(cmd, w)
+            if moved:
                 last_move = cmd
-            render_room_view(p, w)
+                turn = True
+            context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4) if moved else False
+            footsteps_checked = True
+            render_room_view(p, w, context)
         elif cmd == "travel":
             ok = handle_travel(args)
             if ok:
-                render_room_view(p, w)
+                turn = True
+                context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4)
+                footsteps_checked = True
+                render_room_view(p, w, context)
         elif cmd == "exit":
             print("Goodbye.")
             context.running = False
@@ -389,6 +427,10 @@ def make_context(p, w, save, *, dev: bool = False):
         else:
             print("Unknown command.")
             return False
+        if turn and not footsteps_checked:
+            context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4)
+        elif not turn:
+            context._footsteps_this_tick = False
         persistence.save(p, w, save)
         return True
 

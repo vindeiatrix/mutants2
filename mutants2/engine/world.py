@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, Tuple, Set, Optional, Iterable
 
 from .senses import Direction
-from . import monsters as monsters_mod
+from . import monsters as monsters_mod, items as items_mod
 Coordinate = Tuple[int, int]
 
 
@@ -78,6 +78,7 @@ class World:
 
             global_seed = gen.SEED
         self.global_seed = global_seed
+        self._recent_monster_moves: list[tuple[int, int, int, int, int]] = []
 
     def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
         return self.ground.get((year, x, y))
@@ -88,6 +89,12 @@ class World:
             self.ground.pop(key, None)
         else:
             self.ground[key] = item_key
+
+    def items_here(self, year: int, x: int, y: int) -> list[str]:
+        key = self.ground_item(year, x, y)
+        if not key:
+            return []
+        return [items_mod.REGISTRY[key].name]
 
     # Helpers for daily top-up -------------------------------------------------
 
@@ -159,6 +166,49 @@ class World:
 
     def monster_count(self, year: int) -> int:
         return sum(1 for (yr, _, _), _ in self._monsters.items() if yr == year)
+
+    def adjacent_monster_names(self, year: int, x: int, y: int) -> list[tuple[str, str]]:
+        results: list[tuple[str, str]] = []
+        for d in ("east", "west", "north", "south"):
+            if self.is_open(year, x, y, d):
+                ax, ay = self.step(x, y, d)
+                m = self.monster_here(year, ax, ay)
+                if m:
+                    key = m["key"]
+                    name = monsters_mod.REGISTRY[key].name
+                    results.append((name, key))
+        return results
+
+    def resolve_monster_prefix_nearby(self, year: int, x: int, y: int, query: str) -> str | None:
+        candidates: list[str] = []
+        name_to_key: dict[str, str] = {}
+        here = self.monster_here(year, x, y)
+        if here:
+            key = here["key"]
+            name = monsters_mod.REGISTRY[key].name
+            candidates.append(name)
+            name_to_key[name] = key
+        for name, key in self.adjacent_monster_names(year, x, y):
+            candidates.append(name)
+            name_to_key[name] = key
+        match = monsters_mod.resolve_prefix(query, candidates)
+        if match:
+            return name_to_key[match]
+        return None
+
+    def monsters_moved_near(self, year: int, x: int, y: int, radius: int = 4) -> bool:
+        hit = False
+        for yr, x0, y0, x1, y1 in self._recent_monster_moves:
+            if yr != year:
+                continue
+            if abs(x0 - x) + abs(y0 - y) <= radius or abs(x1 - x) + abs(y1 - y) <= radius:
+                hit = True
+                break
+        self._recent_monster_moves.clear()
+        return hit
+
+    def force_monster_move_within4(self, year: int = 2000) -> None:
+        self._recent_monster_moves.append((year, 1, 0, 1, 1))
 
     _DIRS: dict[Direction, tuple[int, int]] = {
         "north": (0, 1),

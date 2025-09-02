@@ -4,26 +4,26 @@ from .senses import SensesCues
 from . import items, monsters
 
 
-def _adjacent_dirs() -> tuple[str, ...]:
-    return ("east", "west", "north", "south")
-
-
-def senses_lines_for_tile(world: World, year: int, x: int, y: int) -> list[str]:
-    lines: list[str] = []
-    for d in _adjacent_dirs():
+def shadow_line(world: World, year: int, x: int, y: int) -> list[str]:
+    for d in ("east", "west", "north", "south"):
         if world.is_open(year, x, y, d):
             ax, ay = world.step(x, y, d)
             if world.has_monster(year, ax, ay):
-                lines.append(f"A shadow flickers to the {d}.")
-                break
-    return lines
+                return [f"A shadow flickers to the {d}."]
+    return []
 
 
-def render_room_view(player: Player, world: World, *, consume_cues: bool = True) -> None:
+def footsteps_line(ctx) -> list[str]:
+    return ["You hear footsteps nearby."] if getattr(ctx, "_footsteps_this_tick", False) else []
+
+
+def render_room_view(player: Player, world: World, context=None, *, consume_cues: bool = True) -> None:
     print("---")
     print(f"Class: {player.clazz}")
     print(f"{player.x}E : {player.y}N")
-    lines = senses_lines_for_tile(world, player.year, player.x, player.y)
+    lines: list[str] = []
+    lines.extend(shadow_line(world, player.year, player.x, player.y))
+    lines.extend(footsteps_line(context))
     if consume_cues:
         cues = player.senses.pop()
     else:
@@ -48,6 +48,8 @@ def render_room_view(player: Player, world: World, *, consume_cues: bool = True)
         print(f"On the ground lies: {name}")
     else:
         print("On the ground lies: (nothing)")
+    if context is not None:
+        context._footsteps_this_tick = False
 
 
 # Backwards compatibility
