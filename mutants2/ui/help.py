@@ -12,25 +12,6 @@ Basics
   macro rm <name> | macro clear    Remove one or all macros (clear asks to confirm)
   macro echo on|off                Toggle echo of expanded commands (default: on)
 
-Key bindings
-------------
-  macro bind <key> = <script>      Bind a key to a script
-  macro unbind <key>               Remove a binding
-  macro bindings                   List current bindings
-  macro keys on|off                Enable/disable key dispatch
-  /macro <key> {<script>}          Inline bind (MUDMaster style)
-  Supported keys: arrows, function keys f1..f12, home/end/pageup/pagedown, tab, enter, escape, space, letters, digits, punctuation.
-  Keypad aliases: kp0..kp9, kp_plus, kp_minus, kp_mul, kp_div, kp_enter, kp_dot (fallback to top-row if indistinguishable)
-
-  Behavior:
-    • Bindings fire on single keypress when the line is empty. Use `macro keys debug on` to
-      print the key names seen by the shell.
-    • In many terminals, keypad digits behave like top-row digits. Binding kp4 will also
-      trigger on 4 when the line is empty.
-    • If your terminal doesn't support single-keypress interception, type the key and
-      press Enter (e.g., 4 then Enter for kp4).
-
-
 Profiles (saved outside the savegame)
 -------------------------------------
   macro save <profile>             Save to ~/.mutants2/macros/<profile>.json
@@ -67,3 +48,4 @@ Examples
 
   do 7e3n; look
 """
+

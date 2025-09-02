@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import re
 from types import SimpleNamespace
 
 from ..engine import world, persistence, render, items
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
-from ..engine.macros import MacroStore, resolve_bound_script
-from .keynames import normalize_key
+from ..engine.macros import MacroStore
 from ..ui.help import MACROS_HELP
 
 
@@ -16,28 +14,6 @@ DIRECTION_ALIASES = {
     "e": "east", "east": "east",
     "w": "west", "west": "west",
 }
-
-
-def is_single_key(s: str) -> bool:
-    s = s.lower()
-    if len(s) == 1:
-        return True
-    if s.startswith("f") and s[1:].isdigit():
-        i = int(s[1:])
-        return 1 <= i <= 12
-    return s in {
-        "up",
-        "down",
-        "left",
-        "right",
-        "home",
-        "end",
-        "pageup",
-        "pagedown",
-        "tab",
-        "escape",
-        "space",
-    }
 
 
 def class_menu(p, w, *, in_game: bool) -> bool:
@@ -76,13 +52,7 @@ def class_menu(p, w, *, in_game: bool) -> bool:
         return True
 
 
-def make_context(
-    *,
-    dev: bool = False,
-    macro_profile: str | None = None,
-    repl_mode: str = "Fallback",
-    repl_reason: str | None = None,
-):
+def make_context(*, dev: bool = False):
     p, ground, seeded = persistence.load()
     w = world.World(ground, seeded)
     macro_store = MacroStore()
@@ -90,22 +60,14 @@ def make_context(
         macro_store.load_profile("default")
     except FileNotFoundError:
         pass
-    if macro_profile:
-        try:
-            macro_store.load_profile(macro_profile)
-        except FileNotFoundError:
-            pass
     last_move = None
 
     if p.clazz is None:
         class_menu(p, w, in_game=False)
     render.render(p, w)
-    macro_store.repl_mode = repl_mode
     context = SimpleNamespace(
         macro_store=macro_store,
         running=True,
-        repl_mode=repl_mode,
-        repl_reason=repl_reason,
     )
 
     def dispatch_game(line: str) -> bool:
@@ -223,21 +185,6 @@ def make_context(
         cmd_raw = cmd_raw.strip()
         if not cmd_raw:
             return True
-        m = re.fullmatch(r"/macro\s+(\S+)\s+\{(.+)\}\s*", cmd_raw)
-        if m:
-            key = normalize_key(m.group(1))
-            if key is None:
-                print("Unknown key name.")
-            else:
-                macro_store.bind(key, m.group(2))
-            return True
-        if cmd_raw.startswith("press "):
-            key = normalize_key(cmd_raw[6:].strip())
-            if key is None:
-                print("Unknown key name.")
-            else:
-                macro_store.press(key, try_dispatch_builtin)
-            return True
         if cmd_raw.startswith("@"):
             content = cmd_raw[1:].strip()
             if content:
@@ -276,43 +223,6 @@ def make_context(
                     print("No such macro")
             elif rest.startswith("rm "):
                 macro_store.remove(rest[3:].strip())
-            elif rest.startswith("bind "):
-                after = rest[5:]
-                if "=" in after:
-                    key_part, script = after.split("=", 1)
-                    key = normalize_key(key_part.strip())
-                    if key is None:
-                        print("Unknown key name.")
-                    else:
-                        macro_store.bind(key, script.strip())
-                else:
-                    print("Usage: macro bind <key> = <script>")
-            elif rest.startswith("unbind "):
-                key = normalize_key(rest[7:].strip())
-                if key is None:
-                    print("Unknown key name.")
-                else:
-                    macro_store.unbind(key)
-            elif rest == "bindings":
-                for k, v in sorted(macro_store.bindings().items()):
-                    print(f"{k} = {v}")
-            elif rest.startswith("keys"):
-                args2 = rest[4:].strip().split()
-                if args2 and args2[0] == "panic":
-                    macro_store.keys_enabled = False
-                    print("Keybindings disabled for this session.")
-                elif args2 and args2[0] in {"on", "off"}:
-                    macro_store.keys_enabled = args2[0] == "on"
-                elif len(args2) == 2 and args2[0] == "debug":
-                    macro_store.keys_debug = args2[1].lower() == "on"
-                    print("OK.")
-                elif args2 and args2[0] == "status":
-                    reason = f" ({context.repl_reason})" if context.repl_reason else ""
-                    print(
-                        f"mode={context.repl_mode}{reason}, keys_enabled={macro_store.keys_enabled}, debug={getattr(macro_store, 'keys_debug', False)}"
-                    )
-                else:
-                    print("Usage: macro keys on|off | debug on|off | status | panic")
             elif rest == "clear":
                 confirm = input("Clear all macros? type yes to confirm: ").strip().lower()
                 if confirm == "yes":
@@ -349,13 +259,6 @@ def make_context(
             if not context.running:
                 return True
             return False
-        if macro_store.keys_enabled and is_single_key(s):
-            script = resolve_bound_script(macro_store, s.lower())
-            if script:
-                context.run_script(script)
-                if not context.running:
-                    return True
-                return False
         print("Unknown command.")
         return False
 
