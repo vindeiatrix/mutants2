@@ -63,8 +63,10 @@ Look
 
 Senses
 ------
-• “A shadow flickers to the <dir>.” — a monster is in that adjacent open room.
-• “You hear footsteps nearby.” — a monster moved within about four tiles this turn.
+• LOOK takes a turn. Monsters may move after each of your turns.
+• You may see multiple shadow directions (“west, north”). Footsteps and yelling only occur when something moved.
+• “Faint … far to the <dir>” means farther away; “Loud … to the <dir>” means closer.
+• When a monster enters your room you’ll see: “<Name> has just arrived from the <dir>.” and “<Name> is here.”
 """
 
 

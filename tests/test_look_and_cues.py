@@ -29,7 +29,7 @@ def test_shadow_only_adjacent_open():
     w.place_monster(2000, 1, 0, "mutant")
     p = Player()
     out = capture_render(w, p)
-    assert "shadow flickers to the east" in out.lower()
+    assert "shadows to the east" in out.lower()
 
 
 def test_no_shadow_two_away():
@@ -38,7 +38,7 @@ def test_no_shadow_two_away():
     w.place_monster(2000, 2, 0, "mutant")
     p = Player()
     out = capture_render(w, p)
-    assert "shadow flickers" not in out.lower()
+    assert "shadows to" not in out.lower()
 
 
 def test_no_shadow_through_wall():
@@ -49,7 +49,7 @@ def test_no_shadow_through_wall():
     w.place_monster(2000, 1, 0, "mutant")
     p = Player()
     out = capture_render(w, p)
-    assert "shadow flickers" not in out.lower()
+    assert "shadows to" not in out.lower()
 
 
 def test_density_tripled():

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-
 from .items import norm_name
+
 
 @dataclass(frozen=True)
 class MonsterDef:
@@ -16,6 +16,19 @@ REGISTRY = {
 }
 
 SPAWN_KEYS = tuple(REGISTRY.keys())
+
+
+_next_id = 1
+
+
+def new_name(key: str) -> str:
+    """Return a unique display name for a monster instance."""
+
+    global _next_id
+    base = REGISTRY[key].name
+    name = f"{base}-{_next_id}"
+    _next_id += 1
+    return name
 
 
 def resolve_prefix(query: str, names: list[str]) -> str | None:

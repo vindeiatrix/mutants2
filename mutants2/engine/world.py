@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple, Set, Optional, Iterable
+from typing import Dict, Tuple, Set, Optional, Iterable, Iterator
 
 from .senses import Direction
 from . import monsters as monsters_mod, items as items_mod
 Coordinate = Tuple[int, int]
+
+ORDER = ("east", "west", "north", "south")
+DIRV = {"east": (1, 0), "west": (-1, 0), "north": (0, 1), "south": (0, -1)}
 
 
 @dataclass
@@ -56,6 +59,7 @@ class World:
         monsters: Optional[Dict[Tuple[int, int, int], dict]] = None,
         *,
         global_seed: int | None = None,
+        turn: int = 0,
     ):
         self.years: Dict[int, Year] = {}
         self.ground: Dict[Tuple[int, int, int], list[str]] = {}
@@ -72,19 +76,29 @@ class World:
                 if isinstance(data, dict):
                     key = data.get("key")
                     hp = data.get("hp")
+                    name = data.get("name")
+                    aggro = data.get("aggro", True)
                 else:
                     key = data
                     hp = None
+                    name = None
+                    aggro = True
                 if key is None:
                     continue
                 base = monsters_mod.REGISTRY[key].base_hp
-                self._monsters[coord] = {"key": key, "hp": int(hp) if hp is not None else base}
+                self._monsters[coord] = {
+                    "key": key,
+                    "hp": int(hp) if hp is not None else base,
+                    "name": name or monsters_mod.new_name(key),
+                    "aggro": bool(aggro),
+                }
         if global_seed is None:
             from . import gen
 
             global_seed = gen.SEED
         self.global_seed = global_seed
         self._recent_monster_moves: list[tuple[int, int, int, int, int]] = []
+        self.turn = turn
 
     def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
         items = self.ground.get((year, x, y))
@@ -157,6 +171,11 @@ class World:
             if yr == year
         }
 
+    def monster_positions(self, year: int) -> Iterator[tuple[int, int, dict]]:
+        for (yr, x, y), data in self._monsters.items():
+            if yr == year:
+                yield (x, y, data)
+
     def has_monster(self, year: int, x: int, y: int) -> bool:
         return (year, x, y) in self._monsters
 
@@ -172,12 +191,22 @@ class World:
         if coord in self._monsters:
             return False
         base = monsters_mod.REGISTRY[key].base_hp
-        self._monsters[coord] = {"key": key, "hp": base}
+        self._monsters[coord] = {
+            "key": key,
+            "hp": base,
+            "name": monsters_mod.new_name(key),
+            "aggro": True,
+        }
         return True
 
     def ensure_monster(self, year: int, x: int, y: int, key: str) -> None:
         base = monsters_mod.REGISTRY[key].base_hp
-        self._monsters[(year, x, y)] = {"key": key, "hp": base}
+        self._monsters[(year, x, y)] = {
+            "key": key,
+            "hp": base,
+            "name": monsters_mod.new_name(key),
+            "aggro": True,
+        }
 
     def damage_monster(self, year: int, x: int, y: int, dmg: int) -> bool:
         coord = (year, x, y)
@@ -196,6 +225,70 @@ class World:
 
     def monster_count(self, year: int) -> int:
         return sum(1 for (yr, _, _), _ in self._monsters.items() if yr == year)
+
+    # Movement ---------------------------------------------------------------
+
+    def move_monsters_one_tick(self, year: int, player) -> tuple[list[str], str | None, str | None]:
+        arrivals_msgs: list[str] = []
+        foot_dir: str | None = None
+        yell_dir: str | None = None
+
+        occ = {(x, y) for (x, y, _) in self.monster_positions(year)}
+        px, py = player.x, player.y
+
+        def dir_to(px: int, py: int, tx: int, ty: int) -> str:
+            dx, dy = tx - px, ty - py
+            if abs(dx) >= abs(dy):
+                return "east" if dx > 0 else "west"
+            return "south" if dy > 0 else "north"
+
+        for (x, y, data) in list(self.monster_positions(year)):
+            if not data.get("aggro", True):
+                continue
+            base_d = abs(px - x) + abs(py - y)
+            cands = []
+            for d in ORDER:
+                if not self.is_open(year, x, y, d):
+                    continue
+                nx, ny = x + DIRV[d][0], y + DIRV[d][1]
+                if (nx, ny) in occ:
+                    continue
+                new_d = abs(px - nx) + abs(py - ny)
+                if new_d < base_d:
+                    cands.append((d, nx, ny, new_d))
+            if not cands:
+                continue
+            cands.sort(key=lambda t: (t[3], ORDER.index(t[0])))
+            d, nx, ny, _ = cands[0]
+            del self._monsters[(year, x, y)]
+            self._monsters[(year, nx, ny)] = data
+            occ.remove((x, y))
+            occ.add((nx, ny))
+            if (nx, ny) == (px, py):
+                arrivals_msgs.append(f"{data['name']} has just arrived from the {d}.")
+            dist = abs(px - nx) + abs(py - ny)
+            dcard = dir_to(px, py, nx, ny)
+            if 3 <= dist <= 6:
+                if foot_dir is None:
+                    foot_dir = f"faint far {dcard}"
+                if yell_dir is None:
+                    yell_dir = f"faint far {dcard}"
+            elif dist == 2:
+                if foot_dir is None:
+                    foot_dir = f"loud {dcard}"
+                if yell_dir is None:
+                    yell_dir = f"loud {dcard}"
+
+        return arrivals_msgs, foot_dir, yell_dir
+
+    def shadow_dirs(self, year: int, x: int, y: int) -> list[str]:
+        dirs: list[str] = []
+        for d in ORDER:
+            if self.is_open(year, x, y, d):
+                nx, ny = x + DIRV[d][0], y + DIRV[d][1]
+                if self.has_monster(year, nx, ny):
+                    dirs.append(d)
+        return dirs
 
     def adjacent_monster_names(self, year: int, x: int, y: int) -> list[tuple[str, str]]:
         results: list[tuple[str, str]] = []
