@@ -33,14 +33,15 @@ def test_pickup_and_drop_roundtrip(tmp_path):
     p = Player()
     w = World({(2000, 0, 0): 'ion_decay'}, {2000})
     persistence.save(p, w)
-    result = _run_game(['get Ion-Decay', 'inventory', 'drop Ion-Decay', 'inventory', 'exit'], tmp_path)
+    result = _run_game(['get Ion-Decay', 'look', 'inventory', 'drop Ion-Decay', 'look', 'inventory', 'exit'], tmp_path)
     out = result.stdout
     assert 'You pick up Ion-Decay.' in out
     assert 'On the ground lies: (nothing)' in out
     assert 'Ion-Decay x1' in out
     assert 'You drop Ion-Decay.' in out
-    assert 'On the ground lies: Ion-Decay' in out
-    assert '(empty)' in out.split('You drop Ion-Decay.')[-1]
+    after = out.split('You drop Ion-Decay.')[-1]
+    assert 'On the ground lies: Ion-Decay' in after
+    assert '(empty)' in after
 
 
 def test_inventory_rendering(tmp_path):

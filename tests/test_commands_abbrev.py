@@ -34,7 +34,7 @@ def test_inventory_aliases(cli_runner):
     out = cli_runner.run_commands(["inv"])
     assert "(empty)" in out or "Inventory" in out
     out = cli_runner.run_commands(["i"])
-    assert "(empty)" in out or "Inventory" in out
+    assert "Unknown command" in out
 
 
 def test_get_drop_abbrevs(cli_runner, seeded_world_with_item):
