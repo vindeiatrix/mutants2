@@ -15,15 +15,6 @@ def _fallback_char_for(key: str) -> str | None:
     return key if len(key) == 1 and key.isprintable() else None
 
 
-def _event_app():
-    from prompt_toolkit.application.current import get_app
-    return get_app()
-
-
-def _buffer_empty() -> bool:
-    return _event_app().current_buffer.text == ""
-
-
 def _keys_enabled(store) -> bool:
     return getattr(store, "keys_enabled", True)
 
@@ -50,6 +41,20 @@ class PtkRepl:
         self.core_bindings = KeyBindings()
         self.dynamic_bindings = KeyBindings()
 
+    def _run_script_now(self, app, script: str) -> None:
+        """Suspend the prompt, run the script, then refresh the prompt UI."""
+
+        def _fn():
+            self.ctx.run_script(script)
+            import sys
+            try:
+                sys.stdout.flush()
+            except Exception:
+                pass
+
+        app.run_in_terminal(_fn, in_executor=False)
+        app.invalidate()
+
     def _install_core_bindings(self) -> None:
         kb = self.core_bindings
 
@@ -70,16 +75,17 @@ class PtkRepl:
         for ch in chars:
             @kb.add(ch, eager=True)
             def _(event, _ch=ch):
-                if not _keys_enabled(store) or not _buffer_empty():
+                app = event.app
+                if app.current_buffer.text or not _keys_enabled(store):
                     return
                 script = resolve_bound_script(store, _ch)
                 if getattr(store, "keys_debug", False):
                     print(f"[#] key='{_ch}' -> {'hit' if bool(script) else 'miss'}")
                 if script:
-                    event.app.current_buffer.reset()
-                    self.ctx.run_script(script)
+                    app.current_buffer.reset()
+                    self._run_script_now(app, script)
                 else:
-                    event.app.current_buffer.insert_text(_ch)
+                    app.current_buffer.insert_text(_ch)
 
         self.dynamic_bindings = kb
 
