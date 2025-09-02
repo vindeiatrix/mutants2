@@ -12,7 +12,7 @@ from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP
 from ..ui.strings import GET_WHAT, DROP_WHAT
 
 
-CANON = {
+NONDIR_CMDS = {
     "look": "look",
     "travel": "travel",
     "class": "class",
@@ -25,58 +25,29 @@ CANON = {
     "macro": "macro",
     "help": "help",
     "do": "do",
-    "debug": "debug",
-    "attack": "attack",
-    "rest": "rest",
     "status": "status",
-    "north": "north",
-    "south": "south",
-    "east": "east",
-    "west": "west",
+    "rest": "rest",
+    "attack": "attack",
+    "debug": "debug",
 }
 
-EXPLICIT_ALIASES = {
-    "n": "north",
-    "s": "south",
-    "e": "east",
-    "w": "west",
-    "inv": "inventory",
-}
-
-NONDIR_CANON = [c for c in CANON if c not in ("north", "south", "east", "west")]
-
-DIR_WORDS = {
-    "north": "north",
-    "south": "south",
-    "east": "east",
-    "west": "west",
-}
-DIR_ALIASES = {"n": "north", "s": "south", "e": "east", "w": "west"}
-
-
-def parse_dir(token: str) -> str | None:
-    t = token.lower()
-    if t in DIR_WORDS:
-        return DIR_WORDS[t]
-    if t in DIR_ALIASES:
-        return DIR_ALIASES[t]
-    return None
+DIR_FULL = {"north", "south", "east", "west"}
+DIR_1 = {"n": "north", "s": "south", "e": "east", "w": "west"}
 
 
 def resolve_command(token: str) -> str | None:
-    t = token.strip().lower()
+    t = token.lower()
     if not t:
         return None
-    if t in EXPLICIT_ALIASES:
-        return EXPLICIT_ALIASES[t]
-    if t in CANON:
-        return CANON[t]
-    if any(w.startswith(t) for w in ("north", "south", "east", "west")):
-        return None
-    if len(t) >= 3:
-        matches = {CANON[c] for c in NONDIR_CANON if c.startswith(t)}
-        if len(matches) == 1:
-            return next(iter(matches))
+    if t in DIR_1:
+        return DIR_1[t]
+    if t in DIR_FULL:
+        return t
+    for canon, target in NONDIR_CMDS.items():
+        L = len(canon)
+        kmin = min(3, L)
+        if kmin <= len(t) <= L and canon.startswith(t):
+            return target
     return None
 
 
@@ -190,11 +161,61 @@ def make_context(p, w, save, *, dev: bool = False):
         p.travel(w, year)
         return True
 
+    def handle_get(args: list[str]) -> bool:
+        if not args:
+            print(GET_WHAT)
+            return False
+        ground = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
+        name = items.first_prefix_match(" ".join(args), ground)
+        if not name:
+            print(f'No item here matching "{" ".join(args)}".')
+            return False
+        p.pick_up(name, w)
+        print(f"You pick up {name}.")
+        return False
+
+    def handle_drop(args: list[str]) -> bool:
+        if not args:
+            print(DROP_WHAT)
+            return False
+        inv_names = p.inventory_names_in_order()
+        name = items.first_prefix_match(" ".join(args), inv_names)
+        if not name:
+            print(f'No item in inventory matching "{" ".join(args)}".')
+            return False
+        ok, msg = p.drop_to_ground(name, w)
+        print(f"You drop {name}." if ok else (msg or "You can’t drop that here."))
+        return False
+
     def handle_look(args: list[str]) -> bool:
         if not args:
             render_room_view(p, w, context)
             return False
-        d = parse_dir(args[0])
+
+        q = " ".join(args).strip().lower()
+
+        here_monsters = [monsters.REGISTRY[m["key"]].name for m in w.monsters_here(p.year, p.x, p.y)]
+        mname = monsters.first_mon_prefix(q, here_monsters)
+        if mname:
+            print(f"It's a {mname}.")
+            return False
+
+        inv_names = p.inventory_names_in_order()
+        iname = items.first_prefix_match(q, inv_names)
+        if not iname:
+            ground_names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
+            iname = items.first_prefix_match(q, ground_names)
+        if iname:
+            print(items.describe(iname))
+            return False
+
+        if q in DIR_1:
+            d = DIR_1[q]
+        elif q in DIR_FULL:
+            d = q
+        else:
+            d = None
+
         if d:
             if not w.is_open(p.year, p.x, p.y, d):
                 print("You can't look that way.")
@@ -206,17 +227,7 @@ def make_context(p, w, save, *, dev: bool = False):
             tmp.positions = {p.year: (ax, ay)}
             render_room_view(tmp, w, context, consume_cues=False)
             return False
-        q = " ".join(args)
-        ground_names = w.items_here(p.year, p.x, p.y)
-        inv_names = [items.REGISTRY[k].name for k in p.inventory]
-        name = items.resolve_prefix(q, ground_names, inv_names)
-        if name:
-            print(items.describe(name))
-            return False
-        mkey = w.resolve_monster_prefix_nearby(p.year, p.x, p.y, q)
-        if mkey:
-            print(monsters.describe(mkey))
-            return False
+
         print("You can't look that way.")
         return False
 
@@ -276,49 +287,10 @@ def make_context(p, w, save, *, dev: bool = False):
             else:
                 print("(empty)")
         elif cmd == "get":
-            if not args:
-                print(GET_WHAT)
-                return False
-            ground_key = w.ground_item(p.year, p.x, p.y)
-            ground_names: list[str] = []
-            if ground_key:
-                ground_names.append(items.REGISTRY[ground_key].name)
-            name, amb = items.resolve_item_prefix(" ".join(args), ground_names)
-            if amb:
-                print("Ambiguous: " + ", ".join(amb))
-            elif not name:
-                print(f'No item here matching "{' '.join(args)}".')
-            else:
-                item = items.find_by_name(name)
-                if item and ground_key == item.key:
-                    w.set_ground_item(p.year, p.x, p.y, None)
-                    p.inventory[item.key] = p.inventory.get(item.key, 0) + 1
-                    print(f"You pick up {item.name}.")
-                else:
-                    print("You don't see that here.")
+            handle_get(args)
             turn = True
         elif cmd == "drop":
-            if not args:
-                print(DROP_WHAT)
-                return False
-            inv_names = [items.REGISTRY[k].name for k in p.inventory]
-            name, amb = items.resolve_item_prefix(" ".join(args), inv_names)
-            if amb:
-                print("Ambiguous: " + ", ".join(amb))
-            elif not name:
-                print(f'No item in inventory matching "{' '.join(args)}".')
-            else:
-                item = items.find_by_name(name)
-                if not item or p.inventory.get(item.key, 0) == 0:
-                    print("You don't have that.")
-                elif w.ground_item(p.year, p.x, p.y):
-                    print("You can only drop when the ground is empty here.")
-                else:
-                    p.inventory[item.key] -= 1
-                    if p.inventory[item.key] == 0:
-                        del p.inventory[item.key]
-                    w.set_ground_item(p.year, p.x, p.y, item.key)
-                    print(f"You drop {item.name}.")
+            handle_drop(args)
             turn = True
         elif cmd == "attack":
             handle_attack()

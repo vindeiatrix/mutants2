@@ -58,7 +58,7 @@ def test_look_item_and_monster(cli, world):
     assert "gold-chunk" in out.lower()
     world.place_monster(2000, 1, 0, "mutant")
     out = cli.run(["look mut"])
-    assert "mutant" in out.lower()
+    assert "can't look that way" in out.lower()
 
 
 def test_footsteps_only_on_move(cli, world):

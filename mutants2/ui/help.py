@@ -66,16 +66,13 @@ Senses
 """
 
 
-ABBREVIATIONS_NOTE = """Abbreviations
--------------
-• Non-direction commands accept the first 3 letters: `tra 2000`, `loo`, `cla`, `las`, `exi`, `inv`, `dro`, `mac`, `hel`.
-• Directions: use 1-letter (`n/s/e/w`) or the full word (`north/south/east/west`).
-  Partials like `nor` or `sou` are rejected.
-
-Items
------
-• Shorten item names by unique prefix among local candidates:
-     get nuc  → Nuclear-thong (if that’s the only matching item here)
-• `get`/`drop` print a short confirmation and do not refresh the room view.
+ABBREVIATIONS_NOTE = """Prefixes
+---------
+• Commands (except directions): use any prefix from the first 3 letters up to the full word.
+  Examples: tra/trav/trave/travel 2000, inv, mac, hel, exi.
+• Directions are special: use 1-letter (n/s/e/w) or the full word (north/south/east/west).
+• Targets (items/monsters) after a command accept any prefix from the first letter up to the full name.
+  If multiple names match, the first in the list is used.
+• For LOOK specifically, a name after 'look' prefers monsters over items. If neither matches, 'look <dir>' is tried.
 """
 

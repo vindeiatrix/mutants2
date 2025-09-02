@@ -24,7 +24,7 @@ class Save:
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
 
 
-def load() -> Tuple[Player, Dict[Tuple[int, int, int], str], Dict[Tuple[int, int, int], dict], Set[int], Save]:
+def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[int, int, int], dict], Set[int], Save]:
     try:
         with open(SAVE_PATH) as fh:
             data = json.load(fh)
@@ -39,10 +39,16 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], str], Dict[Tuple[int, int
         player.max_hp = int(data.get("max_hp", player.max_hp))
         player.hp = int(data.get("hp", player.max_hp))
         player.inventory.update({k: int(v) for k, v in data.get("inventory", {}).items()})
-        ground = {
+        ground_raw = {
             tuple(int(n) for n in key.split(',')): val
             for key, val in data.get("ground", {}).items()
         }
+        ground: Dict[Tuple[int, int, int], list[str]] = {}
+        for coord, val in ground_raw.items():
+            if isinstance(val, list):
+                ground[coord] = list(val)
+            else:
+                ground[coord] = [val]
         monsters_data: Dict[Tuple[int, int, int], dict] = {}
         for key, val in data.get("monsters", {}).items():
             coord = tuple(int(n) for n in key.split(','))
@@ -64,7 +70,7 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], str], Dict[Tuple[int, int
         return player, ground, monsters_data, seeded, save_meta
     except FileNotFoundError:
         player = Player()
-        ground: Dict[Tuple[int, int, int], str] = {}
+        ground: Dict[Tuple[int, int, int], list[str]] = {}
         monsters_data: Dict[Tuple[int, int, int], dict] = {}
         seeded: Set[int] = set()
         save_meta = Save()
@@ -86,8 +92,8 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "max_hp": player.max_hp,
             "inventory": {k: v for k, v in player.inventory.items()},
             "ground": {
-                f"{y},{x},{yy}": item_key
-                for (y, x, yy), item_key in world.ground.items()
+                f"{y},{x},{yy}": (items[0] if len(items) == 1 else items)
+                for (y, x, yy), items in world.ground.items()
             },
             "monsters": {
                 f"{y},{x},{yy}": {"key": data["key"], "hp": data["hp"]}
