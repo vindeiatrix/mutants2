@@ -11,6 +11,13 @@ ORDER = ("east", "west", "north", "south")
 DIRV = {"east": (1, 0), "west": (-1, 0), "north": (0, 1), "south": (0, -1)}
 
 
+def _dir_from(px: int, py: int, tx: int, ty: int) -> str:
+    dx, dy = tx - px, ty - py
+    if abs(dx) >= abs(dy):
+        return "east" if dx > 0 else "west"
+    return "south" if dy > 0 else "north"
+
+
 @dataclass
 class Cell:
     x: int
@@ -254,25 +261,29 @@ class World:
 
     # Movement ---------------------------------------------------------------
 
-    def move_monsters_one_tick(self, year: int, player) -> tuple[list[str], str | None, str | None]:
-        arrivals_msgs: list[str] = []
-        foot_dir: str | None = None
-        yell_dir: str | None = None
+    def move_monsters_one_tick(self, year: int, player) -> tuple[list[str], tuple[str, str] | None]:
+        """Advance ONLY aggro'd monsters one step each.
 
-        occ = {(x, y) for (x, y, _) in self.monster_positions(year)}
+        Returns arrival messages for monsters entering the player's tile and a
+        footsteps event of the form ``("faint"|"loud", dir)`` or ``None`` if no
+        monster movement produced audible footsteps.
+        """
+
+        arrivals: list[str] = []
+        footsteps_event: tuple[str, str] | None = None
+
         px, py = player.x, player.y
 
-        def dir_to(px: int, py: int, tx: int, ty: int) -> str:
-            dx, dy = tx - px, ty - py
-            if abs(dx) >= abs(dy):
-                return "east" if dx > 0 else "west"
-            return "south" if dy > 0 else "north"
+        # Build occupancy map of monster locations (player tile allowed)
+        occ = {(x, y) for (x, y, _) in self.monster_positions(year)}
 
-        for (x, y, data) in list(self.monster_positions(year)):
-            if not data.get("aggro", False):
-                continue
+        for (x, y, m) in list(self.monster_positions(year)):
+            if not m.get("aggro", False):
+                continue  # passive monsters never move
+
             base_d = abs(px - x) + abs(py - y)
-            cands = []
+
+            best: tuple[str, int, int, int] | None = None
             for d in ORDER:
                 if not self.is_open(year, x, y, d):
                     continue
@@ -281,31 +292,36 @@ class World:
                     continue
                 new_d = abs(px - nx) + abs(py - ny)
                 if new_d < base_d:
-                    cands.append((d, nx, ny, new_d))
-            if not cands:
-                continue
-            cands.sort(key=lambda t: (t[3], ORDER.index(t[0])))
-            d, nx, ny, _ = cands[0]
+                    cand = (d, nx, ny, new_d)
+                    if (
+                        best is None
+                        or cand[3] < best[3]
+                        or (cand[3] == best[3] and ORDER.index(d) < ORDER.index(best[0]))
+                    ):
+                        best = cand
+
+            if best is None:
+                continue  # no progress toward player
+
+            d, nx, ny, _ = best
+
+            # Commit move
             del self._monsters[(year, x, y)]
-            self._monsters[(year, nx, ny)] = data
+            self._monsters[(year, nx, ny)] = m
             occ.remove((x, y))
             occ.add((nx, ny))
-            if (nx, ny) == (px, py):
-                arrivals_msgs.append(f"{data['name']} has just arrived from the {d}.")
-            dist = abs(px - nx) + abs(py - ny)
-            dcard = dir_to(px, py, nx, ny)
-            if 3 <= dist <= 6:
-                if foot_dir is None:
-                    foot_dir = f"faint far {dcard}"
-                if yell_dir is None:
-                    yell_dir = f"faint far {dcard}"
-            elif dist == 2:
-                if foot_dir is None:
-                    foot_dir = f"loud {dcard}"
-                if yell_dir is None:
-                    yell_dir = f"loud {dcard}"
 
-        return arrivals_msgs, foot_dir, yell_dir
+            if (nx, ny) == (px, py):
+                arrivals.append(f"{m['name']} has just arrived from the {d}.")
+
+            if footsteps_event is None:
+                dist = abs(px - nx) + abs(py - ny)
+                if 3 <= dist <= 6:
+                    footsteps_event = ("faint", _dir_from(px, py, nx, ny))
+                elif dist == 2:
+                    footsteps_event = ("loud", _dir_from(px, py, nx, ny))
+
+        return arrivals, footsteps_event
 
     def shadow_dirs(self, year: int, x: int, y: int) -> list[str]:
         dirs: list[str] = []

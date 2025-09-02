@@ -56,6 +56,7 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
                 m_key = val.get("key")
                 hp = val.get("hp")
                 name = val.get("name")
+                # ``aggro`` state is persisted to keep passive monsters from moving
                 aggro = val.get("aggro", False)
                 mid = val.get("id")
             else:
