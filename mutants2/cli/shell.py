@@ -121,13 +121,12 @@ def make_context(p, w, save, *, dev: bool = False):
         world=w,
         save=save,
         _arrivals_this_tick=[],
-        _footstep_dir=None,
-        _yell_dir=None,
+        _footsteps_event=None,
         _entry_yells=[],
         _pre_shadow_lines=[],
         _needs_render=False,
         _last_turn_consumed=False,
-        )
+    )
 
     def handle_macro(rest: str) -> None:
         if rest.startswith("add "):
@@ -463,23 +462,21 @@ def make_context(p, w, save, *, dev: bool = False):
             context._pre_shadow_lines = render_mod.shadow_lines(w, p)
         consumed = context._last_turn_consumed
         if consumed:
-            arrivals, foot, yell = w.move_monsters_one_tick(p.year, p)
+            arrivals, foot = w.move_monsters_one_tick(p.year, p)
             context._arrivals_this_tick = arrivals
-            context._footstep_dir = foot
-            context._yell_dir = yell
+            context._footsteps_event = foot
             w.turn += 1
         if context._needs_render:
             render_room_view(p, w, context)
             context._needs_render = False
         else:
-            for msg in context._entry_yells:
+            for msg in render_mod.entry_yell_lines(context):
                 print(msg)
-            context._entry_yells = []
             for msg in render_mod.arrival_lines(context):
                 print(msg)
                 name = msg.split(" has just arrived")[0]
                 print(f"{name} is here.")
-            for msg in render_mod.audio_lines(context):
+            for msg in render_mod.footsteps_lines(context):
                 print(msg)
         return False
 

@@ -64,10 +64,16 @@ Look
 Senses
 ------
 • Monsters start passive. Entering their room triggers a 50/50 roll for each to aggro — success shows “<Name> yells at you!” and they’ll chase on later turns.
-• LOOK takes a turn. Monsters may move after each of your turns.
-• You may see multiple shadow directions (“west, north”). Footsteps and yelling only occur when something moved.
+• LOOK takes a turn. Aggro’d monsters may move after each of your turns.
+• You may see multiple shadow directions (“west, north”).
 • “Faint … far to the <dir>” means farther away; “Loud … to the <dir>” means closer.
 • When a monster enters your room you’ll see: “<Name> has just arrived from the <dir>.” and “<Name> is here.”
+
+Audio
+-----
+• You only hear footsteps when a monster actually moved that turn.
+• Monsters do not move until they aggro.
+• A monster yells exactly once, when it aggroes as you enter its room.
 """
 
 

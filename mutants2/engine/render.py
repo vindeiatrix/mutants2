@@ -9,35 +9,28 @@ def shadow_lines(world: World, player: Player) -> list[str]:
     return [f"You see shadows to the {', '.join(ds)}."] if ds else []
 
 
+def entry_yell_lines(ctx) -> list[str]:
+    lines = getattr(ctx, "_entry_yells", []) or []
+    ctx._entry_yells = []
+    return lines
+
+
 def arrival_lines(ctx) -> list[str]:
     msgs = getattr(ctx, "_arrivals_this_tick", []) or []
     ctx._arrivals_this_tick = []
     return msgs
 
 
-def audio_lines(ctx) -> list[str]:
-    out: list[str] = []
-    f = getattr(ctx, "_footstep_dir", None)
-    y = getattr(ctx, "_yell_dir", None)
-    if f:
-        parts = f.split()
-        kind = parts[0]
-        d = parts[-1]
-        if kind == "faint":
-            out.append(f"You hear faint sounds of footsteps far to the {d}.")
-        else:
-            out.append(f"You hear loud sounds of footsteps to the {d}.")
-    if y:
-        parts = y.split()
-        kind = parts[0]
-        d = parts[-1]
-        if kind == "faint":
-            out.append(f"You hear faint sounds of yelling and screaming far to the {d}.")
-        else:
-            out.append(f"You hear loud sounds of yelling and screaming to the {d}.")
-    ctx._footstep_dir = None
-    ctx._yell_dir = None
-    return out
+def footsteps_lines(ctx) -> list[str]:
+    ev = getattr(ctx, "_footsteps_event", None)
+    ctx._footsteps_event = None
+    if not ev:
+        return []
+    kind, d = ev
+    if kind == "faint":
+        return [f"You hear faint sounds of footsteps far to the {d}."]
+    else:
+        return [f"You hear loud sounds of footsteps to the {d}."]
 
 
 def render_room_view(player: Player, world: World, context=None, *, consume_cues: bool = True) -> None:
@@ -51,10 +44,9 @@ def render_room_view(player: Player, world: World, context=None, *, consume_cues
     else:
         lines.extend(shadow_lines(world, player))
     if context is not None:
-        lines.extend(getattr(context, "_entry_yells", []) or [])
-        context._entry_yells = []
+        lines.extend(entry_yell_lines(context))
         lines.extend(arrival_lines(context))
-        lines.extend(audio_lines(context))
+        lines.extend(footsteps_lines(context))
     if consume_cues:
         cues = player.senses.pop()
     else:
