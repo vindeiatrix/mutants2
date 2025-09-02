@@ -35,6 +35,8 @@ def test_shadow_only_adjacent_open():
 def test_no_shadow_two_away():
     w = world_mod.World()
     w.year(2000)
+    for (x, y), _ in list(w.monsters_in_year(2000).items()):
+        w.remove_monster(2000, x, y)
     w.place_monster(2000, 2, 0, "mutant")
     p = Player()
     out = capture_render(w, p)

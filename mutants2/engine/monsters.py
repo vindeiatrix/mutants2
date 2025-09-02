@@ -21,14 +21,21 @@ SPAWN_KEYS = tuple(REGISTRY.keys())
 _next_id = 1
 
 
-def new_name(key: str) -> str:
-    """Return a unique display name for a monster instance."""
+def next_id() -> int:
+    """Return a stable id for a newly spawned monster."""
 
     global _next_id
-    base = REGISTRY[key].name
-    name = f"{base}-{_next_id}"
+    nid = _next_id
     _next_id += 1
-    return name
+    return nid
+
+
+def note_existing_id(nid: int) -> None:
+    """Advance the internal counter to avoid reusing ``nid``."""
+
+    global _next_id
+    if nid >= _next_id:
+        _next_id = nid + 1
 
 
 def resolve_prefix(query: str, names: list[str]) -> str | None:

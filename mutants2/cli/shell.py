@@ -123,6 +123,9 @@ def make_context(p, w, save, *, dev: bool = False):
         _arrivals_this_tick=[],
         _footstep_dir=None,
         _yell_dir=None,
+        _entry_yells=[],
+        _pre_shadow_lines=[],
+        _needs_render=False,
         _last_turn_consumed=False,
         )
 
@@ -213,7 +216,7 @@ def make_context(p, w, save, *, dev: bool = False):
 
     def handle_look(args: list[str]) -> bool:
         if not args:
-            render_room_view(p, w, context)
+            context._needs_render = True
             return False
 
         q = " ".join(args).strip().lower()
@@ -257,7 +260,7 @@ def make_context(p, w, save, *, dev: bool = False):
         dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
         if dead:
             print("You defeat the Mutant.")
-            render_room_view(p, w, context)
+            context._needs_render = True
             return
         p.take_damage(MONSTER_DMG)
         print(f"The Mutant hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
@@ -265,7 +268,7 @@ def make_context(p, w, save, *, dev: bool = False):
             print("You have died.")
             p.heal_full()
             p.positions[p.year] = (0, 0)
-        render_room_view(p, w, context)
+        context._needs_render = True
 
     def handle_rest() -> None:
         if w.monster_here(p.year, p.x, p.y):
@@ -291,7 +294,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 moved = p.move(last_move, w)
             if moved:
                 turn = True
-            render_room_view(p, w, context)
+            context._needs_render = True
         elif cmd == "class":
             changed = class_menu(p, w, save, in_game=True)
             if changed:
@@ -398,12 +401,12 @@ def make_context(p, w, save, *, dev: bool = False):
             if moved:
                 last_move = cmd
                 turn = True
-            render_room_view(p, w, context)
+            context._needs_render = True
         elif cmd == "travel":
             ok = handle_travel(args)
             if ok:
                 turn = True
-                render_room_view(p, w, context)
+                context._needs_render = True
         elif cmd == "exit":
             print("Goodbye.")
             context.running = False
@@ -446,22 +449,38 @@ def make_context(p, w, save, *, dev: bool = False):
         return handle_command(cmd, args)
 
     def dispatch_line(line: str) -> bool:
+        before = (p.year, p.x, p.y)
         dispatch_macro(line)
         if not context.running:
             return True
+        moved = (p.year, p.x, p.y) != before
+        if moved:
+            yells = w.on_entry_aggro_check(
+                p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
+            )
+            context._entry_yells = yells
+        if context._needs_render:
+            context._pre_shadow_lines = render_mod.shadow_lines(w, p)
         consumed = context._last_turn_consumed
         if consumed:
             arrivals, foot, yell = w.move_monsters_one_tick(p.year, p)
             context._arrivals_this_tick = arrivals
             context._footstep_dir = foot
             context._yell_dir = yell
+            w.turn += 1
+        if context._needs_render:
+            render_room_view(p, w, context)
+            context._needs_render = False
+        else:
+            for msg in context._entry_yells:
+                print(msg)
+            context._entry_yells = []
             for msg in render_mod.arrival_lines(context):
                 print(msg)
                 name = msg.split(" has just arrived")[0]
                 print(f"{name} is here.")
             for msg in render_mod.audio_lines(context):
                 print(msg)
-            w.turn += 1
         return False
 
     context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch_macro)

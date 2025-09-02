@@ -56,20 +56,27 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
                 m_key = val.get("key")
                 hp = val.get("hp")
                 name = val.get("name")
-                aggro = val.get("aggro", True)
+                aggro = val.get("aggro", False)
+                mid = val.get("id")
             else:
                 m_key = val
                 hp = None
                 name = None
-                aggro = True
+                aggro = False
+                mid = None
             if m_key is None:
                 continue
             base = monsters_mod.REGISTRY[m_key].base_hp
+            if mid is None:
+                mid = monsters_mod.next_id()
+            else:
+                monsters_mod.note_existing_id(int(mid))
             monsters_data[coord] = {
                 "key": m_key,
                 "hp": int(hp) if hp is not None else base,
-                "name": name or monsters_mod.new_name(m_key),
+                "name": name or monsters_mod.REGISTRY[m_key].name,
                 "aggro": bool(aggro),
+                "id": int(mid),
             }
         seeded = {int(y) for y in data.get("seeded_years", [])}
         save_meta = Save(
@@ -109,7 +116,8 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                     "key": data["key"],
                     "hp": data["hp"],
                     "name": data.get("name"),
-                    "aggro": data.get("aggro", True),
+                    "aggro": data.get("aggro", False),
+                    "id": data.get("id"),
                 }
                 for (y, x, yy), data in world.monsters.items()
             },

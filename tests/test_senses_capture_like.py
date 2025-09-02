@@ -44,18 +44,21 @@ def cli(world, player, tmp_path, monkeypatch):
 @pytest.fixture
 def world_with_aggro_south(world):
     world.place_monster(2000, 5, 0, "mutant")
+    world.monster_here(2000, 5, 0)["aggro"] = True
     return world
 
 
 @pytest.fixture
 def staged_world_far_south(world):
     world.place_monster(2000, 5, 0, "mutant")
+    world.monster_here(2000, 5, 0)["aggro"] = True
     return world
 
 
 @pytest.fixture
 def staged_world_adjacent_south(world):
     world.place_monster(2000, 1, 0, "mutant")
+    world.monster_here(2000, 1, 0)["aggro"] = True
     return world
 
 

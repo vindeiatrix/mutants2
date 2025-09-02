@@ -77,20 +77,27 @@ class World:
                     key = data.get("key")
                     hp = data.get("hp")
                     name = data.get("name")
-                    aggro = data.get("aggro", True)
+                    aggro = data.get("aggro", False)
+                    mid = data.get("id")
                 else:
                     key = data
                     hp = None
                     name = None
-                    aggro = True
+                    aggro = False
+                    mid = None
                 if key is None:
                     continue
                 base = monsters_mod.REGISTRY[key].base_hp
+                if mid is None:
+                    mid = monsters_mod.next_id()
+                else:
+                    monsters_mod.note_existing_id(int(mid))
                 self._monsters[coord] = {
                     "key": key,
                     "hp": int(hp) if hp is not None else base,
-                    "name": name or monsters_mod.new_name(key),
+                    "name": name or monsters_mod.REGISTRY[key].name,
                     "aggro": bool(aggro),
+                    "id": int(mid),
                 }
         if global_seed is None:
             from . import gen
@@ -182,9 +189,26 @@ class World:
     def monster_here(self, year: int, x: int, y: int) -> dict | None:
         return self._monsters.get((year, x, y))
 
-    def monsters_here(self, year: int, x: int, y: int) -> list[dict]:
+    def monsters_here(self, year: int, x: int, y: int):
         m = self.monster_here(year, x, y)
-        return [m] if m else []
+        if m:
+            yield m
+
+    def on_entry_aggro_check(self, year: int, x: int, y: int, player, seed_parts=()) -> list[str]:
+        """Run 50/50 aggro rolls for passive monsters on (x, y)."""
+
+        from .rng import hrand
+
+        yells: list[str] = []
+        base_rng = hrand(*seed_parts, year, x, y, "aggro_enter")
+        for m in self.monsters_here(year, x, y):
+            if m.get("aggro"):
+                continue
+            rng = hrand(base_rng.random(), m.get("id"), "mroll")
+            if rng.random() < 0.5:
+                m["aggro"] = True
+                yells.append(f"{m['name']} yells at you!")
+        return yells
 
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
@@ -194,8 +218,9 @@ class World:
         self._monsters[coord] = {
             "key": key,
             "hp": base,
-            "name": monsters_mod.new_name(key),
-            "aggro": True,
+            "name": monsters_mod.REGISTRY[key].name,
+            "aggro": False,
+            "id": monsters_mod.next_id(),
         }
         return True
 
@@ -204,8 +229,9 @@ class World:
         self._monsters[(year, x, y)] = {
             "key": key,
             "hp": base,
-            "name": monsters_mod.new_name(key),
-            "aggro": True,
+            "name": monsters_mod.REGISTRY[key].name,
+            "aggro": False,
+            "id": monsters_mod.next_id(),
         }
 
     def damage_monster(self, year: int, x: int, y: int, dmg: int) -> bool:
@@ -243,7 +269,7 @@ class World:
             return "south" if dy > 0 else "north"
 
         for (x, y, data) in list(self.monster_positions(year)):
-            if not data.get("aggro", True):
+            if not data.get("aggro", False):
                 continue
             base_d = abs(px - x) + abs(py - y)
             cands = []
