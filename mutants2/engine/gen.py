@@ -4,6 +4,7 @@ from typing import Dict, Set, Tuple
 
 from .world import Grid, World
 from .items import SPAWNABLE_KEYS
+from .monsters import SPAWN_KEYS
 
 WIDTH = 30
 HEIGHT = 30
@@ -70,6 +71,24 @@ def seed_items(world: World, year: int, grid: Grid) -> None:
         key = rand.choice(SPAWNABLE_KEYS)
         world.set_ground_item(year, x, y, key)
     world.seeded_years.add(year)
+
+
+def seed_monsters_for_year(world: World, year: int, global_seed: int) -> None:
+    walkables = list(world.walkable_coords(year))
+    if not walkables:
+        return
+    import random
+
+    rng = random.Random(hash((global_seed, year, "monsters_v1")))
+    target = min(30, max(0, round(0.02 * len(walkables))))
+    rng.shuffle(walkables)
+    placed = 0
+    for (x, y) in walkables:
+        if world.item_at(year, x, y) is None and not world.has_monster(year, x, y):
+            world.place_monster(year, x, y, SPAWN_KEYS[0])
+            placed += 1
+            if placed >= target:
+                break
 
 
 # Daily top-up ----------------------------------------------------------------
