@@ -54,9 +54,11 @@ COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class
 Look
 ----
 • `look` — describe the current room.
-• `look <dir>` — peek into an adjacent room without moving. Example: `look n`, `loo west`.
+• `look <dir>` — peek into an adjacent room; `<dir>` accepts any 1..full prefix:
+  `look n` / `look no` / `look nor` / `look north` (same for s/so/sou/south, e/ea/eas/east, w/we/wes/west).
 • `look <item>` — inspect a ground or inventory item by unique prefix.
 • `look <monster>` — inspect a visible monster (here or in an adjacent open room).
+• Movement commands are stricter: use n/s/e/w or full north/south/east/west (no partials like “no”).
 • If blocked or no such target: “You can’t look that way.”
 
 Senses
@@ -70,7 +72,8 @@ ABBREVIATIONS_NOTE = """Prefixes
 ---------
 • Commands (except directions): use any prefix from the first 3 letters up to the full word.
   Examples: tra/trav/trave/travel 2000, inv, mac, hel, exi.
-• Directions are special: use 1-letter (n/s/e/w) or the full word (north/south/east/west).
+• Directions are special: movement commands use 1-letter (n/s/e/w) or the full word (north/south/east/west).
+  For `look <dir>`, any 1..full prefix works.
 • Targets (items/monsters) after a command accept any prefix from the first letter up to the full name.
   If multiple names match, the first in the list is used.
 • For LOOK specifically, a name after 'look' prefers monsters over items. If neither matches, 'look <dir>' is tried.

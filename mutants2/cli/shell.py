@@ -31,8 +31,21 @@ NONDIR_CMDS = {
     "debug": "debug",
 }
 
-DIR_FULL = {"north", "south", "east", "west"}
+DIR_FULL = ("north", "south", "east", "west")
 DIR_1 = {"n": "north", "s": "south", "e": "east", "w": "west"}
+
+
+def parse_dir_any_prefix(tok: str) -> str | None:
+    """Return a direction if tok is 1..full prefix of exactly one dir."""
+    t = tok.strip().lower()
+    if not t:
+        return None
+    if t in DIR_1:
+        return DIR_1[t]
+    matches = [d for d in DIR_FULL if d.startswith(t)]
+    if len(matches) == 1:
+        return matches[0]
+    return None
 
 
 def resolve_command(token: str) -> str | None:
@@ -209,13 +222,7 @@ def make_context(p, w, save, *, dev: bool = False):
             print(items.describe(iname))
             return False
 
-        if q in DIR_1:
-            d = DIR_1[q]
-        elif q in DIR_FULL:
-            d = q
-        else:
-            d = None
-
+        d = parse_dir_any_prefix(q)
         if d:
             if not w.is_open(p.year, p.x, p.y, d):
                 print("You can't look that way.")
