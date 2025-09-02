@@ -36,6 +36,15 @@ _add("bottle_cap",     "Bottle-Cap",    22000, 606)
 
 SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if "spawnable" in v.tags]
 
+__all__ = [
+    "ItemDef",
+    "REGISTRY",
+    "SPAWNABLE_KEYS",
+    "find_by_name",
+    "norm_name",
+    "resolve_item_prefix",
+]
+
 
 def find_by_name(name: str) -> Optional[ItemDef]:
     target = name.strip().lower()
