@@ -38,6 +38,7 @@ class MacroStore:
         self.keys_debug: bool = False
         self.repl_mode: str = "Fallback"
         self._bindings: dict[str, str] = {}
+        self._on_bindings_changed = None  # set by REPL
 
     # basic management -------------------------------------------------
     def add(self, name: str, script: str) -> None:
@@ -55,13 +56,17 @@ class MacroStore:
     def clear(self) -> None:
         self._macros.clear()
         self._bindings.clear()
+        self._touch()
 
     # binding management -----------------------------------------------
     def bind(self, key: str, script: str) -> None:
         self._bindings[key] = script
+        self._touch()
 
     def unbind(self, key: str) -> None:
-        self._bindings.pop(key, None)
+        if key in self._bindings:
+            del self._bindings[key]
+            self._touch()
 
     def bindings(self) -> dict[str, str]:
         return dict(self._bindings)
@@ -93,11 +98,18 @@ class MacroStore:
             self.echo = data["echo"]
         if "keys_enabled" in data:
             self.keys_enabled = data["keys_enabled"]
+        self._touch()
 
     def list_profiles(self) -> List[str]:
         if not self.MACRO_DIR.is_dir():
             return []
         return sorted(p.stem for p in self.MACRO_DIR.glob("*.json"))
+
+    # internal helpers -------------------------------------------------
+    def _touch(self) -> None:
+        cb = getattr(self, "_on_bindings_changed", None)
+        if callable(cb):
+            cb()
 
     # expansion --------------------------------------------------------
     def _substitute(self, script: str, args: List[str]) -> str:
