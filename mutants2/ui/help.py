@@ -49,6 +49,20 @@ Examples
   do 7e3n; look
 """
 
+COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do
+
+Look
+----
+• `look` — describe the current room.
+• `look <dir>` — peek into an adjacent room without moving. Example: `look n`, `loo west`.
+• If there is no open passage that way: “You can’t look that way.”
+
+Senses
+------
+• You may see: “A shadow flickers to the <dir>.” — there is a monster in that *adjacent open room*.
+• No distant sounds yet; footsteps will arrive when monsters move.
+"""
+
 
 ABBREVIATIONS_NOTE = """Abbreviations
 -------------

@@ -54,7 +54,7 @@ def test_persistence_of_class(tmp_path):
 def test_debug_unavailable_in_menu(tmp_path):
     home = tmp_path
     env = {'MUTANTS2_DEV': '1'}
-    result = run_cli('debug footsteps 2\n1\ndebug footsteps 2\nexit\n', home, env)
+    result = run_cli('debug shadow north\n1\ndebug shadow north\nexit\n', home, env)
     out = result.stdout
     assert 'Debug commands are available only in dev mode (in-game).' in out
     assert 'OK.' in out  # debug works in-game

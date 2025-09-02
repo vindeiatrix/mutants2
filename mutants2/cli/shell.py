@@ -5,10 +5,10 @@ import datetime
 
 from ..engine import world, persistence, items
 from ..engine.render import render_room_view
-from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
+from ..engine.player import Player, CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
-from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE
+from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP
 from ..ui.strings import GET_WHAT, DROP_WHAT
 
 
@@ -41,6 +41,23 @@ EXPLICIT_ALIASES = {
 }
 
 NONDIR_CANON = [c for c in CANON if c not in ("north", "south", "east", "west")]
+
+DIR_WORDS = {
+    "north": "north",
+    "south": "south",
+    "east": "east",
+    "west": "west",
+}
+DIR_ALIASES = {"n": "north", "s": "south", "e": "east", "w": "west"}
+
+
+def parse_dir(token: str) -> str | None:
+    t = token.lower()
+    if t in DIR_WORDS:
+        return DIR_WORDS[t]
+    if t in DIR_ALIASES:
+        return DIR_ALIASES[t]
+    return None
 
 
 def resolve_command(token: str) -> str | None:
@@ -168,7 +185,19 @@ def make_context(p, w, save, *, dev: bool = False):
     def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
         if cmd == "look":
-            render_room_view(p, w)
+            if args:
+                d = parse_dir(args[0])
+                if not d or not w.is_open(p.year, p.x, p.y, d):
+                    print("You can't look that way.")
+                else:
+                    ax, ay = w.step(p.x, p.y, d)
+                    tmp = Player()
+                    tmp.clazz = p.clazz
+                    tmp.year = p.year
+                    tmp.positions = {p.year: (ax, ay)}
+                    render_room_view(tmp, w, consume_cues=False)
+            else:
+                render_room_view(p, w)
         elif cmd == "last":
             if last_move:
                 p.move(last_move, w)
@@ -231,7 +260,7 @@ def make_context(p, w, save, *, dev: bool = False):
             if topic in {"macros", "macro"}:
                 print(MACROS_HELP)
             else:
-                print("Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do")
+                print(COMMANDS_HELP)
                 print()
                 print(ABBREVIATIONS_NOTE)
         elif cmd == "debug":

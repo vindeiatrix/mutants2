@@ -128,6 +128,23 @@ class World:
     def monster_count(self, year: int) -> int:
         return sum(1 for (yr, _, _), _ in self._monsters.items() if yr == year)
 
+    _DIRS: dict[Direction, tuple[int, int]] = {
+        "north": (0, 1),
+        "south": (0, -1),
+        "east": (1, 0),
+        "west": (-1, 0),
+    }
+
+    def is_open(self, year: int, x: int, y: int, direction: Direction) -> bool:
+        """Return ``True`` if an open passage exists from ``(x, y)`` to ``direction``."""
+        grid = self.year(year).grid
+        return direction in grid.neighbors(x, y)
+
+    def step(self, x: int, y: int, direction: Direction) -> tuple[int, int]:
+        """Return coordinates stepped one tile in ``direction`` from ``(x, y)``."""
+        dx, dy = self._DIRS[direction]
+        return x + dx, y + dy
+
     def nearest_monster(
         self, year: int, x: int, y: int, max_dist: int = 4
     ) -> tuple[int, int, int] | None:

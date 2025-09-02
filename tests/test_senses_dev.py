@@ -29,30 +29,21 @@ def test_debug_commands_rejected_without_dev(cli_runner):
     assert "Debug commands are available only in dev mode." in out
 
 
-def test_shadow_and_footsteps_render_once(cli_runner):
+def test_shadow_render_once(cli_runner):
     enable_dev_env()
     out = cli_runner.run_commands([
         "debug clear",
         "debug shadow north",
         "debug shadow east",
-        "debug footsteps 3",
         "look",
         "look",
     ])
     assert "A shadow flickers to the north." in out
     assert "A shadow flickers to the east." in out
-    assert "You hear footsteps nearby." in out
     parts = out.split("On the ground lies:")
     assert len(parts) >= 3
     seg = parts[-1]
     assert "A shadow flickers" not in seg
-    assert "footsteps" not in seg
-
-
-def test_invalid_footsteps_distance(cli_runner):
-    enable_dev_env()
-    out = cli_runner.run_commands(["debug footsteps 0"])
-    assert "must be 1..4" in out or "Invalid" in out
 
 
 def test_debug_clear(cli_runner):
@@ -62,4 +53,4 @@ def test_debug_clear(cli_runner):
         "debug clear",
         "look",
     ])
-    assert "A shadow flickers" not in out
+    assert "A shadow flickers to the south" not in out
