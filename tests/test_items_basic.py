@@ -17,8 +17,8 @@ def _run_game(commands, tmp_path):
 def test_initial_spawn_approx_five_percent(tmp_path, monkeypatch):
     monkeypatch.setenv('HOME', str(tmp_path))
     persistence.SAVE_PATH = Path(tmp_path) / '.mutants2' / 'save.json'
-    p, ground, seeded, _ = persistence.load()
-    w = World(ground, seeded)
+    p, ground, monsters, seeded, save = persistence.load()
+    w = World(ground, seeded, monsters, global_seed=save.global_seed)
     w.year(p.year)
     count = sum(1 for (yr, _, _), _ in w.ground.items() if yr == p.year)
     assert 25 <= count <= 60

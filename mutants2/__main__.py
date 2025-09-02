@@ -30,8 +30,8 @@ def main() -> None:
     from mutants2.engine.render import render_room_view
     from mutants2.engine.gen import daily_topup_if_needed
 
-    p, ground, seeded, save = persistence.load()
-    w = world_mod.World(ground, seeded)
+    p, ground, monsters, seeded, save = persistence.load()
+    w = world_mod.World(ground, seeded, monsters, global_seed=save.global_seed)
 
     if p.clazz is None:
         class_menu(p, w, save, in_game=False)

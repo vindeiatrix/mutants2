@@ -238,7 +238,40 @@ def make_context(p, w, save, *, dev: bool = False):
             if not dev:
                 print("Debug commands are available only in dev mode.")
             else:
-                if args and args[0] == "shadow" and len(args) == 2:
+                if args[:2] == ["mon", "count"]:
+                    print(w.monster_count(p.year))
+                elif args[:2] == ["mon", "here"]:
+                    if w.has_monster(p.year, p.x, p.y):
+                        w.remove_monster(p.year, p.x, p.y)
+                        print("Removed monster.")
+                    else:
+                        w.place_monster(p.year, p.x, p.y, "mutant")
+                        print("Spawned monster.")
+                elif args[:2] == ["mon", "spawn"] and len(args) >= 3 and args[2].isdigit():
+                    import random
+
+                    n = int(args[2])
+                    radius = 4
+                    coords = []
+                    grid = w.year(p.year).grid
+                    for dx in range(-radius, radius + 1):
+                        for dy in range(-radius, radius + 1):
+                            nx, ny = p.x + dx, p.y + dy
+                            if not grid.is_walkable(nx, ny):
+                                continue
+                            if w.has_monster(p.year, nx, ny):
+                                continue
+                            coords.append((nx, ny))
+                    rng = random.Random(hash((save.global_seed, p.year, p.x, p.y, "spawn_near")))
+                    rng.shuffle(coords)
+                    placed = 0
+                    for x, y in coords:
+                        w.place_monster(p.year, x, y, "mutant")
+                        placed += 1
+                        if placed >= n:
+                            break
+                    print(f"Spawned {placed} monster(s).")
+                elif args and args[0] == "shadow" and len(args) == 2:
                     direction = args[1]
                     if direction in {"north", "south", "east", "west"}:
                         p.senses.add_shadow(direction)

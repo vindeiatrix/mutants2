@@ -48,10 +48,23 @@ class Year:
 
 
 class World:
-    def __init__(self, ground: Optional[Dict[Tuple[int, int, int], str]] = None, seeded_years: Optional[Set[int]] = None):
+    def __init__(
+        self,
+        ground: Optional[Dict[Tuple[int, int, int], str]] = None,
+        seeded_years: Optional[Set[int]] = None,
+        monsters: Optional[Dict[Tuple[int, int, int], str]] = None,
+        *,
+        global_seed: int | None = None,
+    ):
         self.years: Dict[int, Year] = {}
         self.ground: Dict[Tuple[int, int, int], str] = ground or {}
         self.seeded_years: Set[int] = set(seeded_years or [])
+        self._monsters: Dict[Tuple[int, int, int], str] = monsters or {}
+        if global_seed is None:
+            from . import gen
+
+            global_seed = gen.SEED
+        self.global_seed = global_seed
 
     def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
         return self.ground.get((year, x, y))
@@ -85,6 +98,50 @@ class World:
     def ground_items_count(self, year: int) -> int:
         return sum(1 for (yr, _, _) in self.ground.keys() if yr == year)
 
+    @property
+    def monsters(self) -> Dict[Tuple[int, int, int], str]:
+        return self._monsters
+
+    # Monsters -----------------------------------------------------------------
+
+    def monsters_in_year(self, year: int) -> dict[tuple[int, int], str]:
+        return {
+            (x, y): key
+            for (yr, x, y), key in self._monsters.items()
+            if yr == year
+        }
+
+    def has_monster(self, year: int, x: int, y: int) -> bool:
+        return (year, x, y) in self._monsters
+
+    def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
+        coord = (year, x, y)
+        if coord in self._monsters:
+            return False
+        self._monsters[coord] = key
+        return True
+
+    def remove_monster(self, year: int, x: int, y: int) -> bool:
+        coord = (year, x, y)
+        return self._monsters.pop(coord, None) is not None
+
+    def monster_count(self, year: int) -> int:
+        return sum(1 for (yr, _, _), _ in self._monsters.items() if yr == year)
+
+    def nearest_monster(
+        self, year: int, x: int, y: int, max_dist: int = 4
+    ) -> tuple[int, int, int] | None:
+        hit: tuple[int, int, int] | None = None
+        for (yr, mx, my), _key in self._monsters.items():
+            if yr != year:
+                continue
+            dist = abs(mx - x) + abs(my - y)
+            if dist > max_dist:
+                continue
+            if hit is None or dist < hit[2]:
+                hit = (mx - x, my - y, dist)
+        return hit
+
     def year(self, value: int) -> Year:
         """Return the :class:`Year` for ``value`` generating it if needed."""
         if value not in self.years:
@@ -96,4 +153,5 @@ class World:
                 raise ValueError("start tile (0,0) must be open")
             self.years[value] = Year(value, grid)
             gen.seed_items(self, value, grid)
+            gen.seed_monsters_for_year(self, value, self.global_seed)
         return self.years[value]
