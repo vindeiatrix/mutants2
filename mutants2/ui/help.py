@@ -52,8 +52,14 @@ Examples
 
 ABBREVIATIONS_NOTE = """Abbreviations
 -------------
-• Most commands accept the first 3 letters, e.g. `tra 2000`, `loo`, `cla`, `las`, `exi`, `inv`.
+• Non-direction commands accept the first 3 letters: `tra 2000`, `loo`, `cla`, `las`, `exi`, `inv`, `dro`, `mac`, `hel`.
 • Directions: use 1-letter (`n/s/e/w`) or the full word (`north/south/east/west`).
-  Partials like `nor` or `sou` are not accepted.
+  Partials like `nor` or `sou` are rejected.
+
+Items
+-----
+• Shorten item names by unique prefix among local candidates:
+     get nuc  → Nuclear-thong (if that’s the only matching item here)
+• `get`/`drop` print a short confirmation and do not refresh the room view.
 """
 

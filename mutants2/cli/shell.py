@@ -34,7 +34,6 @@ EXPLICIT_ALIASES = {
     "s": "south",
     "e": "east",
     "w": "west",
-    "i": "inventory",
     "inv": "inventory",
 }
 
@@ -187,30 +186,59 @@ def make_context(*, dev: bool = False):
             else:
                 print("(empty)")
         elif cmd == "get":
-            name = " ".join(args)
-            item = items.find_by_name(name)
-            ground_key = w.ground_item(p.year, p.x, p.y)
-            if item and ground_key == item.key:
-                w.set_ground_item(p.year, p.x, p.y, None)
-                p.inventory[item.key] = p.inventory.get(item.key, 0) + 1
-                print(f"You pick up {item.name}.")
-                render_room_view(p, w)
-            else:
-                print("You don't see that here.")
+            if not args:
+                ground_key = w.ground_item(p.year, p.x, p.y)
+                if ground_key:
+                    name = items.REGISTRY[ground_key].name
+                    print(f"On the ground: {name}")
+                else:
+                    print("On the ground: (nothing)")
+                ground_key = None
+            if args:
+                ground_key = w.ground_item(p.year, p.x, p.y)
+                ground_names = []
+                if ground_key:
+                    ground_names.append(items.REGISTRY[ground_key].name)
+                name, amb = items.resolve_item_prefix(" ".join(args), ground_names)
+                if amb:
+                    print("Ambiguous: " + ", ".join(amb))
+                elif not name:
+                    print(f'No item here matching "{' '.join(args)}".')
+                else:
+                    item = items.find_by_name(name)
+                    if item and ground_key == item.key:
+                        w.set_ground_item(p.year, p.x, p.y, None)
+                        p.inventory[item.key] = p.inventory.get(item.key, 0) + 1
+                        print(f"You pick up {item.name}.")
+                    else:
+                        print("You don't see that here.")
         elif cmd == "drop":
-            name = " ".join(args)
-            item = items.find_by_name(name)
-            if not item or p.inventory.get(item.key, 0) == 0:
-                print("You don't have that.")
-            elif w.ground_item(p.year, p.x, p.y):
-                print("You can only drop when the ground is empty here.")
+            if not args:
+                if p.inventory:
+                    print("Inventory: " + ", ".join(
+                        f"{items.REGISTRY[k].name} x{c}" for k, c in p.inventory.items()
+                    ))
+                else:
+                    print("(inventory empty)")
             else:
-                p.inventory[item.key] -= 1
-                if p.inventory[item.key] == 0:
-                    del p.inventory[item.key]
-                w.set_ground_item(p.year, p.x, p.y, item.key)
-                print(f"You drop {item.name}.")
-                render_room_view(p, w)
+                inv_names = [items.REGISTRY[k].name for k in p.inventory]
+                name, amb = items.resolve_item_prefix(" ".join(args), inv_names)
+                if amb:
+                    print("Ambiguous: " + ", ".join(amb))
+                elif not name:
+                    print(f'No item in inventory matching "{' '.join(args)}".')
+                else:
+                    item = items.find_by_name(name)
+                    if not item or p.inventory.get(item.key, 0) == 0:
+                        print("You don't have that.")
+                    elif w.ground_item(p.year, p.x, p.y):
+                        print("You can only drop when the ground is empty here.")
+                    else:
+                        p.inventory[item.key] -= 1
+                        if p.inventory[item.key] == 0:
+                            del p.inventory[item.key]
+                        w.set_ground_item(p.year, p.x, p.y, item.key)
+                        print(f"You drop {item.name}.")
         elif cmd == "help":
             topic = " ".join(args).strip().lower() if args else ""
             if topic in {"macros", "macro"}:

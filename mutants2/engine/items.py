@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 from typing import Optional
 
 
@@ -42,3 +43,29 @@ def find_by_name(name: str) -> Optional[ItemDef]:
         if item.name.lower() == target:
             return item
     return None
+
+
+def norm_name(s: str) -> str:
+    """Normalize an item name for case-insensitive prefix matching."""
+    return re.sub(r"[^a-z0-9]", "", s.lower())
+
+
+def resolve_item_prefix(query: str, candidates: list[str]) -> tuple[Optional[str], list[str]]:
+    """Resolve ``query`` against ``candidates`` by prefix.
+
+    Returns a tuple of ``(match, ambiguous)`` where ``match`` is the matched
+    candidate name or ``None``.  ``ambiguous`` is a (possibly empty) list of
+    candidate names that matched when the query was ambiguous.  At most the
+    first 6 ambiguous matches are returned.
+    """
+
+    q = norm_name(query)
+    if not q:
+        return None, []
+    matches = [name for name in candidates if norm_name(name).startswith(q)]
+    if len(matches) == 1:
+        return matches[0], []
+    if not matches:
+        return None, []
+    return None, matches[:6]
+
