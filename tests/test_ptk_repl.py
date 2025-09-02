@@ -15,6 +15,17 @@ class DummyBuffer:
         self.text += text
 
 
+class DummyApp:
+    def __init__(self, buffer: DummyBuffer) -> None:
+        self.current_buffer = buffer
+
+    def run_in_terminal(self, fn, in_executor: bool = False) -> None:  # pragma: no cover - trivial
+        fn()
+
+    def invalidate(self) -> None:  # pragma: no cover - trivial
+        pass
+
+
 def _make_repl(run_log):
     store = MacroStore()
     ctx = SimpleNamespace(macro_store=store, run_script=lambda s: run_log.append(s))
@@ -27,7 +38,7 @@ def _binding_for(repl: PtkRepl, key: str):
     return binding
 
 
-def test_bound_char_runs_macro(monkeypatch):
+def test_bound_char_runs_macro():
     run_log = []
     repl, store = _make_repl(run_log)
     store.bind("z", "look")
@@ -35,8 +46,7 @@ def test_bound_char_runs_macro(monkeypatch):
     binding = _binding_for(repl, "z")
 
     buf = DummyBuffer()
-    app = SimpleNamespace(current_buffer=buf)
-    monkeypatch.setattr("mutants2.cli.repl._event_app", lambda: app)
+    app = DummyApp(buf)
     event = SimpleNamespace(app=app)
 
     binding.handler(event)
@@ -46,7 +56,7 @@ def test_bound_char_runs_macro(monkeypatch):
     assert binding.eager()
 
 
-def test_bound_char_ignored_when_buffer_not_empty(monkeypatch):
+def test_bound_char_ignored_when_buffer_not_empty():
     run_log = []
     repl, store = _make_repl(run_log)
     store.bind("z", "look")
@@ -54,8 +64,7 @@ def test_bound_char_ignored_when_buffer_not_empty(monkeypatch):
     binding = _binding_for(repl, "z")
 
     buf = DummyBuffer("x")
-    app = SimpleNamespace(current_buffer=buf)
-    monkeypatch.setattr("mutants2.cli.repl._event_app", lambda: app)
+    app = DummyApp(buf)
     event = SimpleNamespace(app=app)
 
     binding.handler(event)
