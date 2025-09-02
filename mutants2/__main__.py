@@ -1,28 +1,44 @@
+import argparse
 import os
 import atexit
 
-# Enable command history and line editing if ``readline`` is available. The
-# history is persisted across sessions in ``~/.mutants2/history``. Importing
-# ``readline`` has the side effect of enabling arrow key navigation in
-# interactive terminals, but this block is designed to fail silently on
-# platforms where ``readline`` is unavailable so non-interactive runs (such as
-# tests) continue to function.
-try:  # pragma: no cover - behaviour depends on platform availability
-    import readline
 
-    histdir = os.path.expanduser("~/.mutants2")
-    os.makedirs(histdir, exist_ok=True)
-    histfile = os.path.join(histdir, "history")
-    try:
-        readline.read_history_file(histfile)
-    except FileNotFoundError:
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dev", action="store_true")
+    args = parser.parse_args()
+
+    dev = args.dev or os.environ.get("MUTANTS2_DEV") == "1"
+
+    # Optional: readline history
+    try:  # pragma: no cover - depends on platform availability
+        import readline  # type: ignore
+
+        histdir = os.path.expanduser("~/.mutants2")
+        os.makedirs(histdir, exist_ok=True)
+        histfile = os.path.join(histdir, "history")
+        try:
+            readline.read_history_file(histfile)
+        except FileNotFoundError:
+            pass
+        atexit.register(readline.write_history_file, histfile)
+    except Exception:  # pragma: no cover - best effort only
         pass
-    readline.set_history_length(2000)
-    atexit.register(readline.write_history_file, histfile)
-except Exception:  # pragma: no cover - best-effort only
-    pass
 
-from .main import main
+    from mutants2.cli.shell import make_context
 
-if __name__ == "__main__":
+    ctx = make_context(dev=dev)
+
+    while True:
+        try:
+            line = input("> ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if ctx.dispatch_line(line):
+            break
+
+
+if __name__ == "__main__":  # pragma: no cover
     main()
+
