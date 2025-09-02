@@ -37,12 +37,12 @@ def cli(world, tmp_path, monkeypatch):
 def test_shadow_adjacent_only(cli, world):
     world.place_monster(2000, 1, 0, "mutant")
     out = cli.run(["look"])
-    assert "shadow flickers to the east" in out.lower()
+    assert "shadows to the east" in out.lower()
     yr = world.year(2000)
     yr.grid.adj[(0, 0)].discard("east")
     yr.grid.adj[(1, 0)].discard("west")
     out = cli.run(["look"])
-    assert "shadow flickers" not in out.lower()
+    assert "shadows to" not in out.lower()
 
 
 def test_look_dir_and_blocked(cli):
@@ -61,11 +61,3 @@ def test_look_item_and_monster(cli, world):
     assert "can't look that way" in out.lower()
 
 
-def test_footsteps_only_on_move(cli, world):
-    out1 = cli.run(["look"])
-    assert "footsteps" not in out1.lower()
-    out2 = cli.run(["n"])
-    assert "footsteps" not in out2.lower()
-    world.force_monster_move_within4()
-    out3 = cli.run(["n"])
-    assert "footsteps nearby" in out3.lower()

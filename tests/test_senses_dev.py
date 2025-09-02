@@ -38,12 +38,11 @@ def test_shadow_render_once(cli_runner):
         "look",
         "look",
     ])
-    assert "A shadow flickers to the north." in out
-    assert "A shadow flickers to the east." in out
+    assert "You see shadows to the east, north." in out
     parts = out.split("On the ground lies:")
     assert len(parts) >= 3
     seg = parts[-1]
-    assert "A shadow flickers" not in seg
+    assert "You see shadows" not in seg
 
 
 def test_debug_clear(cli_runner):
@@ -53,4 +52,4 @@ def test_debug_clear(cli_runner):
         "debug clear",
         "look",
     ])
-    assert "A shadow flickers to the south" not in out
+    assert "You see shadows to the south" not in out

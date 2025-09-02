@@ -67,4 +67,4 @@ def test_status_shows_hp_and_coords(empty_start_world, cli_runner):
 
 def test_room_line_shows_monster_present(world_with_mutant_on_start, cli_runner):
     out = cli_runner.run_commands(["loo"])
-    assert "A Mutant is here." in out
+    assert "Mutant" in out and "is here" in out

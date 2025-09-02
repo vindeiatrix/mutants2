@@ -5,6 +5,7 @@ import datetime
 
 from ..engine import world, persistence, items, monsters
 from ..engine.render import render_room_view
+from ..engine import render as render_mod
 from ..engine.player import Player, CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
@@ -30,6 +31,8 @@ NONDIR_CMDS = {
     "attack": "attack",
     "debug": "debug",
 }
+
+TURN_CMDS = {"north", "south", "east", "west", "travel", "get", "drop", "attack", "rest", "look"}
 
 DIR_FULL = ("north", "south", "east", "west")
 DIR_1 = {"n": "north", "s": "south", "e": "east", "w": "west"}
@@ -112,8 +115,16 @@ def make_context(p, w, save, *, dev: bool = False):
     MONSTER_DMG = 1
 
     context = SimpleNamespace(
-        macro_store=macro_store, running=True, player=p, world=w, save=save, _footsteps_this_tick=False
-    )
+        macro_store=macro_store,
+        running=True,
+        player=p,
+        world=w,
+        save=save,
+        _arrivals_this_tick=[],
+        _footstep_dir=None,
+        _yell_dir=None,
+        _last_turn_consumed=False,
+        )
 
     def handle_macro(rest: str) -> None:
         if rest.startswith("add "):
@@ -271,16 +282,14 @@ def make_context(p, w, save, *, dev: bool = False):
     def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
         turn = False
-        footsteps_checked = False
         if cmd == "look":
             handle_look(args)
+            turn = True
         elif cmd == "last":
             moved = False
             if last_move:
                 moved = p.move(last_move, w)
             if moved:
-                context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4)
-                footsteps_checked = True
                 turn = True
             render_room_view(p, w, context)
         elif cmd == "class":
@@ -389,15 +398,11 @@ def make_context(p, w, save, *, dev: bool = False):
             if moved:
                 last_move = cmd
                 turn = True
-            context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4) if moved else False
-            footsteps_checked = True
             render_room_view(p, w, context)
         elif cmd == "travel":
             ok = handle_travel(args)
             if ok:
                 turn = True
-                context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4)
-                footsteps_checked = True
                 render_room_view(p, w, context)
         elif cmd == "exit":
             print("Goodbye.")
@@ -406,14 +411,12 @@ def make_context(p, w, save, *, dev: bool = False):
         else:
             print("Unknown command.")
             return False
-        if turn and not footsteps_checked:
-            context._footsteps_this_tick = w.monsters_moved_near(p.year, p.x, p.y, radius=4)
-        elif not turn:
-            context._footsteps_this_tick = False
+        context._last_turn_consumed = turn
         persistence.save(p, w, save)
         return True
 
     def dispatch_macro(cmd_raw: str) -> bool:
+        context._last_turn_consumed = False
         cmd_raw = cmd_raw.strip()
         if not cmd_raw:
             return True
@@ -446,6 +449,19 @@ def make_context(p, w, save, *, dev: bool = False):
         dispatch_macro(line)
         if not context.running:
             return True
+        consumed = context._last_turn_consumed
+        if consumed:
+            arrivals, foot, yell = w.move_monsters_one_tick(p.year, p)
+            context._arrivals_this_tick = arrivals
+            context._footstep_dir = foot
+            context._yell_dir = yell
+            for msg in render_mod.arrival_lines(context):
+                print(msg)
+                name = msg.split(" has just arrived")[0]
+                print(f"{name} is here.")
+            for msg in render_mod.audio_lines(context):
+                print(msg)
+            w.turn += 1
         return False
 
     context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch_macro)

@@ -46,7 +46,7 @@ def test_nearest_monster_cues():
     w.place_monster(2000, 1, 0, "mutant")
     p = Player()
     out = render_output(w, p)
-    assert "shadow flickers to the east" in out.lower()
+    assert "shadows to the east" in out.lower()
 
 
 def test_no_cues_when_none_near():
@@ -55,7 +55,7 @@ def test_no_cues_when_none_near():
     _clear_monsters(w)
     p = Player()
     out = render_output(w, p)
-    assert "shadow flickers" not in out.lower()
+    assert "shadows to" not in out.lower()
 
 
 @pytest.fixture

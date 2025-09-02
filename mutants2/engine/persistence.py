@@ -55,13 +55,22 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
             if isinstance(val, dict):
                 m_key = val.get("key")
                 hp = val.get("hp")
+                name = val.get("name")
+                aggro = val.get("aggro", True)
             else:
                 m_key = val
                 hp = None
+                name = None
+                aggro = True
             if m_key is None:
                 continue
             base = monsters_mod.REGISTRY[m_key].base_hp
-            monsters_data[coord] = {"key": m_key, "hp": int(hp) if hp is not None else base}
+            monsters_data[coord] = {
+                "key": m_key,
+                "hp": int(hp) if hp is not None else base,
+                "name": name or monsters_mod.new_name(m_key),
+                "aggro": bool(aggro),
+            }
         seeded = {int(y) for y in data.get("seeded_years", [])}
         save_meta = Save(
             global_seed=int(data.get("global_seed", gen.SEED)),
@@ -96,7 +105,12 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for (y, x, yy), items in world.ground.items()
             },
             "monsters": {
-                f"{y},{x},{yy}": {"key": data["key"], "hp": data["hp"]}
+                f"{y},{x},{yy}": {
+                    "key": data["key"],
+                    "hp": data["hp"],
+                    "name": data.get("name"),
+                    "aggro": data.get("aggro", True),
+                }
                 for (y, x, yy), data in world.monsters.items()
             },
             "seeded_years": list(world.seeded_years),
