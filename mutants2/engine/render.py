@@ -45,7 +45,16 @@ def render_room_view(player: Player, world: World, context=None, *, consume_cues
     print(f"Class: {player.clazz}")
     print(f"{player.x}E : {player.y}N")
     lines: list[str] = []
-    lines.extend(shadow_lines(world, player))
+    if context is not None and getattr(context, "_pre_shadow_lines", None):
+        lines.extend(context._pre_shadow_lines)
+        context._pre_shadow_lines = []
+    else:
+        lines.extend(shadow_lines(world, player))
+    if context is not None:
+        lines.extend(getattr(context, "_entry_yells", []) or [])
+        context._entry_yells = []
+        lines.extend(arrival_lines(context))
+        lines.extend(audio_lines(context))
     if consume_cues:
         cues = player.senses.pop()
     else:

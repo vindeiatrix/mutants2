@@ -7,6 +7,7 @@ so that imports remain stable and behaviour deterministic in tests.
 
 from __future__ import annotations
 
+import random
 from typing import Iterable, Sequence, TypeVar, List
 
 T = TypeVar("T")
@@ -21,3 +22,13 @@ def shuffle(seq: Sequence[T]) -> List[T]:
     """
 
     return list(seq)
+
+
+def hrand(*parts) -> random.Random:
+    """Return a ``random.Random`` seeded from ``parts``.
+
+    ``hash(parts)`` is used to derive a deterministic seed so that tests are
+    stable across runs.
+    """
+
+    return random.Random(hash(parts))
