@@ -4,21 +4,18 @@ from .senses import SensesCues
 from . import items
 
 
-def _dir_from_dxdy(dx: int, dy: int) -> str:
-    if abs(dx) >= abs(dy):
-        return "east" if dx > 0 else "west"
-    return "south" if dy > 0 else "north"
+def _adjacent_dirs() -> tuple[str, ...]:
+    return ("east", "west", "north", "south")
 
 
-def senses_lines(world: World, player: Player) -> list[str]:
-    hit = world.nearest_monster(player.year, player.x, player.y, max_dist=4)
+def senses_lines_for_tile(world: World, year: int, x: int, y: int) -> list[str]:
     lines: list[str] = []
-    if hit:
-        dx, dy, dist = hit
-        if dist <= 2:
-            lines.append(f"A shadow flickers to the {_dir_from_dxdy(dx, dy)}.")
-        else:
-            lines.append("You hear footsteps nearby.")
+    for d in _adjacent_dirs():
+        if world.is_open(year, x, y, d):
+            ax, ay = world.step(x, y, d)
+            if world.has_monster(year, ax, ay):
+                lines.append(f"A shadow flickers to the {d}.")
+                break
     return lines
 
 
@@ -26,7 +23,7 @@ def render_room_view(player: Player, world: World, *, consume_cues: bool = True)
     print("---")
     print(f"Class: {player.clazz}")
     print(f"{player.x}E : {player.y}N")
-    lines = senses_lines(world, player)
+    lines = senses_lines_for_tile(world, player.year, player.x, player.y)
     if consume_cues:
         cues = player.senses.pop()
     else:
@@ -34,9 +31,6 @@ def render_room_view(player: Player, world: World, *, consume_cues: bool = True)
     for d in ("north", "south", "east", "west"):
         if d in cues.shadow_dirs:
             lines.append(f"A shadow flickers to the {d}.")
-    if cues.footsteps_distance:
-        mapping = {1: "very close", 2: "close", 3: "nearby", 4: "far away"}
-        lines.append(f"You hear footsteps {mapping[cues.footsteps_distance]}.")
     for line in lines:
         print(line)
     grid = world.year(player.year).grid

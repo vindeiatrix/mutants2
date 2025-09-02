@@ -43,20 +43,10 @@ def test_nearest_monster_cues():
     w = World()
     w.year(2000)
     _clear_monsters(w)
-    w.place_monster(2000, 2, 0, "mutant")
+    w.place_monster(2000, 1, 0, "mutant")
     p = Player()
     out = render_output(w, p)
     assert "shadow flickers to the east" in out.lower()
-
-
-def test_footsteps_radius():
-    w = World()
-    w.year(2000)
-    _clear_monsters(w)
-    w.place_monster(2000, 4, 0, "mutant")
-    p = Player()
-    out = render_output(w, p)
-    assert "footsteps nearby" in out.lower()
 
 
 def test_no_cues_when_none_near():
@@ -66,7 +56,6 @@ def test_no_cues_when_none_near():
     p = Player()
     out = render_output(w, p)
     assert "shadow flickers" not in out.lower()
-    assert "footsteps nearby" not in out.lower()
 
 
 @pytest.fixture
@@ -84,8 +73,7 @@ def cli_runner_dev(tmp_path):
 
 
 def test_dev_spawn_here(cli_runner_dev):
-    out = cli_runner_dev.run_commands(["debug mon here", "look"])
-    assert "shadow" in out.lower() or "footsteps" in out.lower()
-    out2 = cli_runner_dev.run_commands(["debug mon here", "look"])
-    tail = out2.lower().split("on the ground lies:")[-1]
-    assert "shadow" not in tail and "footsteps" not in tail
+    out = cli_runner_dev.run_commands(["debug mon here"])
+    assert "spawned monster" in out.lower()
+    out2 = cli_runner_dev.run_commands(["debug mon here"])
+    assert "removed monster" in out2.lower()

@@ -80,7 +80,7 @@ def seed_monsters_for_year(world: World, year: int, global_seed: int) -> None:
     import random
 
     rng = random.Random(hash((global_seed, year, "monsters_v1")))
-    target = min(30, max(0, round(0.02 * len(walkables))))
+    target = min(90, max(0, round(0.06 * len(walkables))))
     rng.shuffle(walkables)
     placed = 0
     for (x, y) in walkables:
