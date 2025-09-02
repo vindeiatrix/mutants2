@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, Tuple, Set, Optional, Iterable
 
 from .senses import Direction
+from . import monsters as monsters_mod
 Coordinate = Tuple[int, int]
 
 
@@ -52,14 +53,26 @@ class World:
         self,
         ground: Optional[Dict[Tuple[int, int, int], str]] = None,
         seeded_years: Optional[Set[int]] = None,
-        monsters: Optional[Dict[Tuple[int, int, int], str]] = None,
+        monsters: Optional[Dict[Tuple[int, int, int], dict]] = None,
         *,
         global_seed: int | None = None,
     ):
         self.years: Dict[int, Year] = {}
         self.ground: Dict[Tuple[int, int, int], str] = ground or {}
         self.seeded_years: Set[int] = set(seeded_years or [])
-        self._monsters: Dict[Tuple[int, int, int], str] = monsters or {}
+        self._monsters: Dict[Tuple[int, int, int], dict] = {}
+        if monsters:
+            for coord, data in monsters.items():
+                if isinstance(data, dict):
+                    key = data.get("key")
+                    hp = data.get("hp")
+                else:
+                    key = data
+                    hp = None
+                if key is None:
+                    continue
+                base = monsters_mod.REGISTRY[key].base_hp
+                self._monsters[coord] = {"key": key, "hp": int(hp) if hp is not None else base}
         if global_seed is None:
             from . import gen
 
@@ -99,27 +112,46 @@ class World:
         return sum(1 for (yr, _, _) in self.ground.keys() if yr == year)
 
     @property
-    def monsters(self) -> Dict[Tuple[int, int, int], str]:
+    def monsters(self) -> Dict[Tuple[int, int, int], dict]:
         return self._monsters
 
     # Monsters -----------------------------------------------------------------
 
     def monsters_in_year(self, year: int) -> dict[tuple[int, int], str]:
         return {
-            (x, y): key
-            for (yr, x, y), key in self._monsters.items()
+            (x, y): data["key"]
+            for (yr, x, y), data in self._monsters.items()
             if yr == year
         }
 
     def has_monster(self, year: int, x: int, y: int) -> bool:
         return (year, x, y) in self._monsters
 
+    def monster_here(self, year: int, x: int, y: int) -> dict | None:
+        return self._monsters.get((year, x, y))
+
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
         if coord in self._monsters:
             return False
-        self._monsters[coord] = key
+        base = monsters_mod.REGISTRY[key].base_hp
+        self._monsters[coord] = {"key": key, "hp": base}
         return True
+
+    def ensure_monster(self, year: int, x: int, y: int, key: str) -> None:
+        base = monsters_mod.REGISTRY[key].base_hp
+        self._monsters[(year, x, y)] = {"key": key, "hp": base}
+
+    def damage_monster(self, year: int, x: int, y: int, dmg: int) -> bool:
+        coord = (year, x, y)
+        m = self._monsters.get(coord)
+        if not m:
+            return False
+        m["hp"] = max(0, m["hp"] - max(0, dmg))
+        if m["hp"] <= 0:
+            self._monsters.pop(coord, None)
+            return True
+        return False
 
     def remove_monster(self, year: int, x: int, y: int) -> bool:
         coord = (year, x, y)
@@ -149,7 +181,7 @@ class World:
         self, year: int, x: int, y: int, max_dist: int = 4
     ) -> tuple[int, int, int] | None:
         hit: tuple[int, int, int] | None = None
-        for (yr, mx, my), _key in self._monsters.items():
+        for (yr, mx, my), _data in self._monsters.items():
             if yr != year:
                 continue
             dist = abs(mx - x) + abs(my - y)
@@ -170,5 +202,9 @@ class World:
                 raise ValueError("start tile (0,0) must be open")
             self.years[value] = Year(value, grid)
             gen.seed_items(self, value, grid)
+            had_start = self.has_monster(value, 0, 0)
             gen.seed_monsters_for_year(self, value, self.global_seed)
+            # Ensure starting tile is clear unless a monster was explicitly placed
+            if not had_start:
+                self.remove_monster(value, 0, 0)
         return self.years[value]

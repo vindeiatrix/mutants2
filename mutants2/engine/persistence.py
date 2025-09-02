@@ -6,6 +6,7 @@ from typing import Dict, Tuple, Set
 
 from .player import Player
 from .world import World
+from . import monsters as monsters_mod
 
 from . import gen
 
@@ -23,7 +24,7 @@ class Save:
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
 
 
-def load() -> Tuple[Player, Dict[Tuple[int, int, int], str], Dict[Tuple[int, int, int], str], Set[int], Save]:
+def load() -> Tuple[Player, Dict[Tuple[int, int, int], str], Dict[Tuple[int, int, int], dict], Set[int], Save]:
     try:
         with open(SAVE_PATH) as fh:
             data = json.load(fh)
@@ -35,29 +36,40 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], str], Dict[Tuple[int, int
         clazz = data.get("class")
         player = Player(year=year, clazz=clazz)
         player.positions.update(positions)
+        player.max_hp = int(data.get("max_hp", player.max_hp))
+        player.hp = int(data.get("hp", player.max_hp))
         player.inventory.update({k: int(v) for k, v in data.get("inventory", {}).items()})
         ground = {
             tuple(int(n) for n in key.split(',')): val
             for key, val in data.get("ground", {}).items()
         }
-        monsters = {
-            tuple(int(n) for n in key.split(',')): val
-            for key, val in data.get("monsters", {}).items()
-        }
+        monsters_data: Dict[Tuple[int, int, int], dict] = {}
+        for key, val in data.get("monsters", {}).items():
+            coord = tuple(int(n) for n in key.split(','))
+            if isinstance(val, dict):
+                m_key = val.get("key")
+                hp = val.get("hp")
+            else:
+                m_key = val
+                hp = None
+            if m_key is None:
+                continue
+            base = monsters_mod.REGISTRY[m_key].base_hp
+            monsters_data[coord] = {"key": m_key, "hp": int(hp) if hp is not None else base}
         seeded = {int(y) for y in data.get("seeded_years", [])}
         save_meta = Save(
             global_seed=int(data.get("global_seed", gen.SEED)),
             last_topup_date=data.get("last_topup_date"),
         )
-        return player, ground, monsters, seeded, save_meta
+        return player, ground, monsters_data, seeded, save_meta
     except FileNotFoundError:
         player = Player()
         ground: Dict[Tuple[int, int, int], str] = {}
-        monsters: Dict[Tuple[int, int, int], str] = {}
+        monsters_data: Dict[Tuple[int, int, int], dict] = {}
         seeded: Set[int] = set()
         save_meta = Save()
-        save(player, World(ground, seeded, monsters, global_seed=save_meta.global_seed), save_meta)
-        return player, ground, monsters, seeded, save_meta
+        save(player, World(ground, seeded, monsters_data, global_seed=save_meta.global_seed), save_meta)
+        return player, ground, monsters_data, seeded, save_meta
 
 
 def save(player: Player, world: World, save_meta: Save) -> None:
@@ -70,14 +82,16 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for y, (x, yy) in player.positions.items()
             },
             "class": player.clazz,
+            "hp": player.hp,
+            "max_hp": player.max_hp,
             "inventory": {k: v for k, v in player.inventory.items()},
             "ground": {
                 f"{y},{x},{yy}": item_key
                 for (y, x, yy), item_key in world.ground.items()
             },
             "monsters": {
-                f"{y},{x},{yy}": key
-                for (y, x, yy), key in world.monsters.items()
+                f"{y},{x},{yy}": {"key": data["key"], "hp": data["hp"]}
+                for (y, x, yy), data in world.monsters.items()
             },
             "seeded_years": list(world.seeded_years),
             "global_seed": save_meta.global_seed,
