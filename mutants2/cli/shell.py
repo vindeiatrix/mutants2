@@ -462,9 +462,13 @@ def make_context(p, w, save, *, dev: bool = False):
             context._pre_shadow_lines = render_mod.shadow_lines(w, p)
         consumed = context._last_turn_consumed
         if consumed:
-            arrivals, foot = w.move_monsters_one_tick(p.year, p)
-            context._arrivals_this_tick = arrivals
-            context._footsteps_event = foot
+            if w.any_aggro_in_year(p.year):
+                arrivals, foot = w.move_monsters_one_tick(p.year, p)
+                context._arrivals_this_tick = arrivals
+                context._footsteps_event = foot
+            else:
+                context._arrivals_this_tick = []
+                context._footsteps_event = None
             w.turn += 1
         if context._needs_render:
             render_room_view(p, w, context)

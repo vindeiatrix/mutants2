@@ -58,12 +58,14 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
                 name = val.get("name")
                 # ``aggro`` state is persisted to keep passive monsters from moving
                 aggro = val.get("aggro", False)
+                seen = val.get("seen", False)
                 mid = val.get("id")
             else:
                 m_key = val
                 hp = None
                 name = None
                 aggro = False
+                seen = False
                 mid = None
             if m_key is None:
                 continue
@@ -72,13 +74,17 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
                 mid = monsters_mod.next_id()
             else:
                 monsters_mod.note_existing_id(int(mid))
-            monsters_data[coord] = {
+            m = {
                 "key": m_key,
                 "hp": int(hp) if hp is not None else base,
                 "name": name or monsters_mod.REGISTRY[m_key].name,
                 "aggro": bool(aggro),
+                "seen": bool(seen),
                 "id": int(mid),
             }
+            if m.get("aggro") and not m.get("seen"):
+                m["aggro"] = False
+            monsters_data[coord] = m
         seeded = {int(y) for y in data.get("seeded_years", [])}
         save_meta = Save(
             global_seed=int(data.get("global_seed", gen.SEED)),
@@ -118,6 +124,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                     "hp": data["hp"],
                     "name": data.get("name"),
                     "aggro": data.get("aggro", False),
+                    "seen": data.get("seen", False),
                     "id": data.get("id"),
                 }
                 for (y, x, yy), data in world.monsters.items()
