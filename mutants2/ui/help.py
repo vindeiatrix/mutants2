@@ -55,12 +55,14 @@ Look
 ----
 • `look` — describe the current room.
 • `look <dir>` — peek into an adjacent room without moving. Example: `look n`, `loo west`.
-• If there is no open passage that way: “You can’t look that way.”
+• `look <item>` — inspect a ground or inventory item by unique prefix.
+• `look <monster>` — inspect a visible monster (here or in an adjacent open room).
+• If blocked or no such target: “You can’t look that way.”
 
 Senses
 ------
-• You may see: “A shadow flickers to the <dir>.” — there is a monster in that *adjacent open room*.
-• No distant sounds yet; footsteps will arrive when monsters move.
+• “A shadow flickers to the <dir>.” — a monster is in that adjacent open room.
+• “You hear footsteps nearby.” — a monster moved within about four tiles this turn.
 """
 
 

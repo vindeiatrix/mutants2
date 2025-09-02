@@ -43,6 +43,8 @@ __all__ = [
     "find_by_name",
     "norm_name",
     "resolve_item_prefix",
+    "resolve_prefix",
+    "describe",
 ]
 
 
@@ -77,4 +79,18 @@ def resolve_item_prefix(query: str, candidates: list[str]) -> tuple[Optional[str
     if not matches:
         return None, []
     return None, matches[:6]
+
+
+def resolve_prefix(query: str, ground_names: list[str], inv_names: list[str]) -> Optional[str]:
+    name, amb = resolve_item_prefix(query, ground_names + inv_names)
+    if name and not amb:
+        return name
+    return None
+
+
+def describe(name: str) -> str:
+    item = find_by_name(name)
+    if item:
+        return f"You see {item.name}."
+    return f"You see {name}."
 
