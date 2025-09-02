@@ -71,9 +71,9 @@ Senses
 
 Audio
 -----
-• You only hear footsteps when a monster actually moved that turn.
-• Monsters do not move until they aggro.
-• A monster yells exactly once, when it aggroes as you enter its room.
+• Monsters start passive and don’t move until they aggro.
+• You hear footsteps only if an aggro’d monster actually moved that turn.
+• A monster yells exactly once when it aggroes as you enter its room.
 """
 
 

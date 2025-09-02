@@ -38,6 +38,20 @@ def note_existing_id(nid: int) -> None:
         _next_id = nid + 1
 
 
+def spawn(key: str, year: int, x: int, y: int) -> dict:
+    """Return default data for a newly spawned monster."""
+
+    counter = next_id()
+    return {
+        "key": key,
+        "name": REGISTRY[key].name,
+        "aggro": False,
+        "seen": False,
+        "id": counter,
+        "hp": REGISTRY[key].base_hp,
+    }
+
+
 def resolve_prefix(query: str, names: list[str]) -> str | None:
     q = norm_name(query)
     if not q:

@@ -44,9 +44,17 @@ def render_room_view(player: Player, world: World, context=None, *, consume_cues
     else:
         lines.extend(shadow_lines(world, player))
     if context is not None:
-        lines.extend(entry_yell_lines(context))
+        lines.extend(getattr(context, "_entry_yells", []) or [])
+        context._entry_yells = []
         lines.extend(arrival_lines(context))
-        lines.extend(footsteps_lines(context))
+        ev = getattr(context, "_footsteps_event", None)
+        context._footsteps_event = None
+        if ev:
+            kind, d = ev
+            if kind == "faint":
+                lines.append(f"You hear faint sounds of footsteps far to the {d}.")
+            else:
+                lines.append(f"You hear loud sounds of footsteps to the {d}.")
     if consume_cues:
         cues = player.senses.pop()
     else:

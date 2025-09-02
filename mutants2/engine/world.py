@@ -85,12 +85,14 @@ class World:
                     hp = data.get("hp")
                     name = data.get("name")
                     aggro = data.get("aggro", False)
+                    seen = data.get("seen", False)
                     mid = data.get("id")
                 else:
                     key = data
                     hp = None
                     name = None
                     aggro = False
+                    seen = False
                     mid = None
                 if key is None:
                     continue
@@ -104,6 +106,7 @@ class World:
                     "hp": int(hp) if hp is not None else base,
                     "name": name or monsters_mod.REGISTRY[key].name,
                     "aggro": bool(aggro),
+                    "seen": bool(seen),
                     "id": int(mid),
                 }
         if global_seed is None:
@@ -202,17 +205,18 @@ class World:
             yield m
 
     def on_entry_aggro_check(self, year: int, x: int, y: int, player, seed_parts=()) -> list[str]:
-        """Run 50/50 aggro rolls for passive monsters on (x, y)."""
+        """Mark monsters as seen and run 50/50 aggro rolls on this tile."""
 
         from .rng import hrand
 
         yells: list[str] = []
-        base_rng = hrand(*seed_parts, year, x, y, "aggro_enter")
+        base = hrand(*seed_parts, year, x, y, "aggro_enter")
         for m in self.monsters_here(year, x, y):
+            if not m.get("seen"):
+                m["seen"] = True
             if m.get("aggro"):
                 continue
-            rng = hrand(base_rng.random(), m.get("id"), "mroll")
-            if rng.random() < 0.5:
+            if hrand(base.random(), m.get("id"), "mroll").random() < 0.5:
                 m["aggro"] = True
                 yells.append(f"{m['name']} yells at you!")
         return yells
@@ -221,25 +225,11 @@ class World:
         coord = (year, x, y)
         if coord in self._monsters:
             return False
-        base = monsters_mod.REGISTRY[key].base_hp
-        self._monsters[coord] = {
-            "key": key,
-            "hp": base,
-            "name": monsters_mod.REGISTRY[key].name,
-            "aggro": False,
-            "id": monsters_mod.next_id(),
-        }
+        self._monsters[coord] = monsters_mod.spawn(key, year, x, y)
         return True
 
     def ensure_monster(self, year: int, x: int, y: int, key: str) -> None:
-        base = monsters_mod.REGISTRY[key].base_hp
-        self._monsters[(year, x, y)] = {
-            "key": key,
-            "hp": base,
-            "name": monsters_mod.REGISTRY[key].name,
-            "aggro": False,
-            "id": monsters_mod.next_id(),
-        }
+        self._monsters[(year, x, y)] = monsters_mod.spawn(key, year, x, y)
 
     def damage_monster(self, year: int, x: int, y: int, dmg: int) -> bool:
         coord = (year, x, y)
@@ -261,6 +251,9 @@ class World:
 
     # Movement ---------------------------------------------------------------
 
+    def any_aggro_in_year(self, year: int) -> bool:
+        return any(m.get("aggro", False) for _, _, m in self.monster_positions(year))
+
     def move_monsters_one_tick(self, year: int, player) -> tuple[list[str], tuple[str, str] | None]:
         """Advance ONLY aggro'd monsters one step each.
 
@@ -268,6 +261,9 @@ class World:
         footsteps event of the form ``("faint"|"loud", dir)`` or ``None`` if no
         monster movement produced audible footsteps.
         """
+
+        if not self.any_aggro_in_year(year):
+            return [], None
 
         arrivals: list[str] = []
         footsteps_event: tuple[str, str] | None = None
