@@ -108,7 +108,7 @@ def make_context(
         repl_reason=repl_reason,
     )
 
-    def dispatch(line: str) -> bool:
+    def dispatch_game(line: str) -> bool:
         nonlocal last_move
         s = line.strip()
         parts = s.split()
@@ -133,7 +133,10 @@ def make_context(
             if topic in {"macros", "macro"}:
                 print(MACROS_HELP)
             else:
-                print("Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do")
+                print(
+                    "Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do"
+                )
+            persistence.save(p, w)
             return True
         if cmd == "debug":
             if not dev:
@@ -207,24 +210,19 @@ def make_context(
                 w.set_ground_item(p.year, p.x, p.y, item.key)
                 print(f"You drop {item.name}.")
                 render.render(p, w)
-        elif cmd == "exit":
+        elif cmd in {"exit", "quit"}:
+            print("Goodbye.")
             context.running = False
             return False
         else:
-            if macro_store.keys_enabled and is_single_key(s):
-                script = resolve_bound_script(macro_store, s.lower())
-                if script:
-                    macro_store.expand_and_run_script(script, dispatch)
-                    return True
-            print("Unknown command.")
             return False
         persistence.save(p, w)
         return True
 
-    def dispatch_line(cmd_raw: str) -> None:
+    def try_dispatch_builtin(cmd_raw: str) -> bool:
         cmd_raw = cmd_raw.strip()
         if not cmd_raw:
-            return
+            return True
         m = re.fullmatch(r"/macro\s+(\S+)\s+\{(.+)\}\s*", cmd_raw)
         if m:
             key = normalize_key(m.group(1))
@@ -232,25 +230,27 @@ def make_context(
                 print("Unknown key name.")
             else:
                 macro_store.bind(key, m.group(2))
-            return
+            return True
         if cmd_raw.startswith("press "):
             key = normalize_key(cmd_raw[6:].strip())
             if key is None:
                 print("Unknown key name.")
             else:
-                macro_store.press(key, dispatch)
-            return
+                macro_store.press(key, try_dispatch_builtin)
+            return True
         if cmd_raw.startswith("@"):
             content = cmd_raw[1:].strip()
             if content:
                 parts = content.split()
                 name = parts[0]
                 args = parts[1:]
-                macro_store.run_named(name, args, dispatch)
-        elif cmd_raw.startswith("do "):
+                macro_store.run_named(name, args, try_dispatch_builtin)
+            return True
+        if cmd_raw.startswith("do "):
             script = cmd_raw[3:].strip()
-            macro_store.run(script, [], dispatch)
-        elif cmd_raw.startswith("macro"):
+            macro_store.run(script, [], try_dispatch_builtin)
+            return True
+        if cmd_raw.startswith("macro"):
             rest = cmd_raw[5:].strip()
             if rest.startswith("add "):
                 after = rest[4:]
@@ -264,7 +264,7 @@ def make_context(
                 if parts:
                     name = parts[0]
                     args = parts[1:]
-                    macro_store.run_named(name, args, dispatch)
+                    macro_store.run_named(name, args, try_dispatch_builtin)
             elif rest == "list":
                 for n in macro_store.list():
                     print(n)
@@ -298,7 +298,10 @@ def make_context(
                     print(f"{k} = {v}")
             elif rest.startswith("keys"):
                 args2 = rest[4:].strip().split()
-                if args2 and args2[0] in {"on", "off"}:
+                if args2 and args2[0] == "panic":
+                    macro_store.keys_enabled = False
+                    print("Keybindings disabled for this session.")
+                elif args2 and args2[0] in {"on", "off"}:
                     macro_store.keys_enabled = args2[0] == "on"
                 elif len(args2) == 2 and args2[0] == "debug":
                     macro_store.keys_debug = args2[1].lower() == "on"
@@ -309,7 +312,7 @@ def make_context(
                         f"mode={context.repl_mode}{reason}, keys_enabled={macro_store.keys_enabled}, debug={getattr(macro_store, 'keys_debug', False)}"
                     )
                 else:
-                    print("Usage: macro keys on|off | debug on|off | status")
+                    print("Usage: macro keys on|off | debug on|off | status | panic")
             elif rest == "clear":
                 confirm = input("Clear all macros? type yes to confirm: ").strip().lower()
                 if confirm == "yes":
@@ -331,13 +334,34 @@ def make_context(
                     print(n)
             else:
                 print("Invalid macro command.")
-        else:
-            dispatch(cmd_raw)
-        if not context.running:
-            return
+            return True
+        return dispatch_game(cmd_raw)
 
+    def dispatch_line(line: str) -> bool:
+        s = line.strip()
+        if not s:
+            return False
+        if s in ("exit", "quit"):
+            print("Goodbye.")
+            return True
+        handled = try_dispatch_builtin(s)
+        if handled:
+            if not context.running:
+                return True
+            return False
+        if macro_store.keys_enabled and is_single_key(s):
+            script = resolve_bound_script(macro_store, s.lower())
+            if script:
+                context.run_script(script)
+                if not context.running:
+                    return True
+                return False
+        print("Unknown command.")
+        return False
+
+    context.run_script = lambda script: macro_store.expand_and_run_script(script, try_dispatch_builtin)
     context.dispatch_line = dispatch_line
-    context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch)
+    context.try_dispatch_builtin = try_dispatch_builtin
 
     return context
 

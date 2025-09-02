@@ -30,3 +30,12 @@ def test_keys_off_disables_fallback(cli_runner):
         "z",
     ])
     assert "Unknown command" in out
+
+
+def test_keys_panic_disables_fallback(cli_runner):
+    out = cli_runner.run_commands([
+        "macro bind z = look",
+        "macro keys panic",
+        "z",
+    ])
+    assert "Unknown command" in out
