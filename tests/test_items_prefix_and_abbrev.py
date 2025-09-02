@@ -1,4 +1,5 @@
 import os
+import datetime
 import pytest
 
 from mutants2.engine import persistence
@@ -12,7 +13,9 @@ def tile_with_item(tmp_path):
     os.environ['HOME'] = str(tmp_path)
     p = Player()
     w = World({(2000, 0, 0): 'nuclear_thong'}, {2000})
-    persistence.save(p, w)
+    save = persistence.Save()
+    save.last_topup_date = datetime.date.today().isoformat()
+    persistence.save(p, w, save)
     return None
 
 
@@ -23,7 +26,9 @@ def inventory_with_item(tmp_path):
     p = Player()
     p.inventory['nuclear_thong'] = 1
     w = World(seeded_years={2000})
-    persistence.save(p, w)
+    save = persistence.Save()
+    save.last_topup_date = datetime.date.today().isoformat()
+    persistence.save(p, w, save)
     return None
 
 
@@ -34,7 +39,9 @@ def inventory_with_ion_items(tmp_path):
     p = Player()
     p.inventory.update({'ion_decay': 1, 'ion_pack': 1})
     w = World(seeded_years={2000})
-    persistence.save(p, w)
+    save = persistence.Save()
+    save.last_topup_date = datetime.date.today().isoformat()
+    persistence.save(p, w, save)
     return None
 
 
@@ -67,3 +74,4 @@ def test_abbrev_rules(cli_runner):
 def test_travel_still_renders(cli_runner):
     out = cli_runner.run_commands(["tra 2100"])
     assert "***" in out and "0E" in out
+

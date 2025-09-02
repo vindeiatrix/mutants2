@@ -25,9 +25,24 @@ def main() -> None:
     except Exception:  # pragma: no cover - best effort only
         pass
 
-    from mutants2.cli.shell import make_context
+    from mutants2.cli.shell import make_context, class_menu
+    from mutants2.engine import persistence, world as world_mod
+    from mutants2.engine.render import render_room_view
+    from mutants2.engine.gen import daily_topup_if_needed
 
-    ctx = make_context(dev=dev)
+    p, ground, seeded, save = persistence.load()
+    w = world_mod.World(ground, seeded)
+
+    if p.clazz is None:
+        class_menu(p, w, save, in_game=False)
+
+    placed = daily_topup_if_needed(w, p, save)
+    if dev and placed:
+        print(f"[dev] Daily top-up placed {placed} items.")
+
+    render_room_view(p, w)
+
+    ctx = make_context(p, w, save, dev=dev)
 
     while True:
         try:

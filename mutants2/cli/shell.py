@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import datetime
 
 from ..engine import world, persistence, items
 from ..engine.render import render_room_view
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
+from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE
 
@@ -57,7 +59,7 @@ def resolve_command(token: str) -> str | None:
     return None
 
 
-def class_menu(p, w, *, in_game: bool) -> bool:
+def class_menu(p, w, save, *, in_game: bool) -> bool:
     """Show the class selection menu.
 
     Returns ``True`` if the player's class was changed, ``False`` otherwise.
@@ -89,13 +91,11 @@ def class_menu(p, w, *, in_game: bool) -> bool:
             print("Invalid selection.")
             continue
         p.clazz = picked
-        persistence.save(p, w)
+        persistence.save(p, w, save)
         return True
 
 
-def make_context(*, dev: bool = False):
-    p, ground, seeded = persistence.load()
-    w = world.World(ground, seeded)
+def make_context(p, w, save, *, dev: bool = False):
     macro_store = MacroStore()
     try:
         macro_store.load_profile("default")
@@ -103,10 +103,7 @@ def make_context(*, dev: bool = False):
         pass
     last_move = None
 
-    if p.clazz is None:
-        class_menu(p, w, in_game=False)
-    render_room_view(p, w)
-    context = SimpleNamespace(macro_store=macro_store, running=True)
+    context = SimpleNamespace(macro_store=macro_store, running=True, player=p, world=w, save=save)
 
     def handle_macro(rest: str) -> None:
         if rest.startswith("add "):
@@ -176,7 +173,7 @@ def make_context(*, dev: bool = False):
                 p.move(last_move, w)
             render_room_view(p, w)
         elif cmd == "class":
-            changed = class_menu(p, w, in_game=True)
+            changed = class_menu(p, w, save, in_game=True)
             if changed:
                 render_room_view(p, w)
         elif cmd == "inventory":
@@ -267,6 +264,20 @@ def make_context(*, dev: bool = False):
                 elif args and args[0] == "clear" and len(args) == 1:
                     p.senses.clear()
                     print("OK.")
+                elif args and args[0] == "today" and len(args) >= 2:
+                    if args[1].lower() == "clear":
+                        save.fake_today_override = None
+                        print("OK.")
+                    else:
+                        try:
+                            datetime.date.fromisoformat(args[1])
+                            save.fake_today_override = args[1]
+                            print("OK.")
+                        except Exception:
+                            print("Use YYYY-MM-DD.")
+                elif args and args[0] == "topup":
+                    count = daily_topup_if_needed(w, p, save)
+                    print(f"Topped up {count} item(s).")
                 else:
                     print("Invalid debug command.")
         elif cmd in {"north", "south", "east", "west"}:
@@ -284,7 +295,7 @@ def make_context(*, dev: bool = False):
         else:
             print("Unknown command.")
             return False
-        persistence.save(p, w)
+        persistence.save(p, w, save)
         return True
 
     def dispatch_macro(cmd_raw: str) -> bool:

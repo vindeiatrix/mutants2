@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple, Set, Optional
+from typing import Dict, Tuple, Set, Optional, Iterable
 
 from .senses import Direction
 Coordinate = Tuple[int, int]
@@ -62,6 +62,28 @@ class World:
             self.ground.pop(key, None)
         else:
             self.ground[key] = item_key
+
+    # Helpers for daily top-up -------------------------------------------------
+
+    def known_years(self) -> list[int]:
+        yrs = set(self.years.keys()) | {y for (y, _, _) in self.ground.keys()} | set(self.seeded_years)
+        return sorted(yrs)
+
+    def walkable_coords(self, year: int) -> Iterable[Tuple[int, int]]:
+        grid = self.year(year).grid
+        for x in range(grid.width):
+            for y in range(grid.height):
+                if grid.is_walkable(x, y):
+                    yield (x, y)
+
+    def item_at(self, year: int, x: int, y: int) -> Optional[str]:
+        return self.ground_item(year, x, y)
+
+    def place_item(self, year: int, x: int, y: int, item_key: str) -> None:
+        self.set_ground_item(year, x, y, item_key)
+
+    def ground_items_count(self, year: int) -> int:
+        return sum(1 for (yr, _, _) in self.ground.keys() if yr == year)
 
     def year(self, value: int) -> Year:
         """Return the :class:`Year` for ``value`` generating it if needed."""

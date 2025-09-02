@@ -1,6 +1,11 @@
 import pytest
 
 from mutants2.engine import persistence
+import os
+import datetime
+import pytest
+
+from mutants2.engine import persistence
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
 
@@ -10,7 +15,9 @@ def seeded_world_with_item(tmp_path):
     persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
     w = World({(2000, 0, 0): 'ion_decay'}, {2000})
     p = Player()
-    persistence.save(p, w)
+    save = persistence.Save()
+    save.last_topup_date = datetime.date.today().isoformat()
+    persistence.save(p, w, save)
     return None
 
 
