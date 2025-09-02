@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import re
-import sys
 from types import SimpleNamespace
-
-from .repl import FallbackRepl, PtkRepl
 
 from ..engine import world, persistence, render, items
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
@@ -79,7 +76,13 @@ def class_menu(p, w, *, in_game: bool) -> bool:
         return True
 
 
-def main(*, dev_mode: bool = False, macro_profile: str | None = None, use_ptk: bool = False) -> None:
+def make_context(
+    *,
+    dev: bool = False,
+    macro_profile: str | None = None,
+    repl_mode: str = "Fallback",
+    repl_reason: str | None = None,
+):
     p, ground, seeded = persistence.load()
     w = world.World(ground, seeded)
     macro_store = MacroStore()
@@ -97,7 +100,13 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None, use_ptk: b
     if p.clazz is None:
         class_menu(p, w, in_game=False)
     render.render(p, w)
-    context = SimpleNamespace(macro_store=macro_store, running=True)
+    macro_store.repl_mode = repl_mode
+    context = SimpleNamespace(
+        macro_store=macro_store,
+        running=True,
+        repl_mode=repl_mode,
+        repl_reason=repl_reason,
+    )
 
     def dispatch(line: str) -> bool:
         nonlocal last_move
@@ -127,7 +136,7 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None, use_ptk: b
                 print("Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do")
             return True
         if cmd == "debug":
-            if not dev_mode:
+            if not dev:
                 print("Debug commands are available only in dev mode.")
             else:
                 if args and args[0] == "shadow" and len(args) == 2:
@@ -287,19 +296,17 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None, use_ptk: b
             elif rest == "bindings":
                 for k, v in sorted(macro_store.bindings().items()):
                     print(f"{k} = {v}")
-            elif rest.startswith("keys "):
-                sub = rest[5:].strip().lower()
-                if sub in {"on", "off"}:
-                    macro_store.keys_enabled = sub == "on"
-                elif sub.startswith("debug "):
-                    val = sub[6:].strip()
-                    if val in {"on", "off"}:
-                        macro_store.keys_debug = val == "on"
-                    else:
-                        print("Usage: macro keys debug on|off")
-                elif sub == "status":
+            elif rest.startswith("keys"):
+                args2 = rest[4:].strip().split()
+                if args2 and args2[0] in {"on", "off"}:
+                    macro_store.keys_enabled = args2[0] == "on"
+                elif len(args2) == 2 and args2[0] == "debug":
+                    macro_store.keys_debug = args2[1].lower() == "on"
+                    print("OK.")
+                elif args2 and args2[0] == "status":
+                    reason = f" ({context.repl_reason})" if context.repl_reason else ""
                     print(
-                        f"mode={macro_store.repl_mode}, keys_enabled={macro_store.keys_enabled}, debug={macro_store.keys_debug}"
+                        f"mode={context.repl_mode}{reason}, keys_enabled={macro_store.keys_enabled}, debug={getattr(macro_store, 'keys_debug', False)}"
                     )
                 else:
                     print("Usage: macro keys on|off | debug on|off | status")
@@ -332,6 +339,5 @@ def main(*, dev_mode: bool = False, macro_profile: str | None = None, use_ptk: b
     context.dispatch_line = dispatch_line
     context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch)
 
-    repl = PtkRepl(context) if use_ptk else FallbackRepl(context)
-    repl.run()
+    return context
 

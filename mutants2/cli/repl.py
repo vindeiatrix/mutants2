@@ -4,7 +4,6 @@ from mutants2.engine.macros import resolve_bound_script
 class FallbackRepl:
     def __init__(self, context) -> None:
         self.ctx = context
-        self.ctx.macro_store.repl_mode = "Fallback"
 
     def run(self) -> None:
         while True:
@@ -21,17 +20,18 @@ class PtkRepl:
         self.ctx = context
         from prompt_toolkit import PromptSession
         from prompt_toolkit.key_binding import KeyBindings
+        from prompt_toolkit.keys import Keys
 
         self.PromptSession = PromptSession
         self.KeyBindings = KeyBindings
-        self.ctx.macro_store.repl_mode = "PTK"
+        self.Keys = Keys
 
     def run(self) -> None:
         kb = self.KeyBindings()
         session = self.PromptSession(key_bindings=kb, enable_history_search=True)
         store = self.ctx.macro_store
 
-        def debug(msg: str) -> None:
+        def dbg(msg: str) -> None:
             if getattr(store, "keys_debug", False):
                 print(msg)
 
@@ -39,11 +39,11 @@ class PtkRepl:
             buf = event.app.current_buffer
             if not store.keys_enabled or buf.text:
                 return False
-            key_display = key_id or ch or "?"
+            key_disp = key_id or ch or "?"
             script = resolve_bound_script(store, key_id) if key_id else None
             if not script and ch:
                 script = resolve_bound_script(store, ch)
-            debug(f"[#] key='{key_display}' data='{ch or ''}' → resolved={'yes' if script else 'no'}")
+            dbg(f"[#] key='{key_disp}' data='{ch or ''}' -> {'hit' if script else 'miss'}")
             if not script:
                 return False
             event.prevent_default()
@@ -51,12 +51,11 @@ class PtkRepl:
             self.ctx.run_script(script)
             return True
 
-        @kb.add("<any>")
+        @kb.add(self.Keys.Any)
         def _(event):
-            ch = event.data
+            ch = event.data  # '' for non-printables
             if ch and try_fire(event, None, ch):
-                return
-            # otherwise let PTK handle normally
+                return  # consumed
 
         names = [
             "up",
