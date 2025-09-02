@@ -51,14 +51,20 @@ class Year:
 class World:
     def __init__(
         self,
-        ground: Optional[Dict[Tuple[int, int, int], str]] = None,
+        ground: Optional[Dict[Tuple[int, int, int], list[str] | str]] = None,
         seeded_years: Optional[Set[int]] = None,
         monsters: Optional[Dict[Tuple[int, int, int], dict]] = None,
         *,
         global_seed: int | None = None,
     ):
         self.years: Dict[int, Year] = {}
-        self.ground: Dict[Tuple[int, int, int], str] = ground or {}
+        self.ground: Dict[Tuple[int, int, int], list[str]] = {}
+        if ground:
+            for coord, val in ground.items():
+                if isinstance(val, list):
+                    self.ground[coord] = list(val)
+                else:
+                    self.ground[coord] = [val]
         self.seeded_years: Set[int] = set(seeded_years or [])
         self._monsters: Dict[Tuple[int, int, int], dict] = {}
         if monsters:
@@ -81,20 +87,40 @@ class World:
         self._recent_monster_moves: list[tuple[int, int, int, int, int]] = []
 
     def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
-        return self.ground.get((year, x, y))
+        items = self.ground.get((year, x, y))
+        if items:
+            return items[0]
+        return None
 
     def set_ground_item(self, year: int, x: int, y: int, item_key: Optional[str]) -> None:
         key = (year, x, y)
         if item_key is None:
             self.ground.pop(key, None)
         else:
-            self.ground[key] = item_key
+            self.ground[key] = [item_key]
+
+    def add_ground_item(self, year: int, x: int, y: int, item_key: str) -> None:
+        self.ground.setdefault((year, x, y), []).append(item_key)
+
+    def remove_ground_item(self, year: int, x: int, y: int, item_key: str) -> bool:
+        items = self.ground.get((year, x, y))
+        if not items:
+            return False
+        try:
+            items.remove(item_key)
+        except ValueError:
+            return False
+        if not items:
+            self.ground.pop((year, x, y), None)
+        return True
 
     def items_here(self, year: int, x: int, y: int) -> list[str]:
-        key = self.ground_item(year, x, y)
-        if not key:
-            return []
-        return [items_mod.REGISTRY[key].name]
+        keys = self.ground.get((year, x, y), [])
+        return [items_mod.REGISTRY[k].name for k in keys]
+
+    def items_on_ground(self, year: int, x: int, y: int) -> list[items_mod.ItemDef]:
+        keys = self.ground.get((year, x, y), [])
+        return [items_mod.REGISTRY[k] for k in keys]
 
     # Helpers for daily top-up -------------------------------------------------
 
@@ -113,10 +139,10 @@ class World:
         return self.ground_item(year, x, y)
 
     def place_item(self, year: int, x: int, y: int, item_key: str) -> None:
-        self.set_ground_item(year, x, y, item_key)
+        self.add_ground_item(year, x, y, item_key)
 
     def ground_items_count(self, year: int) -> int:
-        return sum(1 for (yr, _, _) in self.ground.keys() if yr == year)
+        return sum(len(v) for (yr, _, _), v in self.ground.items() if yr == year)
 
     @property
     def monsters(self) -> Dict[Tuple[int, int, int], dict]:
@@ -136,6 +162,10 @@ class World:
 
     def monster_here(self, year: int, x: int, y: int) -> dict | None:
         return self._monsters.get((year, x, y))
+
+    def monsters_here(self, year: int, x: int, y: int) -> list[dict]:
+        m = self.monster_here(year, x, y)
+        return [m] if m else []
 
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)

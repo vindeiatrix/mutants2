@@ -12,6 +12,7 @@ class MonsterDef:
 
 REGISTRY = {
     "mutant": MonsterDef("mutant", "Mutant", base_hp=3),
+    "night_stalker": MonsterDef("night_stalker", "Night-Stalker", base_hp=3),
 }
 
 SPAWN_KEYS = tuple(REGISTRY.keys())
@@ -24,6 +25,15 @@ def resolve_prefix(query: str, names: list[str]) -> str | None:
     matches = [n for n in names if norm_name(n).startswith(q)]
     if len(matches) == 1:
         return matches[0]
+    return None
+
+
+def first_mon_prefix(prefix: str, mons_in_order: list[str]) -> str | None:
+    """Return the first monster name matching ``prefix``."""
+    p = prefix.strip().lower()
+    for name in mons_in_order:
+        if name.lower().startswith(p):
+            return name
     return None
 
 

@@ -57,10 +57,9 @@ def test_drop_does_not_render(cli_runner, inventory_with_item):
     assert "You drop Nuclear-thong." in out
 
 
-def test_item_prefix_ambiguous(cli_runner, inventory_with_ion_items):
-    out = cli_runner.run_commands(["dro ion", "dro ion-dec"])
-    assert "Ambiguous:" in out
-    assert "You drop Ion-Decay" in out or "You drop Ion-Pack" in out
+def test_item_prefix_first_match_cli_runner(cli_runner, inventory_with_ion_items):
+    out = cli_runner.run_commands(["dro ion"])
+    assert "You drop Ion-Decay." in out
 
 
 def test_abbrev_rules(cli_runner):

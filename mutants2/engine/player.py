@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
 from .senses import SensesBuffer
+from . import items as items_mod
 
 
 # Available player classes. These are simple placeholders for now and do not
@@ -67,4 +68,32 @@ class Player:
 
     def is_dead(self) -> bool:
         return self.hp <= 0
+
+    # Inventory helpers ------------------------------------------------------
+
+    def inventory_names_in_order(self) -> list[str]:
+        """Return inventory item names preserving insertion order."""
+        return [items_mod.REGISTRY[k].name for k in self.inventory.keys()]
+
+    def pick_up(self, name: str, world) -> None:
+        """Pick up an item by name from the ground at the current tile."""
+        item = items_mod.find_by_name(name)
+        if not item:
+            return
+        ok = world.remove_ground_item(self.year, self.x, self.y, item.key)
+        if ok:
+            self.inventory[item.key] = self.inventory.get(item.key, 0) + 1
+
+    def drop_to_ground(self, name: str, world) -> tuple[bool, str | None]:
+        """Drop an item by name onto the ground at the current tile."""
+        item = items_mod.find_by_name(name)
+        if not item:
+            return False, None
+        if self.inventory.get(item.key, 0) <= 0:
+            return False, "You don't have that."
+        world.add_ground_item(self.year, self.x, self.y, item.key)
+        self.inventory[item.key] -= 1
+        if self.inventory[item.key] == 0:
+            del self.inventory[item.key]
+        return True, None
 

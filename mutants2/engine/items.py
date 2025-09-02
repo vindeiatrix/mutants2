@@ -44,6 +44,7 @@ __all__ = [
     "norm_name",
     "resolve_item_prefix",
     "resolve_prefix",
+    "first_prefix_match",
     "describe",
 ]
 
@@ -59,6 +60,20 @@ def find_by_name(name: str) -> Optional[ItemDef]:
 def norm_name(s: str) -> str:
     """Normalize an item name for case-insensitive prefix matching."""
     return re.sub(r"[^a-z0-9]", "", s.lower())
+
+
+def first_prefix_match(prefix: str, names_in_order: list[str]) -> str | None:
+    """Return the first candidate whose name starts with ``prefix``.
+
+    Prefix comparison is case-insensitive and accepts any prefix length from
+    one up to the full name. The first match in ``names_in_order`` wins; no
+    ambiguity errors are reported.
+    """
+    p = prefix.strip().lower()
+    for name in names_in_order:
+        if name.lower().startswith(p):
+            return name
+    return None
 
 
 def resolve_item_prefix(query: str, candidates: list[str]) -> tuple[Optional[str], list[str]]:
