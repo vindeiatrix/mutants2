@@ -34,13 +34,19 @@ def main() -> None:
     w = world_mod.World(ground, seeded, monsters, global_seed=save.global_seed)
 
     if p.clazz is None:
+        w.reset_all_aggro()
         class_menu(p, w, save, in_game=False)
 
     placed = daily_topup_if_needed(w, p, save)
     if dev and placed:
         print(f"[dev] Daily top-up placed {placed} items.")
 
+    yells = w.on_entry_aggro_check(
+        p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
+    )
     render_room_view(p, w)
+    for line in yells:
+        print(line)
 
     ctx = make_context(p, w, save, dev=dev)
 
@@ -56,4 +62,3 @@ def main() -> None:
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-

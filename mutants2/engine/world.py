@@ -51,7 +51,9 @@ class Cell:
 class Grid:
     """A simple 4-neighbour grid with fully open connectivity."""
 
-    def __init__(self, width: int = GRID_MAX - GRID_MIN, height: int = GRID_MAX - GRID_MIN):
+    def __init__(
+        self, width: int = GRID_MAX - GRID_MIN, height: int = GRID_MAX - GRID_MIN
+    ):
         self.width = width
         self.height = height
 
@@ -147,7 +149,9 @@ class World:
             return items[0]
         return None
 
-    def set_ground_item(self, year: int, x: int, y: int, item_key: Optional[str]) -> None:
+    def set_ground_item(
+        self, year: int, x: int, y: int, item_key: Optional[str]
+    ) -> None:
         key = (year, x, y)
         if item_key is None:
             self.ground.pop(key, None)
@@ -180,7 +184,11 @@ class World:
     # Helpers for daily top-up -------------------------------------------------
 
     def known_years(self) -> list[int]:
-        yrs = set(self.years.keys()) | {y for (y, _, _) in self.ground.keys()} | set(self.seeded_years)
+        yrs = (
+            set(self.years.keys())
+            | {y for (y, _, _) in self.ground.keys()}
+            | set(self.seeded_years)
+        )
         return sorted(yrs)
 
     def walkable_coords(self, year: int) -> Iterable[Tuple[int, int]]:
@@ -233,7 +241,9 @@ class World:
     def monsters_here(self, year: int, x: int, y: int) -> list[dict]:
         return list(self._monsters.get((year, x, y), []))
 
-    def on_entry_aggro_check(self, year: int, x: int, y: int, player, seed_parts=()) -> list[str]:
+    def on_entry_aggro_check(
+        self, year: int, x: int, y: int, player, seed_parts=()
+    ) -> list[str]:
         """Mark monsters as seen and run 50/50 aggro rolls on this tile."""
 
         from .rng import hrand
@@ -250,11 +260,14 @@ class World:
                 yells.append(f"{m['name']} yells at you!")
         return yells
 
+    def reset_all_aggro(self) -> None:
+        for lst in self._monsters.values():
+            for m in lst:
+                m["aggro"] = False
+
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
-        self._monsters.setdefault(coord, []).append(
-            monsters_mod.spawn(key, year, x, y)
-        )
+        self._monsters.setdefault(coord, []).append(monsters_mod.spawn(key, year, x, y))
         return True
 
     def ensure_monster(self, year: int, x: int, y: int, key: str) -> None:
@@ -313,7 +326,7 @@ class World:
 
         px, py = player.x, player.y
 
-        for (x, y, m) in list(self.monster_positions(year)):
+        for x, y, m in list(self.monster_positions(year)):
             if not m.get("aggro", False):
                 continue  # passive monsters never move
 
@@ -330,7 +343,9 @@ class World:
                     if (
                         best is None
                         or cand[3] < best[3]
-                        or (cand[3] == best[3] and ORDER.index(d) < ORDER.index(best[0]))
+                        or (
+                            cand[3] == best[3] and ORDER.index(d) < ORDER.index(best[0])
+                        )
                     ):
                         best = cand
 
@@ -372,7 +387,9 @@ class World:
                     dirs.append(d)
         return dirs
 
-    def adjacent_monster_names(self, year: int, x: int, y: int) -> list[tuple[str, str]]:
+    def adjacent_monster_names(
+        self, year: int, x: int, y: int
+    ) -> list[tuple[str, str]]:
         results: list[tuple[str, str]] = []
         for d in ("east", "west", "north", "south"):
             if self.is_open(year, x, y, d):
@@ -384,7 +401,9 @@ class World:
                     results.append((name, key))
         return results
 
-    def resolve_monster_prefix_nearby(self, year: int, x: int, y: int, query: str) -> str | None:
+    def resolve_monster_prefix_nearby(
+        self, year: int, x: int, y: int, query: str
+    ) -> str | None:
         candidates: list[str] = []
         name_to_key: dict[str, str] = {}
         here = self.monster_here(year, x, y)
@@ -406,7 +425,10 @@ class World:
         for yr, x0, y0, x1, y1 in self._recent_monster_moves:
             if yr != year:
                 continue
-            if abs(x0 - x) + abs(y0 - y) <= radius or abs(x1 - x) + abs(y1 - y) <= radius:
+            if (
+                abs(x0 - x) + abs(y0 - y) <= radius
+                or abs(x1 - x) + abs(y1 - y) <= radius
+            ):
                 hit = True
                 break
         self._recent_monster_moves.clear()
