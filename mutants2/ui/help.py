@@ -49,7 +49,7 @@ Examples
   do 7e3n; look
 """
 
-COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class, inventory, get, drop, exit, macro, @name, do
+COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class (or x), inventory, get, drop, exit, macro, @name, do
 
 Look
 ----
@@ -91,4 +91,3 @@ ABBREVIATIONS_NOTE = """Prefixes
   If multiple names match, the first in the list is used.
 • For LOOK specifically, a name after 'look' prefers monsters over items. If neither matches, 'look <dir>' is tried.
 """
-

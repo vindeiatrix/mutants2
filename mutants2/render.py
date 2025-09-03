@@ -105,8 +105,11 @@ def render_room_at(
             out.append(SEP)
 
     if arrivals:
-        for aid, name, d in sorted(arrivals):
+        arr_sorted = sorted(arrivals)
+        for i, (aid, name, d) in enumerate(arr_sorted):
             out.append(red(f"{name} has just arrived from the {d}."))
+            if i < len(arr_sorted) - 1:
+                out.append(SEP)
 
     return "\n".join(out)
 

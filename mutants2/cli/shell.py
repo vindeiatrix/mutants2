@@ -3,10 +3,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 import datetime
 
-from ..engine import world, persistence, items, monsters
+from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
-from ..engine.player import Player, CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
+from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP
@@ -32,7 +32,18 @@ NONDIR_CMDS = {
     "debug": "debug",
 }
 
-TURN_CMDS = {"north", "south", "east", "west", "travel", "get", "drop", "attack", "rest", "look"}
+TURN_CMDS = {
+    "north",
+    "south",
+    "east",
+    "west",
+    "travel",
+    "get",
+    "drop",
+    "attack",
+    "rest",
+    "look",
+}
 
 DIR_FULL = ("north", "south", "east", "west")
 DIR_1 = {"n": "north", "s": "south", "e": "east", "w": "west"}
@@ -55,6 +66,8 @@ def resolve_command(token: str) -> str | None:
     t = token.lower()
     if not t:
         return None
+    if t == "x":
+        return "class"
     if t in DIR_1:
         return DIR_1[t]
     if t in DIR_FULL:
@@ -215,12 +228,19 @@ def make_context(p, w, save, *, dev: bool = False):
 
     def handle_look(args: list[str]) -> bool:
         if not args:
+            yells = w.on_entry_aggro_check(
+                p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
+            )
+            if yells:
+                context._entry_yells.extend(yells)
             context._needs_render = True
             return False
 
         q = " ".join(args).strip().lower()
 
-        here_monsters = [monsters.REGISTRY[m["key"]].name for m in w.monsters_here(p.year, p.x, p.y)]
+        here_monsters = [
+            monsters.REGISTRY[m["key"]].name for m in w.monsters_here(p.year, p.x, p.y)
+        ]
         mname = monsters.first_mon_prefix(q, here_monsters)
         if mname:
             print(f"It's a {mname}.")
@@ -298,9 +318,15 @@ def make_context(p, w, save, *, dev: bool = False):
                 turn = True
             context._needs_render = True
         elif cmd == "class":
+            w.reset_all_aggro()
             changed = class_menu(p, w, save, in_game=True)
             if changed:
+                yells = w.on_entry_aggro_check(
+                    p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
+                )
                 render_room_view(p, w, context)
+                for line in yells:
+                    print(line)
         elif cmd == "inventory":
             if p.inventory:
                 for key, count in p.inventory.items():
@@ -324,7 +350,7 @@ def make_context(p, w, save, *, dev: bool = False):
         elif cmd == "help":
             if args and args[0].lower() == "debug":
                 print(
-"""Debug commands:
+                    """Debug commands:
   debug item add <name|key> [count]   Add item(s) to current room's ground.
   debug item clear                    Remove all ground items here.
   debug item list                     Show raw ground items here.
@@ -374,7 +400,11 @@ def make_context(p, w, save, *, dev: bool = False):
                     else:
                         w.place_monster(p.year, p.x, p.y, "mutant")
                         print("Spawned monster.")
-                elif args[:2] == ["mon", "spawn"] and len(args) >= 3 and args[2].isdigit():
+                elif (
+                    args[:2] == ["mon", "spawn"]
+                    and len(args) >= 3
+                    and args[2].isdigit()
+                ):
                     import random
 
                     n = int(args[2])
@@ -389,7 +419,9 @@ def make_context(p, w, save, *, dev: bool = False):
                             if w.has_monster(p.year, nx, ny):
                                 continue
                             coords.append((nx, ny))
-                    rng = random.Random(hash((save.global_seed, p.year, p.x, p.y, "spawn_near")))
+                    rng = random.Random(
+                        hash((save.global_seed, p.year, p.x, p.y, "spawn_near"))
+                    )
                     rng.shuffle(coords)
                     placed = 0
                     for x, y in coords:
@@ -442,9 +474,9 @@ def make_context(p, w, save, *, dev: bool = False):
                 turn = True
                 context._needs_render = True
         elif cmd == "exit":
+            w.reset_all_aggro()
             print("Goodbye.")
             context.running = False
-            return False
         else:
             print("Unknown command.")
             return False
@@ -483,8 +515,13 @@ def make_context(p, w, save, *, dev: bool = False):
         return handle_command(cmd, args)
 
     def dispatch_line(line: str) -> bool:
-        if line.strip():
-            print(line.strip())
+        stripped = line.strip()
+        if not stripped:
+            context._last_turn_consumed = False
+            print("***")
+            print("Type ? if you need assistance.")
+            return False
+        print(stripped)
         before = (p.year, p.x, p.y)
         dispatch_macro(line)
         if not context.running:
@@ -517,9 +554,10 @@ def make_context(p, w, save, *, dev: bool = False):
             print(msg)
         return False
 
-    context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch_macro)
+    context.run_script = lambda script: macro_store.expand_and_run_script(
+        script, dispatch_macro
+    )
     context.dispatch_line = dispatch_line
     context.try_dispatch_builtin = dispatch_macro
 
     return context
-
