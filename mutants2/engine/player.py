@@ -80,6 +80,14 @@ class Player:
         """Return inventory item names preserving insertion order."""
         return [items_mod.REGISTRY[k].name for k in self.inventory.keys()]
 
+    def inventory_weight_lbs(self) -> int:
+        total = 0
+        for key, count in self.inventory.items():
+            item = items_mod.REGISTRY.get(key)
+            if item and item.weight_lbs:
+                total += item.weight_lbs * count
+        return total
+
     def pick_up(self, name: str, world) -> None:
         """Pick up an item by name from the ground at the current tile."""
         item = items_mod.find_by_name(name)
@@ -101,4 +109,3 @@ class Player:
         if self.inventory[item.key] == 0:
             del self.inventory[item.key]
         return True, None
-
