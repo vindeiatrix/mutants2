@@ -28,6 +28,7 @@ NONDIR_CMDS = {
     "drop": "drop",
     "get": "get",
     "take": "get",
+    "convert": "convert",
     "macro": "macro",
     "help": "help",
     "do": "do",
@@ -45,6 +46,7 @@ TURN_CMDS = {
     "travel",
     "get",
     "drop",
+    "convert",
     "attack",
     "rest",
     "look",
@@ -237,6 +239,26 @@ def make_context(p, w, save, *, dev: bool = False):
         print(f"You drop {name}." if ok else (msg or "You can’t drop that here."))
         return False
 
+    def handle_convert(args: list[str]) -> bool:
+        if not args:
+            render_help_hint()
+            return False
+        inv_names = p.inventory_names_in_order()
+        name = items.first_prefix_match(" ".join(args), inv_names)
+        if not name:
+            render_help_hint()
+            return False
+        item = p.convert_item(name)
+        if not item:
+            render_help_hint()
+            return False
+        print(SEP)
+        print(f"The {item.name} vanishes with a flash!")
+        print(f"You convert the {item.name} into {item.ion_value:,} ions.")
+        context._needs_render = False
+        context._suppress_room_render = True
+        return True
+
     def handle_look(args: list[str]) -> bool:
         if not args:
             yells = w.on_entry_aggro_check(
@@ -362,6 +384,9 @@ def make_context(p, w, save, *, dev: bool = False):
         elif cmd == "drop":
             handle_drop(args)
             turn = True
+        elif cmd == "convert":
+            if handle_convert(args):
+                turn = True
         elif cmd == "attack":
             handle_attack()
             turn = True
