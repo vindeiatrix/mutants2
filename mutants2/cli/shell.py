@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 import datetime
+from typing import Mapping, cast
 
 from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
@@ -9,6 +10,7 @@ from ..engine import render as render_mod
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
+from ..engine.types import Direction
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP
 from ..ui.strings import GET_WHAT, DROP_WHAT
 from ..ui.theme import red, SEP
@@ -48,18 +50,23 @@ TURN_CMDS = {
     "look",
 }
 
-DIR_FULL = ("north", "south", "east", "west")
-DIR_1 = {"n": "north", "s": "south", "e": "east", "w": "west"}
+DIR_FULL: tuple[Direction, ...] = ("north", "south", "east", "west")
+DIR_1: Mapping[str, Direction] = {
+    "n": "north",
+    "s": "south",
+    "e": "east",
+    "w": "west",
+}
 
 
-def parse_dir_any_prefix(tok: str) -> str | None:
+def parse_dir_any_prefix(tok: str) -> Direction | None:
     """Return a direction if tok is 1..full prefix of exactly one dir."""
     t = tok.strip().lower()
     if not t:
         return None
     if t in DIR_1:
         return DIR_1[t]
-    matches = [d for d in DIR_FULL if d.startswith(t)]
+    matches: list[Direction] = [d for d in DIR_FULL if d.startswith(t)]
     if len(matches) == 1:
         return matches[0]
     return None
@@ -439,7 +446,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 elif args and args[0] == "shadow" and len(args) == 2:
                     direction = args[1]
                     if direction in {"north", "south", "east", "west"}:
-                        p.senses.add_shadow(direction)
+                        p.senses.add_shadow(cast(Direction, direction))
                         print("OK.")
                     else:
                         print("Invalid direction.")

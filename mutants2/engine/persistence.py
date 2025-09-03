@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Tuple, Set
+from typing import Dict, Set, Tuple
 
 from .player import Player
 from .world import World
 from . import monsters as monsters_mod
+from .types import ItemListMut, MonsterRec, TileKey
 
 from . import gen
 
@@ -24,7 +27,13 @@ class Save:
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
 
 
-def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[int, int, int], list[dict]], Set[int], Save]:
+def load() -> tuple[
+    Player,
+    dict[TileKey, ItemListMut],
+    dict[TileKey, list[MonsterRec]],
+    Set[int],
+    Save,
+]:
     try:
         with open(SAVE_PATH) as fh:
             data = json.load(fh)
@@ -42,44 +51,35 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
         player.max_hp = int(data.get("max_hp", player.max_hp))
         player.hp = int(data.get("hp", player.max_hp))
         player.inventory.update({k: int(v) for k, v in data.get("inventory", {}).items()})
-        ground_raw = {
-            tuple(int(n) for n in key.split(',')): val
-            for key, val in data.get("ground", {}).items()
-        }
-        ground: Dict[Tuple[int, int, int], list[str]] = {}
-        for coord, val in ground_raw.items():
+        ground: dict[TileKey, ItemListMut] = {}
+        for key, val in data.get("ground", {}).items():
+            parts = [int(n) for n in key.split(",")]
+            coord: TileKey = (parts[0], parts[1], parts[2])
             if isinstance(val, list):
                 ground[coord] = list(val)
             else:
                 ground[coord] = [val]
-        monsters_data: Dict[Tuple[int, int, int], list[dict]] = {}
+        monsters_data: dict[TileKey, list[MonsterRec]] = {}
         for key, val in data.get("monsters", {}).items():
-            coord = tuple(int(n) for n in key.split(','))
+            parts = [int(n) for n in key.split(",")]
+            coord: TileKey = (parts[0], parts[1], parts[2])
             entries = val if isinstance(val, list) else [val]
-            lst: list[dict] = []
+            lst: list[MonsterRec] = []
             for entry in entries:
-                if isinstance(entry, dict):
-                    m_key = entry.get("key")
-                    hp = entry.get("hp")
-                    name = entry.get("name")
-                    aggro = entry.get("aggro", False)
-                    seen = entry.get("seen", False)
-                    mid = entry.get("id")
-                else:
-                    m_key = entry
-                    hp = None
-                    name = None
-                    aggro = False
-                    seen = False
-                    mid = None
+                m_key = entry.get("key")
                 if m_key is None:
                     continue
+                hp = entry.get("hp")
+                name = entry.get("name")
+                aggro = entry.get("aggro", False)
+                seen = entry.get("seen", False)
+                mid = entry.get("id")
                 base = monsters_mod.REGISTRY[m_key].base_hp
                 if mid is None:
                     mid = monsters_mod.next_id()
                 else:
                     monsters_mod.note_existing_id(int(mid))
-                m = {
+                m: dict[str, object] = {
                     "key": m_key,
                     "hp": int(hp) if hp is not None else base,
                     "name": name or monsters_mod.REGISTRY[m_key].name,
@@ -100,8 +100,8 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
         return player, ground, monsters_data, seeded, save_meta
     except FileNotFoundError:
         player = Player()
-        ground: Dict[Tuple[int, int, int], list[str]] = {}
-        monsters_data: Dict[Tuple[int, int, int], list[dict]] = {}
+        ground: dict[TileKey, ItemListMut] = {}
+        monsters_data: dict[TileKey, list[MonsterRec]] = {}
         seeded: Set[int] = set()
         save_meta = Save()
         save(player, World(ground, seeded, monsters_data, global_seed=save_meta.global_seed), save_meta)

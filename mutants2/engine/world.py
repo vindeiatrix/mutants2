@@ -2,9 +2,26 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Dict, Tuple, Set, Optional, Iterable, Iterator
+from typing import (
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Set,
+    Tuple,
+    cast,
+)
 
-from .senses import Direction
+from .types import (
+    Direction,
+    ItemList,
+    ItemListMut,
+    MonsterList,
+    MonsterRec,
+    TileKey,
+)
 from . import monsters as monsters_mod, items as items_mod
 from ..data.room_headers import ROOM_HEADERS
 
@@ -22,22 +39,22 @@ def in_bounds(x: int, y: int) -> bool:
     return GRID_MIN <= x < GRID_MAX and GRID_MIN <= y < GRID_MAX
 
 
-DIR: Dict[str, Tuple[int, int]] = {
+DIR: Mapping[Direction, Tuple[int, int]] = {
     "east": (1, 0),
     "west": (-1, 0),
     "north": (0, 1),
     "south": (0, -1),
 }
 
-ORDER = ("east", "west", "north", "south")
+ORDER: tuple[Direction, ...] = ("east", "west", "north", "south")
 
 
-def step(x: int, y: int, d: str) -> tuple[int, int]:
+def step(x: int, y: int, d: Direction) -> tuple[int, int]:
     dx, dy = DIR[d]
     return x + dx, y + dy
 
 
-def _dir_from(px: int, py: int, tx: int, ty: int) -> str:
+def _dir_from(px: int, py: int, tx: int, ty: int) -> Direction:
     dx, dy = tx - px, ty - py
     if abs(dx) >= abs(dy):
         return "east" if dx > 0 else "west"
@@ -62,8 +79,8 @@ class Grid:
     def is_walkable(self, x: int, y: int) -> bool:
         return in_bounds(x, y)
 
-    def neighbors(self, x: int, y: int) -> Dict[Direction, Coordinate]:
-        result: Dict[Direction, Coordinate] = {}
+    def neighbors(self, x: int, y: int) -> Mapping[Direction, Coordinate]:
+        result: dict[Direction, Coordinate] = {}
         if not self.is_walkable(x, y):
             return result
         for name, (dx, dy) in DIR.items():
@@ -82,61 +99,53 @@ class Year:
 class World:
     def __init__(
         self,
-        ground: Optional[Dict[Tuple[int, int, int], list[str] | str]] = None,
+        ground: Mapping[TileKey, ItemList] | None = None,
         seeded_years: Optional[Set[int]] = None,
-        monsters: Optional[Dict[Tuple[int, int, int], dict]] = None,
+        monsters: Mapping[TileKey, MonsterList] | None = None,
         *,
         global_seed: int | None = None,
         turn: int = 0,
     ):
         self.years: Dict[int, Year] = {}
-        self.ground: Dict[Tuple[int, int, int], list[str]] = {}
+        self.ground: MutableMapping[TileKey, ItemListMut] = {}
         if ground:
             for coord, val in ground.items():
-                if isinstance(val, list):
-                    self.ground[coord] = list(val)
-                else:
-                    self.ground[coord] = [val]
+                self.ground[coord] = list(val)
         self.seeded_years: Set[int] = set(seeded_years or [])
-        self._monsters: Dict[Tuple[int, int, int], list[dict]] = {}
+        self._monsters: MutableMapping[TileKey, list[MonsterRec]] = {}
         if monsters:
             for coord, data in monsters.items():
-                if isinstance(data, list):
-                    items = data
-                else:
-                    items = [data]
-                for entry in items:
-                    if isinstance(entry, dict):
-                        key = entry.get("key")
-                        hp = entry.get("hp")
-                        name = entry.get("name")
-                        aggro = entry.get("aggro", False)
-                        seen = entry.get("seen", False)
-                        mid = entry.get("id")
-                    else:
-                        key = entry
-                        hp = None
-                        name = None
-                        aggro = False
-                        seen = False
-                        mid = None
-                    if key is None:
+                lst: list[MonsterRec] = []
+                for entry in data:
+                    key_val = entry.get("key")
+                    if key_val is None:
                         continue
-                    base = monsters_mod.REGISTRY[key].base_hp
+                    m_key = cast(str, key_val)
+                    hp_val = entry.get("hp")
+                    hp_int = int(cast(int, hp_val)) if hp_val is not None else None
+                    name = entry.get("name")
+                    aggro = entry.get("aggro", False)
+                    seen = entry.get("seen", False)
+                    mid_val = entry.get("id")
+                    mid = int(cast(int, mid_val)) if mid_val is not None else None
+                    base = monsters_mod.REGISTRY[m_key].base_hp
                     if mid is None:
                         mid = monsters_mod.next_id()
                     else:
                         monsters_mod.note_existing_id(int(mid))
-                    self._monsters.setdefault(coord, []).append(
-                        {
-                            "key": key,
-                            "hp": int(hp) if hp is not None else base,
-                            "name": name or monsters_mod.REGISTRY[key].name,
-                            "aggro": bool(aggro),
-                            "seen": bool(seen),
-                            "id": int(mid),
-                        }
-                    )
+                    m: MutableMapping[str, object] = {
+                        "key": m_key,
+                        "hp": hp_int if hp_int is not None else base,
+                        "name": name or monsters_mod.REGISTRY[m_key].name,
+                        "aggro": bool(aggro),
+                        "seen": bool(seen),
+                        "id": int(mid),
+                    }
+                    if m.get("aggro") and not m.get("seen"):
+                        m["aggro"] = False
+                    lst.append(m)
+                if lst:
+                    self._monsters[coord] = lst
         if global_seed is None:
             from . import gen
 
@@ -226,7 +235,7 @@ class World:
         return self.ground_items_count(year)
 
     @property
-    def monsters(self) -> Dict[Tuple[int, int, int], list[dict]]:
+    def monsters(self) -> MutableMapping[TileKey, list[MonsterRec]]:
         return self._monsters
 
     # Monsters -----------------------------------------------------------------
@@ -235,10 +244,10 @@ class World:
         out: dict[tuple[int, int], list[str]] = {}
         for (yr, x, y), lst in self._monsters.items():
             if yr == year:
-                out[(x, y)] = [m["key"] for m in lst]
+                out[(x, y)] = [cast(str, m["key"]) for m in lst]
         return out
 
-    def monster_positions(self, year: int) -> Iterator[tuple[int, int, dict]]:
+    def monster_positions(self, year: int) -> Iterator[tuple[int, int, MonsterRec]]:
         for (yr, x, y), lst in self._monsters.items():
             if yr == year:
                 for m in lst:
@@ -247,11 +256,11 @@ class World:
     def has_monster(self, year: int, x: int, y: int) -> bool:
         return bool(self._monsters.get((year, x, y)))
 
-    def monster_here(self, year: int, x: int, y: int) -> dict | None:
+    def monster_here(self, year: int, x: int, y: int) -> MonsterRec | None:
         lst = self._monsters.get((year, x, y))
         return lst[0] if lst else None
 
-    def monsters_here(self, year: int, x: int, y: int) -> list[dict]:
+    def monsters_here(self, year: int, x: int, y: int) -> list[MonsterRec]:
         return list(self._monsters.get((year, x, y), []))
 
     def on_entry_aggro_check(
@@ -264,19 +273,20 @@ class World:
         yells: list[str] = []
         base = hrand(*seed_parts, year, x, y, "aggro_enter")
         for m in self.monsters_here(year, x, y):
-            if not m.get("seen"):
-                m["seen"] = True
-            if m.get("aggro"):
+            mm = cast(MutableMapping[str, object], m)
+            if not mm.get("seen"):
+                mm["seen"] = True
+            if mm.get("aggro"):
                 continue
-            if hrand(base.random(), m.get("id"), "mroll").random() < 0.5:
-                m["aggro"] = True
-                yells.append(f"{m['name']} yells at you!")
+            if hrand(base.random(), mm.get("id"), "mroll").random() < 0.5:
+                mm["aggro"] = True
+                yells.append(f"{mm['name']} yells at you!")
         return yells
 
     def reset_all_aggro(self) -> None:
         for lst in self._monsters.values():
             for m in lst:
-                m["aggro"] = False
+                cast(MutableMapping[str, object], m)["aggro"] = False
 
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
@@ -293,9 +303,10 @@ class World:
         lst = self._monsters.get(coord)
         if not lst:
             return False
-        m = lst[0]
-        m["hp"] = max(0, m["hp"] - max(0, dmg))
-        if m["hp"] <= 0:
+        m = cast(MutableMapping[str, object], lst[0])
+        hp_val = int(cast(int, m["hp"]))
+        m["hp"] = max(0, hp_val - max(0, dmg))
+        if int(cast(int, m["hp"])) <= 0:
             lst.pop(0)
             if not lst:
                 self._monsters.pop(coord, None)
@@ -322,7 +333,7 @@ class World:
 
     def move_monsters_one_tick(
         self, year: int, player
-    ) -> tuple[list[tuple[int, str, str]], tuple[str, str] | None]:
+    ) -> tuple[list[tuple[int, str, Direction]], tuple[str, Direction] | None]:
         """Advance ONLY aggro'd monsters one step each.
 
         Returns arrival info for monsters entering the player's tile as a list
@@ -334,8 +345,8 @@ class World:
         if not self.any_aggro_in_year(year):
             return [], None
 
-        arrivals: list[tuple[int, str, str]] = []
-        footsteps_event: tuple[str, str] | None = None
+        arrivals: list[tuple[int, str, Direction]] = []
+        footsteps_event: tuple[str, Direction] | None = None
 
         px, py = player.x, player.y
 
@@ -380,7 +391,8 @@ class World:
             self._monsters.setdefault((year, nx, ny), []).append(m)
 
             if (nx, ny) == (px, py):
-                arrivals.append((m["id"], m["name"], d))
+                mm2 = cast(MutableMapping[str, object], m)
+                arrivals.append((int(cast(int, mm2["id"])), cast(str, mm2["name"]), d))
 
             if footsteps_event is None:
                 dist = abs(px - nx) + abs(py - ny)
@@ -391,8 +403,8 @@ class World:
 
         return arrivals, footsteps_event
 
-    def shadow_dirs(self, year: int, x: int, y: int) -> list[str]:
-        dirs: list[str] = []
+    def shadow_dirs(self, year: int, x: int, y: int) -> list[Direction]:
+        dirs: list[Direction] = []
         for d in ORDER:
             if self.is_open(year, x, y, d):
                 nx, ny = x + DIR[d][0], y + DIR[d][1]
@@ -409,7 +421,8 @@ class World:
                 ax, ay = self.step(x, y, d)
                 m = self.monster_here(year, ax, ay)
                 if m:
-                    key = m["key"]
+                    mm = cast(Mapping[str, object], m)
+                    key = cast(str, mm["key"])
                     name = monsters_mod.REGISTRY[key].name
                     results.append((name, key))
         return results
@@ -421,7 +434,8 @@ class World:
         name_to_key: dict[str, str] = {}
         here = self.monster_here(year, x, y)
         if here:
-            key = here["key"]
+            mh = cast(Mapping[str, object], here)
+            key = cast(str, mh["key"])
             name = monsters_mod.REGISTRY[key].name
             candidates.append(name)
             name_to_key[name] = key

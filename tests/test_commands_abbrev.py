@@ -13,7 +13,7 @@ from mutants2.engine.player import Player
 @pytest.fixture
 def seeded_world_with_item(tmp_path):
     persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
-    w = World({(2000, 0, 0): 'ion_decay'}, {2000})
+    w = World({(2000, 0, 0): ['ion_decay']}, {2000})
     p = Player()
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
