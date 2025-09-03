@@ -59,11 +59,11 @@ def test_resident_and_arrival_rendering():
     out = re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
     buf.close()
     assert out.splitlines().count("look") == 1
-    assert "Night-Stalker is here" in out
-    assert "Mutant is here" not in out
+    assert re.search(r"Night-Stalker-\d{4} is here", out)
+    assert not re.search(r"Mutant-\d{4} is here", out)
     assert "You see shadows" in out
     assert out.count("has just arrived from") == 1
-    presence_idx = out.find("Night-Stalker is here")
+    presence_idx = re.search(r"Night-Stalker-\d{4} is here", out).start()
     shadow_idx = out.find("You see shadows")
     arrival_idx = out.find("has just arrived from")
     assert presence_idx < shadow_idx < arrival_idx

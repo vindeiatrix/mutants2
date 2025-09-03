@@ -4,7 +4,7 @@ import contextlib
 import pytest
 
 from mutants2.cli.shell import make_context
-from mutants2.engine import persistence, world as world_mod, monsters as monsters_mod
+from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
 
 
@@ -14,7 +14,6 @@ def world_with_passive_here(seeded_rng):
     w.year(2000)
     for x, y, _ in list(w.monster_positions(2000)):
         w.remove_monster(2000, x, y)
-    monsters_mod._next_id = 1
     w.place_monster(2000, 0, 0, "mutant")  # passive by default
     return w
 
@@ -40,8 +39,9 @@ def cli(world_with_passive_here, tmp_path, monkeypatch):
 
 @pytest.fixture
 def seeded_rng(monkeypatch):
-    import hashlib, random
-    from mutants2.engine import rng, monsters as monsters_mod
+    import hashlib
+    import random
+    from mutants2.engine import rng
 
     def fake_hrand(*parts):
         h = hashlib.md5(str(parts).encode()).hexdigest()
@@ -49,7 +49,6 @@ def seeded_rng(monkeypatch):
         return random.Random(seed)
 
     monkeypatch.setattr(rng, "hrand", fake_hrand)
-    monsters_mod._next_id = 1
 
 
 def test_passive_monsters_do_not_move(cli, seeded_rng):
@@ -59,4 +58,3 @@ def test_passive_monsters_do_not_move(cli, seeded_rng):
     assert "yells at you" in out2.lower()
     out3 = cli.run(["n"])  # move away so aggro monster chases
     assert "has just arrived" in out3.lower()
-

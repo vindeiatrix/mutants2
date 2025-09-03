@@ -10,8 +10,9 @@ from mutants2.engine.player import Player
 
 @pytest.fixture
 def seeded_rng(monkeypatch):
-    import hashlib, random
-    from mutants2.engine import rng, monsters as monsters_mod
+    import hashlib
+    import random
+    from mutants2.engine import rng
 
     def fake_hrand(*parts):
         h = hashlib.md5(str(parts).encode()).hexdigest()
@@ -19,7 +20,6 @@ def seeded_rng(monkeypatch):
         return random.Random(seed)
 
     monkeypatch.setattr(rng, "hrand", fake_hrand)
-    monsters_mod._next_id = 1
 
 
 @pytest.fixture

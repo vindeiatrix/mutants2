@@ -49,7 +49,7 @@ def test_look_reroll_yells_once():
         w.place_monster(2000, 0, 0, "mutant")
 
     out, _w, _p, _ = run_commands(["look", "look"], seed=0, setup=setup)
-    assert out.splitlines().count("Mutant yells at you!") <= 1
+    assert sum(1 for ln in out.splitlines() if "yells at you!" in ln) <= 1
 
 
 def test_arrival_separators():
