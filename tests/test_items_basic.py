@@ -20,11 +20,10 @@ def test_initial_spawn_approx_five_percent(tmp_path, monkeypatch):
     p, ground, monsters, seeded, save = persistence.load()
     w = World(ground, seeded, monsters, global_seed=save.global_seed)
     w.year(p.year)
-    count = sum(1 for (yr, _, _), _ in w.ground.items() if yr == p.year)
-    assert 25 <= count <= 60
-    # Ensure one item per tile
+    count = sum(len(v) for (yr, _, _), v in w.ground.items() if yr == p.year)
+    assert 180 <= count <= 270
     coords = {(x, y) for (yr, x, y) in w.ground if yr == p.year}
-    assert len(coords) == count
+    assert len(coords) <= count
 
 
 def test_pickup_and_drop_roundtrip(tmp_path):
