@@ -22,6 +22,7 @@ def render_room_at(
     include_shadows: bool = True,
     shadow_dirs_extra=(),
     context=None,
+    include_arrivals: bool = True,
 ):
     """Render the room at ``(year, x, y)``.
 
@@ -74,16 +75,19 @@ def render_room_at(
                     yellow(f"You see shadows to the {', '.join(sorted(dirs))}.")
                 ]
 
-    arrivals: list[tuple[int, str, str]] = []
+    arrivals_all: list[tuple[int, str, str]] = []
+    arrivals_for_render: list[tuple[int, str, str]] = []
     if context is not None:
-        arrivals = getattr(context, "_arrivals_this_tick", []) or []
-        context._arrivals_this_tick = []
+        arrivals_all = getattr(context, "_arrivals_this_tick", []) or []
+        if include_arrivals:
+            context._arrivals_this_tick = []
+            arrivals_for_render = arrivals_all
 
-    arrival_ids = {aid for aid, *_ in arrivals}
+    arrival_ids = {aid for aid, *_ in arrivals_all}
     monsters_here = world.monsters_here(year, x, y)
     residents = (
         [m for m in monsters_here if m.get("id") not in arrival_ids]
-        if arrivals
+        if arrivals_all
         else monsters_here
     )
 
@@ -96,16 +100,16 @@ def render_room_at(
         else:
             line = f"{', '.join(names[:-1])}, and {names[-1]} are here with you."
         out.append(white(line))
-        if shadow_lines or arrivals:
+        if shadow_lines or arrivals_for_render:
             out.append(SEP)
 
     if shadow_lines:
         out.extend(shadow_lines)
-        if arrivals:
+        if arrivals_for_render:
             out.append(SEP)
 
-    if arrivals:
-        arr_sorted = sorted(arrivals)
+    if arrivals_for_render:
+        arr_sorted = sorted(arrivals_for_render)
         for i, (aid, name, d) in enumerate(arr_sorted):
             out.append(red(f"{name} has just arrived from the {d}."))
             if i < len(arr_sorted) - 1:
@@ -114,7 +118,14 @@ def render_room_at(
     return "\n".join(out)
 
 
-def render_current_room(player, world, *, include_shadows: bool = True, context=None):
+def render_current_room(
+    player,
+    world,
+    *,
+    include_shadows: bool = True,
+    context=None,
+    include_arrivals: bool = True,
+):
     return render_room_at(
         world,
         player.year,
@@ -122,4 +133,5 @@ def render_current_room(player, world, *, include_shadows: bool = True, context=
         player.y,
         include_shadows=include_shadows,
         context=context,
+        include_arrivals=include_arrivals,
     )
