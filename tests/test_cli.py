@@ -39,7 +39,7 @@ def test_direction_aliases_one_letter(tmp_path):
     assert result.returncode == 0
     # One render per command plus initial
     assert result.stdout.count('***') >= 5
-    assert 'Compass: (0E : -1N)' in result.stdout
+    assert 'Compass: (0E : 1N)' in result.stdout
     assert 'Compass: (1E : 0N)' in result.stdout
 
 

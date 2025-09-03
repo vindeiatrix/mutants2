@@ -65,7 +65,7 @@ def staged_world_adjacent_south(world):
 @pytest.fixture
 def world_two_adjacent(world):
     world.place_monster(2000, 1, 0, "mutant")
-    world.place_monster(2000, 0, 1, "mutant")
+    world.place_monster(2000, 0, -1, "mutant")
     return world
 
 

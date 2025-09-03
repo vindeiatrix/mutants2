@@ -16,9 +16,9 @@ def entry_yell_lines(ctx) -> list[str]:
 
 
 def arrival_lines(ctx) -> list[str]:
-    msgs = getattr(ctx, "_arrivals_this_tick", []) or []
+    infos = getattr(ctx, "_arrivals_this_tick", []) or []
     ctx._arrivals_this_tick = []
-    return msgs
+    return [f"{name} has just arrived from the {d}." for _, name, d in infos]
 
 
 def footsteps_lines(ctx) -> list[str]:

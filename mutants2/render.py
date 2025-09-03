@@ -74,37 +74,39 @@ def render_room_at(
                     yellow(f"You see shadows to the {', '.join(sorted(dirs))}.")
                 ]
 
-    arrivals = []
+    arrivals: list[tuple[int, str, str]] = []
     if context is not None:
         arrivals = getattr(context, "_arrivals_this_tick", []) or []
+        context._arrivals_this_tick = []
+
+    arrival_ids = {aid for aid, *_ in arrivals}
+    monsters_here = world.monsters_here(year, x, y)
+    residents = (
+        [m for m in monsters_here if m.get("id") not in arrival_ids]
+        if arrivals
+        else monsters_here
+    )
+
+    names = [m.get("name") or m.get("key") for m in residents]
+    if names:
+        if len(names) == 1:
+            line = f"{names[0]} is here."
+        elif len(names) == 2:
+            line = f"{names[0]}, and {names[1]} are here with you."
+        else:
+            line = f"{', '.join(names[:-1])}, and {names[-1]} are here with you."
+        out.append(white(line))
+        if shadow_lines or arrivals:
+            out.append(SEP)
 
     if shadow_lines:
         out.extend(shadow_lines)
-    if shadow_lines and arrivals:
-        out.append(SEP)
+        if arrivals:
+            out.append(SEP)
+
     if arrivals:
-        for msg in arrivals:
-            out.append(red(msg))
-        if context is not None:
-            context._suppress_presence_this_tick = True
-    else:
-        if context is not None:
-            context._suppress_presence_this_tick = False
-
-    if context is not None:
-        context._arrivals_this_tick = []
-
-    # Presence lines only when no arrivals were printed
-    if not arrivals:
-        names = [m.get("name") or m.get("key") for m in world.monsters_here(year, x, y)]
-        if names:
-            if len(names) == 1:
-                line = f"{names[0]} is here."
-            elif len(names) == 2:
-                line = f"{names[0]}, and {names[1]} are here with you."
-            else:
-                line = f"{', '.join(names[:-1])}, and {names[-1]} are here with you."
-            out.append(white(line))
+        for aid, name, d in sorted(arrivals):
+            out.append(red(f"{name} has just arrived from the {d}."))
 
     return "\n".join(out)
 

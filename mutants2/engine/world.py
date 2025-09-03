@@ -23,8 +23,8 @@ def in_bounds(x: int, y: int) -> bool:
 DIR: Dict[str, Tuple[int, int]] = {
     "east": (1, 0),
     "west": (-1, 0),
-    "north": (0, -1),
-    "south": (0, 1),
+    "north": (0, 1),
+    "south": (0, -1),
 }
 
 ORDER = ("east", "west", "north", "south")
@@ -39,7 +39,7 @@ def _dir_from(px: int, py: int, tx: int, ty: int) -> str:
     dx, dy = tx - px, ty - py
     if abs(dx) >= abs(dy):
         return "east" if dx > 0 else "west"
-    return "south" if dy > 0 else "north"
+    return "north" if dy > 0 else "south"
 
 
 @dataclass
@@ -294,18 +294,21 @@ class World:
     def any_aggro_in_year(self, year: int) -> bool:
         return any(m.get("aggro", False) for _, _, m in self.monster_positions(year))
 
-    def move_monsters_one_tick(self, year: int, player) -> tuple[list[str], tuple[str, str] | None]:
+    def move_monsters_one_tick(
+        self, year: int, player
+    ) -> tuple[list[tuple[int, str, str]], tuple[str, str] | None]:
         """Advance ONLY aggro'd monsters one step each.
 
-        Returns arrival messages for monsters entering the player's tile and a
-        footsteps event of the form ``("faint"|"loud", dir)`` or ``None`` if no
-        monster movement produced audible footsteps.
+        Returns arrival info for monsters entering the player's tile as a list
+        of ``(id, name, direction)`` and a footsteps event of the form
+        ``("faint"|"loud", dir)`` or ``None`` if no monster movement produced
+        audible footsteps.
         """
 
         if not self.any_aggro_in_year(year):
             return [], None
 
-        arrivals: list[str] = []
+        arrivals: list[tuple[int, str, str]] = []
         footsteps_event: tuple[str, str] | None = None
 
         px, py = player.x, player.y
@@ -349,7 +352,7 @@ class World:
             self._monsters.setdefault((year, nx, ny), []).append(m)
 
             if (nx, ny) == (px, py):
-                arrivals.append(f"{m['name']} has just arrived from the {d}.")
+                arrivals.append((m["id"], m["name"], d))
 
             if footsteps_event is None:
                 dist = abs(px - nx) + abs(py - ny)
