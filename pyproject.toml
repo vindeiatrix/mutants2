@@ -12,3 +12,22 @@ dependencies = []
 
 [tool.pytest.ini_options]
 addopts = "-q"
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pre-commit",
+  "black",
+  "ruff",
+  "mypy",
+  "pyright",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
