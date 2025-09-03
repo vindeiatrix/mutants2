@@ -41,7 +41,7 @@ def test_inventory_aliases(cli_runner):
     out = cli_runner.run_commands(["inv"])
     assert "(empty)" in out or "Inventory" in out
     out = cli_runner.run_commands(["i"])
-    assert "Unknown command" in out
+    assert "You're iing!" in out
 
 
 def test_get_drop_abbrevs(cli_runner, seeded_world_with_item):
@@ -53,9 +53,9 @@ def test_get_drop_abbrevs(cli_runner, seeded_world_with_item):
 
 def test_directions_one_letter_only(cli_runner):
     out = cli_runner.run_commands(["nor"])
-    assert "Unknown command" in out
+    assert "You're norring!" in out
     out = cli_runner.run_commands(["sou"])
-    assert "Unknown command" in out
+    assert "You're souing!" in out
     out = cli_runner.run_commands(["n"])
     assert "***" in out
     out = cli_runner.run_commands(["north"])

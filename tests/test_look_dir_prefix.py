@@ -54,7 +54,7 @@ def test_look_blocked_with_prefix(cli_runner):
 def test_movement_rules_unchanged(cli_runner):
     assert "***" in cli_runner.run_commands(["n"])
     assert "***" in cli_runner.run_commands(["north"])
-    assert "Unknown command" in cli_runner.run_commands(["no"])
+    assert "You're noing!" in cli_runner.run_commands(["no"])
 
 
 def test_look_precedence_monster_over_dir(cli_with_monster):
