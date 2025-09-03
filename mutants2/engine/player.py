@@ -110,3 +110,22 @@ class Player:
         if self.inventory[item.key] == 0:
             del self.inventory[item.key]
         return True, None
+
+    def convert_item(self, name: str) -> items_mod.ItemDef | None:
+        """Convert an inventory item to ions.
+
+        Returns the :class:`ItemDef` of the item converted, or ``None`` if the
+        item was not present or could not be converted.
+        """
+        item = items_mod.find_by_name(name)
+        if not item:
+            return None
+        if self.inventory.get(item.key, 0) <= 0:
+            return None
+        if item.ion_value is None:
+            return None
+        self.inventory[item.key] -= 1
+        if self.inventory[item.key] == 0:
+            del self.inventory[item.key]
+        self.ions += item.ion_value
+        return item
