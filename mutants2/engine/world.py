@@ -22,7 +22,7 @@ from .types import (
     MonsterRec,
     TileKey,
 )
-from . import monsters as monsters_mod, items as items_mod
+from . import monsters as monsters_mod, items as items_mod, rng as rng_mod
 from ..data.room_headers import ROOM_HEADERS
 
 Coordinate = Tuple[int, int]
@@ -112,6 +112,14 @@ class World:
             for coord, val in ground.items():
                 self.ground[coord] = list(val)
         self.seeded_years: Set[int] = set(seeded_years or [])
+        if global_seed is None:
+            from . import gen
+
+            global_seed = gen.SEED
+        self.global_seed = global_seed
+        self._id_alloc = monsters_mod.MonsterIdAllocator(
+            rng_mod.hrand(self.global_seed, "mon_ids_v1")
+        )
         self._monsters: MutableMapping[TileKey, list[MonsterRec]] = {}
         if monsters:
             for coord, data in monsters.items():
@@ -123,20 +131,20 @@ class World:
                     m_key = cast(str, key_val)
                     hp_val = entry.get("hp")
                     hp_int = int(cast(int, hp_val)) if hp_val is not None else None
-                    name = entry.get("name")
                     aggro = entry.get("aggro", False)
                     seen = entry.get("seen", False)
                     mid_val = entry.get("id")
                     mid = int(cast(int, mid_val)) if mid_val is not None else None
                     base = monsters_mod.REGISTRY[m_key].base_hp
                     if mid is None:
-                        mid = monsters_mod.next_id()
+                        mid = self._id_alloc.allocate()
                     else:
-                        monsters_mod.note_existing_id(int(mid))
+                        self._id_alloc.note_existing(mid)
+                    name = f"{monsters_mod.REGISTRY[m_key].name}-{mid:04d}"
                     m: MutableMapping[str, object] = {
                         "key": m_key,
                         "hp": hp_int if hp_int is not None else base,
-                        "name": name or monsters_mod.REGISTRY[m_key].name,
+                        "name": name,
                         "aggro": bool(aggro),
                         "seen": bool(seen),
                         "id": int(mid),
@@ -146,11 +154,6 @@ class World:
                     lst.append(m)
                 if lst:
                     self._monsters[coord] = lst
-        if global_seed is None:
-            from . import gen
-
-            global_seed = gen.SEED
-        self.global_seed = global_seed
         self._recent_monster_moves: list[tuple[int, int, int, int, int]] = []
         self.turn = turn
         self._room_headers: Dict[Tuple[int, int, int], str] = {}
@@ -290,13 +293,13 @@ class World:
 
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
-        self._monsters.setdefault(coord, []).append(monsters_mod.spawn(key, year, x, y))
+        mid = self._id_alloc.allocate()
+        self._monsters.setdefault(coord, []).append(monsters_mod.spawn(key, mid))
         return True
 
     def ensure_monster(self, year: int, x: int, y: int, key: str) -> None:
-        self._monsters.setdefault((year, x, y), []).append(
-            monsters_mod.spawn(key, year, x, y)
-        )
+        mid = self._id_alloc.allocate()
+        self._monsters.setdefault((year, x, y), []).append(monsters_mod.spawn(key, mid))
 
     def damage_monster(self, year: int, x: int, y: int, dmg: int) -> bool:
         coord = (year, x, y)
@@ -304,10 +307,12 @@ class World:
         if not lst:
             return False
         m = cast(MutableMapping[str, object], lst[0])
+        mid = int(cast(int, m["id"]))
         hp_val = int(cast(int, m["hp"]))
         m["hp"] = max(0, hp_val - max(0, dmg))
         if int(cast(int, m["hp"])) <= 0:
             lst.pop(0)
+            self._id_alloc.release(mid)
             if not lst:
                 self._monsters.pop(coord, None)
             return True
@@ -318,7 +323,8 @@ class World:
         lst = self._monsters.get(coord)
         if not lst:
             return False
-        lst.pop(0)
+        m = lst.pop(0)
+        self._id_alloc.release(int(cast(int, m.get("id", 0))))
         if not lst:
             self._monsters.pop(coord, None)
         return True

@@ -2,8 +2,12 @@ from mutants2.cli.shell import make_context
 from mutants2.engine import world as world_mod, persistence
 from mutants2.engine.player import Player
 
-import io, contextlib, tempfile, re
+import io
+import contextlib
+import tempfile
+import re
 from pathlib import Path
+
 
 def run_commands(cmds, *, seed=42, setup=None):
     save = persistence.Save(global_seed=seed)
@@ -30,10 +34,11 @@ def test_attack_no_room_block_but_arrival():
         w.monster_here(2000, 0, 0)["hp"] = 2
         w.place_monster(2000, 1, 0, "mutant")
         w.monster_here(2000, 1, 0)["aggro"] = True
+
     out, w, _p, _ = run_commands(["attack"], setup=setup)
     assert "You are here." not in out
     assert "Compass:" not in out
-    assert "You defeat the Mutant." in out
+    assert re.search(r"You defeat the Mutant-\d{4}\.", out)
     assert "has just arrived from the west." in out
 
 

@@ -50,7 +50,9 @@ def load() -> tuple[
         player.positions.update(positions)
         player.max_hp = int(data.get("max_hp", player.max_hp))
         player.hp = int(data.get("hp", player.max_hp))
-        player.inventory.update({k: int(v) for k, v in data.get("inventory", {}).items()})
+        player.inventory.update(
+            {k: int(v) for k, v in data.get("inventory", {}).items()}
+        )
         ground: dict[TileKey, ItemListMut] = {}
         for key, val in data.get("ground", {}).items():
             parts = [int(n) for n in key.split(",")]
@@ -75,18 +77,15 @@ def load() -> tuple[
                 seen = entry.get("seen", False)
                 mid = entry.get("id")
                 base = monsters_mod.REGISTRY[m_key].base_hp
-                if mid is None:
-                    mid = monsters_mod.next_id()
-                else:
-                    monsters_mod.note_existing_id(int(mid))
                 m: dict[str, object] = {
                     "key": m_key,
                     "hp": int(hp) if hp is not None else base,
                     "name": name or monsters_mod.REGISTRY[m_key].name,
                     "aggro": bool(aggro),
                     "seen": bool(seen),
-                    "id": int(mid),
                 }
+                if mid is not None:
+                    m["id"] = int(mid)
                 if m.get("aggro") and not m.get("seen"):
                     m["aggro"] = False
                 lst.append(m)
@@ -104,7 +103,11 @@ def load() -> tuple[
         monsters_data: dict[TileKey, list[MonsterRec]] = {}
         seeded: Set[int] = set()
         save_meta = Save()
-        save(player, World(ground, seeded, monsters_data, global_seed=save_meta.global_seed), save_meta)
+        save(
+            player,
+            World(ground, seeded, monsters_data, global_seed=save_meta.global_seed),
+            save_meta,
+        )
         return player, ground, monsters_data, seeded, save_meta
 
 
@@ -114,8 +117,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
         data = {
             "year": player.year,
             "positions": {
-                str(y): {"x": x, "y": yy}
-                for y, (x, yy) in player.positions.items()
+                str(y): {"x": x, "y": yy} for y, (x, yy) in player.positions.items()
             },
             "class": player.clazz,
             "hp": player.hp,
@@ -126,9 +128,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for (y, x, yy), items in world.ground.items()
             },
             "monsters": {
-                f"{y},{x},{yy}": (
-                    processed[0] if len(processed) == 1 else processed
-                )
+                f"{y},{x},{yy}": (processed[0] if len(processed) == 1 else processed)
                 for (y, x, yy), lst in world.monsters.items()
                 for processed in [
                     [

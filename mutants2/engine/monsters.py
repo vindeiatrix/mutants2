@@ -13,41 +13,52 @@ class MonsterDef:
 REGISTRY = {
     "mutant": MonsterDef("mutant", "Mutant", base_hp=3),
     "night_stalker": MonsterDef("night_stalker", "Night-Stalker", base_hp=3),
+    "dragon_turtle": MonsterDef("dragon_turtle", "Dragon-Turtle", base_hp=3),
+    "glabrezu_demon": MonsterDef("glabrezu_demon", "Glabrezu-Demon", base_hp=3),
+    "leucrotta": MonsterDef("leucrotta", "Leucrotta", base_hp=3),
+    "lizard_man": MonsterDef("lizard_man", "Lizard-Man", base_hp=3),
+    "evil_pegasus": MonsterDef("evil_pegasus", "Evil-Pegasus", base_hp=3),
+    "sandworm": MonsterDef("sandworm", "Sandworm", base_hp=3),
+    "umber_hulk": MonsterDef("umber_hulk", "Umber-Hulk", base_hp=3),
+    "gargoyle": MonsterDef("gargoyle", "Gargoyle", base_hp=3),
+    "kraken": MonsterDef("kraken", "Kraken", base_hp=3),
+    "opal_cockatrice": MonsterDef("opal_cockatrice", "Opal-Cockatrice", base_hp=3),
 }
 
 SPAWN_KEYS = tuple(REGISTRY.keys())
 
 
-_next_id = 1
+class MonsterIdAllocator:
+    """Allocate unique 4-digit monster ids."""
+
+    def __init__(self, rng):
+        self._free = list(range(1000, 10000))
+        rng.shuffle(self._free)
+
+    def allocate(self) -> int:
+        return self._free.pop()
+
+    def release(self, mid: int) -> None:
+        if 1000 <= mid <= 9999 and mid not in self._free:
+            self._free.append(mid)
+
+    def note_existing(self, mid: int) -> None:
+        try:
+            self._free.remove(mid)
+        except ValueError:
+            pass
 
 
-def next_id() -> int:
-    """Return a stable id for a newly spawned monster."""
-
-    global _next_id
-    nid = _next_id
-    _next_id += 1
-    return nid
-
-
-def note_existing_id(nid: int) -> None:
-    """Advance the internal counter to avoid reusing ``nid``."""
-
-    global _next_id
-    if nid >= _next_id:
-        _next_id = nid + 1
-
-
-def spawn(key: str, year: int, x: int, y: int) -> dict:
+def spawn(key: str, mid: int) -> dict:
     """Return default data for a newly spawned monster."""
 
-    counter = next_id()
+    name = f"{REGISTRY[key].name}-{mid:04d}"
     return {
         "key": key,
-        "name": REGISTRY[key].name,
+        "name": name,
         "aggro": False,
         "seen": False,
-        "id": counter,
+        "id": mid,
         "hp": REGISTRY[key].base_hp,
     }
 

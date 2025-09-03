@@ -290,14 +290,15 @@ def make_context(p, w, save, *, dev: bool = False):
         if not m:
             print("There is nothing here to attack.")
             return
+        name = cast(str, m.get("name"))
         dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
         if dead:
-            print("You defeat the Mutant.")
+            print(f"You defeat the {name}.")
             context._needs_render = False
             context._suppress_room_render = True
             return
         p.take_damage(MONSTER_DMG)
-        print(f"The Mutant hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
+        print(f"The {name} hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
         if p.is_dead():
             print("You have died.")
             p.heal_full()

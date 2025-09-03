@@ -2,7 +2,6 @@ import re
 
 from mutants2.render import render_room_at
 from mutants2.engine.world import World
-from mutants2.engine.player import Player
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -39,7 +38,7 @@ def test_render_order_and_copy():
     # separators and sections order
     idxs = [i for i, ln in enumerate(lines) if ln == "***"]
     assert idxs and lines[idxs[0] - 2] == "On the ground lies:"
-    assert "Mutant is here." in lines[idxs[0] + 1]
+    assert re.search(r"Mutant-\d{4} is here\.", lines[idxs[0] + 1])
     assert len(idxs) > 1 and "You see shadows to the" in lines[idxs[1] + 1]
     assert lines[-1].startswith("You see shadows to the")
     assert "Class:" not in out
