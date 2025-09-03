@@ -69,5 +69,6 @@ def test_arrival_after_chase(tmp_path, monkeypatch, staged_world_aggro_east):
         ctx.dispatch_line("loo")
     out2 = buf2.getvalue()
     assert "has just arrived from the west" in out2.lower()
-    assert "is here" in out2.lower()
+    # Presence lines are suppressed on the same tick as an arrival
+    assert "is here" not in out2.lower().split("has just arrived")[-1]
 

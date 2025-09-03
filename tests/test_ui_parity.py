@@ -38,7 +38,7 @@ def test_render_order_and_copy():
     assert exit_lines and exit_lines[0].endswith("area continues.")
     # separators and sections order
     idxs = [i for i, ln in enumerate(lines) if ln == "***"]
-    assert idxs and lines[idxs[0] + 1] == "On the ground lies:"
-    assert "Mutant is here." in lines[idxs[1] + 1]
-    assert lines[-1].startswith("You see shadows to the")
+    assert idxs and lines[idxs[0] - 2] == "On the ground lies:"
+    assert "You see shadows to the" in lines[idxs[0] + 1]
+    assert "Mutant is here." in lines[-1]
     assert "Class:" not in out
