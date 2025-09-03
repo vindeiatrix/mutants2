@@ -30,7 +30,7 @@ def test_three_letter_abbrevs(cli_runner):
     out = cli_runner.run_commands(["loo"])
     assert "***" in out
     out = cli_runner.run_commands(["cla", "back"])
-    assert "Class" in out
+    assert "Choose your class" in out
     out = cli_runner.run_commands(["las"])
     assert "***" in out
     out = cli_runner.run_commands(["exi"])

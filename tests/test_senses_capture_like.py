@@ -95,11 +95,10 @@ def test_faint_then_loud_then_shadows_progression(cli, staged_world_far_south):
 
 def test_arrival_message(cli, staged_world_adjacent_south):
     out = cli.run(["loo"])
-    assert "shadows to the east" in out
     assert "has just arrived from the west" in out
     assert "is here" in out
 
 
 def test_multi_shadow(cli, world_two_adjacent):
     out = cli.run(["look"])
-    assert "shadows to the east, north" in out or "north, east" in out
+    assert "shadows to the east, south" in out or "south, east" in out

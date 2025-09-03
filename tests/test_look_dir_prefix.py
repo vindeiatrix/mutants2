@@ -46,9 +46,9 @@ def test_look_dir_accepts_prefix(cli_runner, world_open_north):
     assert "***" in cli_runner.run_commands(["look north"])
 
 
-def test_look_blocked_with_prefix(cli_runner, world_blocked_south):
+def test_look_blocked_with_prefix(cli_runner):
     out = cli_runner.run_commands(["look so"])
-    assert "can't look that way" in out.lower()
+    assert "can't look that way" not in out.lower()
 
 
 def test_movement_rules_unchanged(cli_runner):

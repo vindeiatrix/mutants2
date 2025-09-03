@@ -1,13 +1,12 @@
 from mutants2.engine import gen
+from mutants2.engine.world import GRID_MIN, GRID_MAX
 
 
 def test_generator_basics():
     grid = gen.generate()
-    assert grid.width == 30 and grid.height == 30
-    # center walkable
-    assert grid.is_walkable(15, 15)
-    # (0,0) has exits within bounds
+    assert grid.width == GRID_MAX - GRID_MIN and grid.height == GRID_MAX - GRID_MIN
+    assert grid.is_walkable(0, 0)
     exits = grid.neighbors(0, 0)
     assert exits
     for nx, ny in exits.values():
-        assert 0 <= nx < 30 and 0 <= ny < 30
+        assert GRID_MIN <= nx < GRID_MAX and GRID_MIN <= ny < GRID_MAX

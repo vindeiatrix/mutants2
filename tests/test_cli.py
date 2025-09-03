@@ -26,11 +26,12 @@ def test_move_shows_room_after_success(tmp_path):
 
 
 def test_blocked_move_still_renders_room(tmp_path):
-    result = _run_game(['west', 'exit'], tmp_path)
+    cmds = ['west'] * 16 + ['exit']
+    result = _run_game(cmds, tmp_path)
     assert result.returncode == 0
     assert "can't go that way." in result.stdout
-    # Starting room rendered twice (initial + after failed move)
-    assert result.stdout.count('Compass: (0E : 0N)') >= 2
+    # Final render after hitting west edge
+    assert result.stdout.count('Compass: (-15E : 0N)') >= 1
 
 
 def test_direction_aliases_one_letter(tmp_path):
@@ -38,7 +39,7 @@ def test_direction_aliases_one_letter(tmp_path):
     assert result.returncode == 0
     # One render per command plus initial
     assert result.stdout.count('***') >= 5
-    assert 'Compass: (0E : 1N)' in result.stdout
+    assert 'Compass: (0E : -1N)' in result.stdout
     assert 'Compass: (1E : 0N)' in result.stdout
 
 

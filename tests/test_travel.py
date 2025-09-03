@@ -12,7 +12,7 @@ def test_travel_and_positions():
     assert (p.year, p.x, p.y) == (2100, 0, 0)
 
     assert p.move("north", w)
-    assert (p.x, p.y) == (0, 1)
+    assert (p.x, p.y) == (0, -1)
 
     p.travel(w)
     assert (p.year, p.x, p.y) == (2000, 0, 0)
