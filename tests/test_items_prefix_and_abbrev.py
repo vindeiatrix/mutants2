@@ -63,10 +63,10 @@ def test_item_prefix_first_match_cli_runner(cli_runner, inventory_with_ion_items
 
 
 def test_abbrev_rules(cli_runner):
-    assert "Unknown command" in cli_runner.run_commands(["i"])
+    assert "You're iing!" in cli_runner.run_commands(["i"])
     assert "***" in cli_runner.run_commands(["loo"])
     assert "Goodbye." in cli_runner.run_commands(["exi"])
-    assert "Unknown command" in cli_runner.run_commands(["nor"])
+    assert "You're norring!" in cli_runner.run_commands(["nor"])
     assert "***" in cli_runner.run_commands(["n"])
 
 

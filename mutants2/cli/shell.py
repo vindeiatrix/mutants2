@@ -11,6 +11,9 @@ from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP
 from ..ui.strings import GET_WHAT, DROP_WHAT
+from ..ui.theme import red, SEP
+from ..ui.render import render_help_hint
+from .input import gerundize
 
 
 NONDIR_CMDS = {
@@ -139,6 +142,7 @@ def make_context(p, w, save, *, dev: bool = False):
         _pre_shadow_lines=[],
         _needs_render=False,
         _last_turn_consumed=False,
+        _suppress_room_render=False,
     )
 
     def handle_macro(rest: str) -> None:
@@ -282,7 +286,8 @@ def make_context(p, w, save, *, dev: bool = False):
         dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
         if dead:
             print("You defeat the Mutant.")
-            context._needs_render = True
+            context._needs_render = False
+            context._suppress_room_render = True
             return
         p.take_damage(MONSTER_DMG)
         print(f"The Mutant hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
@@ -290,7 +295,8 @@ def make_context(p, w, save, *, dev: bool = False):
             print("You have died.")
             p.heal_full()
             p.positions[p.year] = (0, 0)
-        context._needs_render = True
+        context._needs_render = False
+        context._suppress_room_render = True
 
     def handle_rest() -> None:
         if w.monster_here(p.year, p.x, p.y):
@@ -506,7 +512,11 @@ def make_context(p, w, save, *, dev: bool = False):
         tail = parts[1] if len(parts) > 1 else ""
         cmd = resolve_command(head)
         if cmd is None:
-            print("Unknown command.")
+            if len(parts) > 1:
+                render_help_hint()
+            else:
+                print(SEP)
+                print(f"You're {gerundize(head)}!")
             return False
         if cmd == "macro":
             handle_macro(tail)
@@ -518,8 +528,7 @@ def make_context(p, w, save, *, dev: bool = False):
         stripped = line.strip()
         if not stripped:
             context._last_turn_consumed = False
-            print("***")
-            print("Type ? if you need assistance.")
+            render_help_hint()
             return False
         print(stripped)
         before = (p.year, p.x, p.y)
@@ -544,12 +553,19 @@ def make_context(p, w, save, *, dev: bool = False):
                 context._arrivals_this_tick = []
                 context._footsteps_event = None
             w.turn += 1
-        if context._needs_render:
+        if context._needs_render and not context._suppress_room_render:
             render_room_view(p, w, context)
             context._needs_render = False
+        elif context._suppress_room_render:
+            context._needs_render = False
+            arrivals = render_mod.arrival_lines(context)
+            for i, msg in enumerate(arrivals):
+                print(red(msg))
+                if i < len(arrivals) - 1:
+                    print(SEP)
+            context._suppress_room_render = False
         for msg in render_mod.entry_yell_lines(context):
             print(msg)
-        # arrivals are rendered inside ``render_room_view``
         for msg in render_mod.footsteps_lines(context):
             print(msg)
         return False

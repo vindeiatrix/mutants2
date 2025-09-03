@@ -58,13 +58,14 @@ def test_command_prefix_3_to_full(cli):
     assert "***" in cli.run(["trav 2100"])
     assert "***" in cli.run(["trave 2100"])
     assert "***" in cli.run(["travel 2100"])
-    assert "Unknown command" in cli.run(["tr 2100"])
+    out = cli.run(["tr 2100"])
+    assert "Type ? if you need assistance." in out
 
 
 def test_directions_special(cli):
     assert "***" in cli.run(["n"])
     assert "***" in cli.run(["north"])
-    assert "Unknown command" in cli.run(["nor"])
+    assert "You're norring!" in cli.run(["nor"])
 
 
 def test_item_prefix_first_match(cli, world_with_items):
