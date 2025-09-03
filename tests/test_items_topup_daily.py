@@ -27,13 +27,8 @@ def test_topup_advances_next_day():
     w, p, save = make_game()
     save.fake_today_override = "2025-09-01"
     daily_topup_if_needed(w, p, save)
-    # remove some items
-    removed = 0
-    for key in list(w.ground.keys()):
-        yr, _, _ = key
-        if yr == p.year and removed < 5:
-            del w.ground[key]
-            removed += 1
+    # remove all items in current year to drop below target
+    w.ground = {k: v for k, v in w.ground.items() if k[0] != p.year}
     save.fake_today_override = "2025-09-02"
     n = daily_topup_if_needed(w, p, save)
     assert n > 0

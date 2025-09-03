@@ -22,14 +22,15 @@ def seed_items(world: World, year: int, grid: Grid) -> None:
         return
     walkable = list(world.walkable_coords(year))
     rand = random.Random(SEED + year)
-    target = round(0.05 * len(walkable))
+    rate = 0.05 * 5.0
+    target = min(round(0.5 * len(walkable)), round(rate * len(walkable)))
     if target <= 0:
         world.seeded_years.add(year)
         return
-    cells = rand.sample(walkable, min(target, len(walkable)))
+    cells = rand.choices(walkable, k=target)
     for x, y in cells:
         key = rand.choice(SPAWNABLE_KEYS)
-        world.set_ground_item(year, x, y, key)
+        world.add_ground_item(year, x, y, key)
     world.seeded_years.add(year)
 
 
@@ -40,11 +41,12 @@ def seed_monsters_for_year(world: World, year: int, global_seed: int) -> None:
     import random
 
     rng = random.Random(hash((global_seed, year, "monsters_v1")))
-    target = min(90, max(0, round(0.06 * len(walkables))))
+    rate = 0.06 * 3.0
+    target = min(round(0.35 * len(walkables)), max(0, round(rate * len(walkables))))
     rng.shuffle(walkables)
     placed = 0
     for (x, y) in walkables:
-        if world.item_at(year, x, y) is None and not world.has_monster(year, x, y):
+        if world.item_at(year, x, y) is None:
             world.place_monster(year, x, y, SPAWN_KEYS[0])
             placed += 1
             if placed >= target:

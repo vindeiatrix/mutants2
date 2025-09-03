@@ -96,11 +96,15 @@ def render_room_at(
 
     # Presence lines only when no arrivals were printed
     if not arrivals:
-        here = list(world.monsters_here(year, x, y))
-        if here:
-            for m in here:
-                name = m.get("name") or m.get("key")
-                out.append(white(f"{name} is here."))
+        names = [m.get("name") or m.get("key") for m in world.monsters_here(year, x, y)]
+        if names:
+            if len(names) == 1:
+                line = f"{names[0]} is here."
+            elif len(names) == 2:
+                line = f"{names[0]}, and {names[1]} are here with you."
+            else:
+                line = f"{', '.join(names[:-1])}, and {names[-1]} are here with you."
+            out.append(white(line))
 
     return "\n".join(out)
 

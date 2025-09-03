@@ -94,38 +94,45 @@ class World:
                 else:
                     self.ground[coord] = [val]
         self.seeded_years: Set[int] = set(seeded_years or [])
-        self._monsters: Dict[Tuple[int, int, int], dict] = {}
+        self._monsters: Dict[Tuple[int, int, int], list[dict]] = {}
         if monsters:
             for coord, data in monsters.items():
-                if isinstance(data, dict):
-                    key = data.get("key")
-                    hp = data.get("hp")
-                    name = data.get("name")
-                    aggro = data.get("aggro", False)
-                    seen = data.get("seen", False)
-                    mid = data.get("id")
+                if isinstance(data, list):
+                    items = data
                 else:
-                    key = data
-                    hp = None
-                    name = None
-                    aggro = False
-                    seen = False
-                    mid = None
-                if key is None:
-                    continue
-                base = monsters_mod.REGISTRY[key].base_hp
-                if mid is None:
-                    mid = monsters_mod.next_id()
-                else:
-                    monsters_mod.note_existing_id(int(mid))
-                self._monsters[coord] = {
-                    "key": key,
-                    "hp": int(hp) if hp is not None else base,
-                    "name": name or monsters_mod.REGISTRY[key].name,
-                    "aggro": bool(aggro),
-                    "seen": bool(seen),
-                    "id": int(mid),
-                }
+                    items = [data]
+                for entry in items:
+                    if isinstance(entry, dict):
+                        key = entry.get("key")
+                        hp = entry.get("hp")
+                        name = entry.get("name")
+                        aggro = entry.get("aggro", False)
+                        seen = entry.get("seen", False)
+                        mid = entry.get("id")
+                    else:
+                        key = entry
+                        hp = None
+                        name = None
+                        aggro = False
+                        seen = False
+                        mid = None
+                    if key is None:
+                        continue
+                    base = monsters_mod.REGISTRY[key].base_hp
+                    if mid is None:
+                        mid = monsters_mod.next_id()
+                    else:
+                        monsters_mod.note_existing_id(int(mid))
+                    self._monsters.setdefault(coord, []).append(
+                        {
+                            "key": key,
+                            "hp": int(hp) if hp is not None else base,
+                            "name": name or monsters_mod.REGISTRY[key].name,
+                            "aggro": bool(aggro),
+                            "seen": bool(seen),
+                            "id": int(mid),
+                        }
+                    )
         if global_seed is None:
             from . import gen
 
@@ -190,34 +197,41 @@ class World:
     def ground_items_count(self, year: int) -> int:
         return sum(len(v) for (yr, _, _), v in self.ground.items() if yr == year)
 
+    # convenience aliases used in tests
+    def count_monsters_for_year(self, year: int) -> int:
+        return self.monster_count(year)
+
+    def count_items_for_year(self, year: int) -> int:
+        return self.ground_items_count(year)
+
     @property
-    def monsters(self) -> Dict[Tuple[int, int, int], dict]:
+    def monsters(self) -> Dict[Tuple[int, int, int], list[dict]]:
         return self._monsters
 
     # Monsters -----------------------------------------------------------------
 
-    def monsters_in_year(self, year: int) -> dict[tuple[int, int], str]:
-        return {
-            (x, y): data["key"]
-            for (yr, x, y), data in self._monsters.items()
-            if yr == year
-        }
+    def monsters_in_year(self, year: int) -> dict[tuple[int, int], list[str]]:
+        out: dict[tuple[int, int], list[str]] = {}
+        for (yr, x, y), lst in self._monsters.items():
+            if yr == year:
+                out[(x, y)] = [m["key"] for m in lst]
+        return out
 
     def monster_positions(self, year: int) -> Iterator[tuple[int, int, dict]]:
-        for (yr, x, y), data in self._monsters.items():
+        for (yr, x, y), lst in self._monsters.items():
             if yr == year:
-                yield (x, y, data)
+                for m in lst:
+                    yield (x, y, m)
 
     def has_monster(self, year: int, x: int, y: int) -> bool:
-        return (year, x, y) in self._monsters
+        return bool(self._monsters.get((year, x, y)))
 
     def monster_here(self, year: int, x: int, y: int) -> dict | None:
-        return self._monsters.get((year, x, y))
+        lst = self._monsters.get((year, x, y))
+        return lst[0] if lst else None
 
-    def monsters_here(self, year: int, x: int, y: int):
-        m = self.monster_here(year, x, y)
-        if m:
-            yield m
+    def monsters_here(self, year: int, x: int, y: int) -> list[dict]:
+        return list(self._monsters.get((year, x, y), []))
 
     def on_entry_aggro_check(self, year: int, x: int, y: int, player, seed_parts=()) -> list[str]:
         """Mark monsters as seen and run 50/50 aggro rolls on this tile."""
@@ -238,31 +252,42 @@ class World:
 
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
-        if coord in self._monsters:
-            return False
-        self._monsters[coord] = monsters_mod.spawn(key, year, x, y)
+        self._monsters.setdefault(coord, []).append(
+            monsters_mod.spawn(key, year, x, y)
+        )
         return True
 
     def ensure_monster(self, year: int, x: int, y: int, key: str) -> None:
-        self._monsters[(year, x, y)] = monsters_mod.spawn(key, year, x, y)
+        self._monsters.setdefault((year, x, y), []).append(
+            monsters_mod.spawn(key, year, x, y)
+        )
 
     def damage_monster(self, year: int, x: int, y: int, dmg: int) -> bool:
         coord = (year, x, y)
-        m = self._monsters.get(coord)
-        if not m:
+        lst = self._monsters.get(coord)
+        if not lst:
             return False
+        m = lst[0]
         m["hp"] = max(0, m["hp"] - max(0, dmg))
         if m["hp"] <= 0:
-            self._monsters.pop(coord, None)
+            lst.pop(0)
+            if not lst:
+                self._monsters.pop(coord, None)
             return True
         return False
 
     def remove_monster(self, year: int, x: int, y: int) -> bool:
         coord = (year, x, y)
-        return self._monsters.pop(coord, None) is not None
+        lst = self._monsters.get(coord)
+        if not lst:
+            return False
+        lst.pop(0)
+        if not lst:
+            self._monsters.pop(coord, None)
+        return True
 
     def monster_count(self, year: int) -> int:
-        return sum(1 for (yr, _, _), _ in self._monsters.items() if yr == year)
+        return sum(len(v) for (yr, _, _), v in self._monsters.items() if yr == year)
 
     # Movement ---------------------------------------------------------------
 
@@ -285,9 +310,6 @@ class World:
 
         px, py = player.x, player.y
 
-        # Build occupancy map of monster locations (player tile allowed)
-        occ = {(x, y) for (x, y, _) in self.monster_positions(year)}
-
         for (x, y, m) in list(self.monster_positions(year)):
             if not m.get("aggro", False):
                 continue  # passive monsters never move
@@ -299,8 +321,6 @@ class World:
                 if not self.is_open(year, x, y, d):
                     continue
                 nx, ny = x + DIR[d][0], y + DIR[d][1]
-                if (nx, ny) in occ:
-                    continue
                 new_d = abs(px - nx) + abs(py - ny)
                 if new_d < base_d:
                     cand = (d, nx, ny, new_d)
@@ -317,10 +337,16 @@ class World:
             d, nx, ny, _ = best
 
             # Commit move
-            del self._monsters[(year, x, y)]
-            self._monsters[(year, nx, ny)] = m
-            occ.remove((x, y))
-            occ.add((nx, ny))
+            lst = self._monsters.get((year, x, y)) or []
+            try:
+                lst.remove(m)
+            except ValueError:
+                pass
+            if not lst:
+                self._monsters.pop((year, x, y), None)
+            else:
+                self._monsters[(year, x, y)] = lst
+            self._monsters.setdefault((year, nx, ny), []).append(m)
 
             if (nx, ny) == (px, py):
                 arrivals.append(f"{m['name']} has just arrived from the {d}.")
@@ -424,5 +450,6 @@ class World:
             gen.seed_monsters_for_year(self, value, self.global_seed)
             # Ensure starting tile is clear unless a monster was explicitly placed
             if not had_start:
-                self.remove_monster(value, 0, 0)
+                while self.remove_monster(value, 0, 0):
+                    pass
         return self.years[value]

@@ -241,11 +241,14 @@ def make_context(p, w, save, *, dev: bool = False):
                 print("You can't look that way.")
                 return False
             ax, ay = w.step(p.x, p.y, d)
-            tmp = Player()
-            tmp.clazz = p.clazz
-            tmp.year = p.year
-            tmp.positions = {p.year: (ax, ay)}
-            render_room_view(tmp, w, context, consume_cues=False)
+            text = render_mod.render_room_at(
+                w,
+                p.year,
+                ax,
+                ay,
+                include_shadows=False,
+            )
+            print(text)
             return False
 
         print("You can't look that way.")

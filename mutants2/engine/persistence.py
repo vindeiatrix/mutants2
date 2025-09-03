@@ -24,7 +24,7 @@ class Save:
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
 
 
-def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[int, int, int], dict], Set[int], Save]:
+def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[int, int, int], list[dict]], Set[int], Save]:
     try:
         with open(SAVE_PATH) as fh:
             data = json.load(fh)
@@ -52,42 +52,46 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
                 ground[coord] = list(val)
             else:
                 ground[coord] = [val]
-        monsters_data: Dict[Tuple[int, int, int], dict] = {}
+        monsters_data: Dict[Tuple[int, int, int], list[dict]] = {}
         for key, val in data.get("monsters", {}).items():
             coord = tuple(int(n) for n in key.split(','))
-            if isinstance(val, dict):
-                m_key = val.get("key")
-                hp = val.get("hp")
-                name = val.get("name")
-                # ``aggro`` state is persisted to keep passive monsters from moving
-                aggro = val.get("aggro", False)
-                seen = val.get("seen", False)
-                mid = val.get("id")
-            else:
-                m_key = val
-                hp = None
-                name = None
-                aggro = False
-                seen = False
-                mid = None
-            if m_key is None:
-                continue
-            base = monsters_mod.REGISTRY[m_key].base_hp
-            if mid is None:
-                mid = monsters_mod.next_id()
-            else:
-                monsters_mod.note_existing_id(int(mid))
-            m = {
-                "key": m_key,
-                "hp": int(hp) if hp is not None else base,
-                "name": name or monsters_mod.REGISTRY[m_key].name,
-                "aggro": bool(aggro),
-                "seen": bool(seen),
-                "id": int(mid),
-            }
-            if m.get("aggro") and not m.get("seen"):
-                m["aggro"] = False
-            monsters_data[coord] = m
+            entries = val if isinstance(val, list) else [val]
+            lst: list[dict] = []
+            for entry in entries:
+                if isinstance(entry, dict):
+                    m_key = entry.get("key")
+                    hp = entry.get("hp")
+                    name = entry.get("name")
+                    aggro = entry.get("aggro", False)
+                    seen = entry.get("seen", False)
+                    mid = entry.get("id")
+                else:
+                    m_key = entry
+                    hp = None
+                    name = None
+                    aggro = False
+                    seen = False
+                    mid = None
+                if m_key is None:
+                    continue
+                base = monsters_mod.REGISTRY[m_key].base_hp
+                if mid is None:
+                    mid = monsters_mod.next_id()
+                else:
+                    monsters_mod.note_existing_id(int(mid))
+                m = {
+                    "key": m_key,
+                    "hp": int(hp) if hp is not None else base,
+                    "name": name or monsters_mod.REGISTRY[m_key].name,
+                    "aggro": bool(aggro),
+                    "seen": bool(seen),
+                    "id": int(mid),
+                }
+                if m.get("aggro") and not m.get("seen"):
+                    m["aggro"] = False
+                lst.append(m)
+            if lst:
+                monsters_data[coord] = lst
         seeded = {int(y) for y in data.get("seeded_years", [])}
         save_meta = Save(
             global_seed=int(data.get("global_seed", gen.SEED)),
@@ -97,7 +101,7 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
     except FileNotFoundError:
         player = Player()
         ground: Dict[Tuple[int, int, int], list[str]] = {}
-        monsters_data: Dict[Tuple[int, int, int], dict] = {}
+        monsters_data: Dict[Tuple[int, int, int], list[dict]] = {}
         seeded: Set[int] = set()
         save_meta = Save()
         save(player, World(ground, seeded, monsters_data, global_seed=save_meta.global_seed), save_meta)
@@ -122,15 +126,23 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for (y, x, yy), items in world.ground.items()
             },
             "monsters": {
-                f"{y},{x},{yy}": {
-                    "key": data["key"],
-                    "hp": data["hp"],
-                    "name": data.get("name"),
-                    "aggro": data.get("aggro", False),
-                    "seen": data.get("seen", False),
-                    "id": data.get("id"),
-                }
-                for (y, x, yy), data in world.monsters.items()
+                f"{y},{x},{yy}": (
+                    processed[0] if len(processed) == 1 else processed
+                )
+                for (y, x, yy), lst in world.monsters.items()
+                for processed in [
+                    [
+                        {
+                            "key": m["key"],
+                            "hp": m["hp"],
+                            "name": m.get("name"),
+                            "aggro": m.get("aggro", False),
+                            "seen": m.get("seen", False),
+                            "id": m.get("id"),
+                        }
+                        for m in lst
+                    ]
+                ]
             },
             "seeded_years": list(world.seeded_years),
             "global_seed": save_meta.global_seed,

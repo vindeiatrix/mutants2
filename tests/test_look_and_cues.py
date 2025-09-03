@@ -50,5 +50,5 @@ def test_density_tripled():
     w.year(2000)
     walkables = len(list(w.walkable_coords(2000)))
     count = w.monster_count(2000)
-    assert count <= min(90, round(0.06 * walkables))
+    assert count <= min(round(0.35 * walkables), round(0.18 * walkables))
     assert count >= 1
