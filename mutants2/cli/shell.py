@@ -320,7 +320,7 @@ def make_context(p, w, save, *, dev: bool = False):
             moved = False
             if last_move:
                 moved = p.move(last_move, w)
-            if moved:
+            if moved or p._last_move_struck_back:
                 turn = True
             context._needs_render = True
         elif cmd == "class":
@@ -472,6 +472,7 @@ def make_context(p, w, save, *, dev: bool = False):
             moved = p.move(cmd, w)
             if moved:
                 last_move = cmd
+            if moved or p._last_move_struck_back:
                 turn = True
             context._needs_render = True
         elif cmd == "travel":

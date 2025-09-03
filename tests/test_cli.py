@@ -29,7 +29,7 @@ def test_blocked_move_still_renders_room(tmp_path):
     cmds = ['west'] * 16 + ['exit']
     result = _run_game(cmds, tmp_path)
     assert result.returncode == 0
-    assert "can't go that way." in result.stdout
+    assert "struck back" in result.stdout.lower()
     # Final render after hitting west edge
     assert result.stdout.count('Compass: (-15E : 0N)') >= 1
 

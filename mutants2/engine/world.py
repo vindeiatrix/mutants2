@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from typing import Dict, Tuple, Set, Optional, Iterable, Iterator
 
 from .senses import Direction
 from . import monsters as monsters_mod, items as items_mod
+from ..data.room_headers import ROOM_HEADERS
 
 Coordinate = Tuple[int, int]
 
@@ -142,6 +144,7 @@ class World:
         self.global_seed = global_seed
         self._recent_monster_moves: list[tuple[int, int, int, int, int]] = []
         self.turn = turn
+        self._room_headers: Dict[Tuple[int, int, int], str] = {}
 
     def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
         items = self.ground.get((year, x, y))
@@ -180,6 +183,16 @@ class World:
     def items_on_ground(self, year: int, x: int, y: int) -> list[items_mod.ItemDef]:
         keys = self.ground.get((year, x, y), [])
         return [items_mod.REGISTRY[k] for k in keys]
+
+    def room_description(self, year: int, x: int, y: int) -> str:
+        """Return the room header for the given tile, generating on demand."""
+        key = (year, x, y)
+        header = self._room_headers.get(key)
+        if header is None:
+            rng = random.Random(hash((self.global_seed, year, x, y, "room_header_v1")))
+            header = rng.choice(ROOM_HEADERS)
+            self._room_headers[key] = header
+        return header
 
     # Helpers for daily top-up -------------------------------------------------
 
