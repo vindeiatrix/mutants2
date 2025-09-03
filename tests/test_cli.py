@@ -25,13 +25,21 @@ def test_move_shows_room_after_success(tmp_path):
     assert 'Compass: (1E : 0N)' in result.stdout
 
 
-def test_blocked_move_still_renders_room(tmp_path):
+def test_blocked_move_suppresses_room(tmp_path):
     cmds = ['west'] * 16 + ['exit']
     result = _run_game(cmds, tmp_path)
     assert result.returncode == 0
     assert "struck back" in result.stdout.lower()
-    # Final render after hitting west edge
-    assert result.stdout.count('Compass: (-15E : 0N)') >= 1
+    lines = result.stdout.splitlines()
+    sb_idx = max(i for i, line in enumerate(lines) if "struck back" in line.lower())
+    after = []
+    for line in lines[sb_idx + 1:]:
+        if line.strip().lower() == 'exit' or line.strip() == 'Goodbye.':
+            break
+        after.append(line)
+    forbidden = ('Room:', 'Compass:', 'Exits:', 'Ground:', 'Presence:', 'Shadows:', '***')
+    for line in after:
+        assert not any(tok in line for tok in forbidden)
 
 
 def test_direction_aliases_one_letter(tmp_path):

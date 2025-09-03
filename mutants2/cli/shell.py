@@ -327,6 +327,8 @@ def make_context(p, w, save, *, dev: bool = False):
             moved = False
             if last_move:
                 moved = p.move(last_move, w)
+                if p._last_move_struck_back:
+                    context._suppress_room_render = True
             if moved or p._last_move_struck_back:
                 turn = True
             context._needs_render = True
@@ -479,6 +481,8 @@ def make_context(p, w, save, *, dev: bool = False):
             moved = p.move(cmd, w)
             if moved:
                 last_move = cmd
+            if p._last_move_struck_back:
+                context._suppress_room_render = True
             if moved or p._last_move_struck_back:
                 turn = True
             context._needs_render = True
