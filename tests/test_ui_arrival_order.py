@@ -45,8 +45,8 @@ def staged_adjacent_then_arrival(world):
     world.place_monster(2000, 1, 0, "mutant")
     world.monster_here(2000, 1, 0)["aggro"] = True
     # Monster two tiles north that will arrive after the player moves north
-    world.place_monster(2000, 0, -2, "mutant")
-    world.monster_here(2000, 0, -2)["aggro"] = True
+    world.place_monster(2000, 0, 2, "mutant")
+    world.monster_here(2000, 0, 2)["aggro"] = True
     return world
 
 
