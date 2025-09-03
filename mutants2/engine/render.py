@@ -33,7 +33,14 @@ def footsteps_lines(ctx) -> list[str]:
         return [f"You hear loud sounds of footsteps to the {d}."]
 
 
-def render_room_view(player: Player, world: World, context=None, *, consume_cues: bool = True) -> None:
+def render_room_view(
+    player: Player,
+    world: World,
+    context=None,
+    *,
+    consume_cues: bool = True,
+    include_arrivals: bool = True,
+) -> None:
     if consume_cues:
         cues = player.senses.pop()
     else:
@@ -46,6 +53,7 @@ def render_room_view(player: Player, world: World, context=None, *, consume_cues
         include_shadows=True,
         shadow_dirs_extra=cues.shadow_dirs,
         context=context,
+        include_arrivals=include_arrivals,
     )
     print(text)
 

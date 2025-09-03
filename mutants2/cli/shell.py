@@ -566,18 +566,20 @@ def make_context(p, w, save, *, dev: bool = False):
                 context._footsteps_event = None
             w.turn += 1
         if context._needs_render and not context._suppress_room_render:
-            render_room_view(p, w, context)
+            render_room_view(p, w, context, include_arrivals=False)
             context._needs_render = False
         elif context._suppress_room_render:
             context._needs_render = False
-            arrivals = render_mod.arrival_lines(context)
+            context._suppress_room_render = False
+        for msg in render_mod.entry_yell_lines(context):
+            print(msg)
+        arrivals = render_mod.arrival_lines(context)
+        if arrivals:
+            print(SEP)
             for i, msg in enumerate(arrivals):
                 print(red(msg))
                 if i < len(arrivals) - 1:
                     print(SEP)
-            context._suppress_room_render = False
-        for msg in render_mod.entry_yell_lines(context):
-            print(msg)
         for msg in render_mod.footsteps_lines(context):
             print(msg)
         return False
