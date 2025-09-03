@@ -13,7 +13,7 @@ def test_save_load(tmp_path, monkeypatch):
     save = persistence.Save()
     persistence.save(p, w, save)
     p2, ground, monsters, seeded, _ = persistence.load()
-    assert (p2.year, p2.x, p2.y) == (2100, 0, 1)
+    assert (p2.year, p2.x, p2.y) == (2100, 0, -1)
     w2 = World(ground, seeded, monsters)
     p2.travel(w2)
     assert (p2.x, p2.y) == (0, 0)

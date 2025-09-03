@@ -28,6 +28,9 @@ def load() -> Tuple[Player, Dict[Tuple[int, int, int], list[str]], Dict[Tuple[in
     try:
         with open(SAVE_PATH) as fh:
             data = json.load(fh)
+        # Ignore legacy wall data if present
+        data.pop("walls", None)
+        data.pop("blocked", None)
         year = data.get("year", 2000)
         positions: Dict[int, Tuple[int, int]] = {
             int(k): (v.get("x", 0), v.get("y", 0))

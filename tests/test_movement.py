@@ -6,11 +6,10 @@ def test_player_movement(capsys):
     w = World()
     p = Player()
     assert p.move('north', w)
-    assert (p.x, p.y) == (0, 1)
-    assert not p.move('west', w)
-    out = capsys.readouterr().out
-    assert "can't go that way." in out
-    assert (p.x, p.y) == (0, 1)
+    assert (p.x, p.y) == (0, -1)
+    assert p.move('west', w)
+    capsys.readouterr()
+    assert (p.x, p.y) == (-1, -1)
 
 
 def test_diagonal_rejected(capsys):

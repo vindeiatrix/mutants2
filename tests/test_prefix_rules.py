@@ -53,14 +53,6 @@ def world_with_monster_and_item_N_on_tile(world, player):
     return world
 
 
-@pytest.fixture
-def world_blocked_east(world):
-    yr = world.year(2000)
-    yr.grid.adj[(0, 0)].discard("east")
-    yr.grid.adj[(1, 0)].discard("west")
-    return world
-
-
 def test_command_prefix_3_to_full(cli):
     assert "***" in cli.run(["tra 2100"])
     assert "***" in cli.run(["trav 2100"])
@@ -86,7 +78,6 @@ def test_look_monster_precedence(cli, world_with_monster_and_item_N_on_tile):
     out = cli.run(["loo n"])
     assert "It's a Night-Stalker." in out
 
-
-def test_look_direction_fallback(cli, world_blocked_east):
+def test_look_direction_fallback(cli):
     out = cli.run(["loo e"])
-    assert "can't look that way" in out.lower()
+    assert "can't look that way" not in out.lower()

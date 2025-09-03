@@ -38,13 +38,12 @@ class Player:
 
     def move(self, direction: str, world) -> bool:
         x, y = self.positions.setdefault(self.year, (0, 0))
-        grid = world.year(self.year).grid
         if direction not in {"north", "south", "east", "west"}:
             print("can't go that way.")
             return False
-        neighbors = grid.neighbors(x, y)
-        if direction in neighbors:
-            self.positions[self.year] = neighbors[direction]
+        if world.is_open(self.year, x, y, direction):
+            nx, ny = world.step(x, y, direction)
+            self.positions[self.year] = (nx, ny)
             return True
         print("can't go that way.")
         return False

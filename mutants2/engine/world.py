@@ -5,10 +5,34 @@ from typing import Dict, Tuple, Set, Optional, Iterable, Iterator
 
 from .senses import Direction
 from . import monsters as monsters_mod, items as items_mod
+
 Coordinate = Tuple[int, int]
 
+# ---------------------------------------------------------------------------
+# Grid topology helpers
+# ---------------------------------------------------------------------------
+
+GRID_MIN = -15
+GRID_MAX = 15
+
+
+def in_bounds(x: int, y: int) -> bool:
+    return GRID_MIN <= x < GRID_MAX and GRID_MIN <= y < GRID_MAX
+
+
+DIR: Dict[str, Tuple[int, int]] = {
+    "east": (1, 0),
+    "west": (-1, 0),
+    "north": (0, -1),
+    "south": (0, 1),
+}
+
 ORDER = ("east", "west", "north", "south")
-DIRV = {"east": (1, 0), "west": (-1, 0), "north": (0, 1), "south": (0, -1)}
+
+
+def step(x: int, y: int, d: str) -> tuple[int, int]:
+    dx, dy = DIR[d]
+    return x + dx, y + dy
 
 
 def _dir_from(px: int, py: int, tx: int, ty: int) -> str:
@@ -25,29 +49,22 @@ class Cell:
 
 
 class Grid:
-    """A simple 4-neighbour grid."""
+    """A simple 4-neighbour grid with fully open connectivity."""
 
-    def __init__(self, width: int, height: int, adj: Dict[Coordinate, Set[Direction]]):
+    def __init__(self, width: int = GRID_MAX - GRID_MIN, height: int = GRID_MAX - GRID_MIN):
         self.width = width
         self.height = height
-        self.adj = adj
 
     def is_walkable(self, x: int, y: int) -> bool:
-        return (x, y) in self.adj
+        return in_bounds(x, y)
 
     def neighbors(self, x: int, y: int) -> Dict[Direction, Coordinate]:
-        dirs = {
-            'north': (0, 1),
-            'south': (0, -1),
-            'east': (1, 0),
-            'west': (-1, 0),
-        }
         result: Dict[Direction, Coordinate] = {}
         if not self.is_walkable(x, y):
             return result
-        for name, (dx, dy) in dirs.items():
+        for name, (dx, dy) in DIR.items():
             nx, ny = x + dx, y + dy
-            if name in self.adj[(x, y)] and 0 <= nx < self.width and 0 <= ny < self.height:
+            if in_bounds(nx, ny):
                 result[name] = (nx, ny)
         return result
 
@@ -160,11 +177,9 @@ class World:
         return sorted(yrs)
 
     def walkable_coords(self, year: int) -> Iterable[Tuple[int, int]]:
-        grid = self.year(year).grid
-        for x in range(grid.width):
-            for y in range(grid.height):
-                if grid.is_walkable(x, y):
-                    yield (x, y)
+        for y in range(GRID_MIN, GRID_MAX):
+            for x in range(GRID_MIN, GRID_MAX):
+                yield (x, y)
 
     def item_at(self, year: int, x: int, y: int) -> Optional[str]:
         return self.ground_item(year, x, y)
@@ -283,7 +298,7 @@ class World:
             for d in ORDER:
                 if not self.is_open(year, x, y, d):
                     continue
-                nx, ny = x + DIRV[d][0], y + DIRV[d][1]
+                nx, ny = x + DIR[d][0], y + DIR[d][1]
                 if (nx, ny) in occ:
                     continue
                 new_d = abs(px - nx) + abs(py - ny)
@@ -323,7 +338,7 @@ class World:
         dirs: list[str] = []
         for d in ORDER:
             if self.is_open(year, x, y, d):
-                nx, ny = x + DIRV[d][0], y + DIRV[d][1]
+                nx, ny = x + DIR[d][0], y + DIR[d][1]
                 if self.has_monster(year, nx, ny):
                     dirs.append(d)
         return dirs
@@ -371,22 +386,14 @@ class World:
     def force_monster_move_within4(self, year: int = 2000) -> None:
         self._recent_monster_moves.append((year, 1, 0, 1, 1))
 
-    _DIRS: dict[Direction, tuple[int, int]] = {
-        "north": (0, 1),
-        "south": (0, -1),
-        "east": (1, 0),
-        "west": (-1, 0),
-    }
-
     def is_open(self, year: int, x: int, y: int, direction: Direction) -> bool:
-        """Return ``True`` if an open passage exists from ``(x, y)`` to ``direction``."""
-        grid = self.year(year).grid
-        return direction in grid.neighbors(x, y)
+        """Return ``True`` if moving from ``(x, y)`` in ``direction`` stays in bounds."""
+        nx, ny = step(x, y, direction)
+        return in_bounds(nx, ny)
 
     def step(self, x: int, y: int, direction: Direction) -> tuple[int, int]:
         """Return coordinates stepped one tile in ``direction`` from ``(x, y)``."""
-        dx, dy = self._DIRS[direction]
-        return x + dx, y + dy
+        return step(x, y, direction)
 
     def nearest_monster(
         self, year: int, x: int, y: int, max_dist: int = 4
