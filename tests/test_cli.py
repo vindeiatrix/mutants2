@@ -8,7 +8,7 @@ def test_cli_smoke(tmp_path):
     inp = '1\nlook\nnorth\nlast\ntravel\nlook\nexit\n'
     result = subprocess.run(cmd, input=inp, text=True, capture_output=True, env={'HOME': str(tmp_path)})
     assert result.returncode == 0
-    assert 'On the ground lies' in result.stdout
+    assert 'Compass:' in result.stdout
 
 
 def _run_game(commands, tmp_path):
@@ -22,7 +22,7 @@ def test_move_shows_room_after_success(tmp_path):
     assert result.returncode == 0
     # Initial render plus post-move render
     assert result.stdout.count('***') >= 2
-    assert '1E : 0N' in result.stdout
+    assert 'Compass: (1E : 0N)' in result.stdout
 
 
 def test_blocked_move_still_renders_room(tmp_path):
@@ -30,7 +30,7 @@ def test_blocked_move_still_renders_room(tmp_path):
     assert result.returncode == 0
     assert "can't go that way." in result.stdout
     # Starting room rendered twice (initial + after failed move)
-    assert result.stdout.count('0E : 0N') >= 2
+    assert result.stdout.count('Compass: (0E : 0N)') >= 2
 
 
 def test_direction_aliases_one_letter(tmp_path):
@@ -38,8 +38,8 @@ def test_direction_aliases_one_letter(tmp_path):
     assert result.returncode == 0
     # One render per command plus initial
     assert result.stdout.count('***') >= 5
-    assert '0E : 1N' in result.stdout
-    assert '1E : 0N' in result.stdout
+    assert 'Compass: (0E : 1N)' in result.stdout
+    assert 'Compass: (1E : 0N)' in result.stdout
 
 
 def test_history_file_created_non_tty_safe(tmp_path):

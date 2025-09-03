@@ -47,7 +47,7 @@ def test_retaliation_and_death_respawn(world_with_mutant_on_start, cli_runner):
     persistence.save(p, w, save)
     out2 = cli_runner.run_commands(["att", "att", "att", "att"])
     assert "You have died." in out2
-    assert "0E : 0N" in out2
+    assert "Compass: (0E : 0N)" in out2
 
 
 def test_cannot_rest_in_danger(world_with_mutant_on_start, cli_runner):

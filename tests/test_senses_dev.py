@@ -34,15 +34,12 @@ def test_shadow_render_once(cli_runner):
     out = cli_runner.run_commands([
         "debug clear",
         "debug shadow north",
-        "debug shadow east",
-        "look",
-        "look",
+       "debug shadow east",
+       "look",
+       "look",
     ])
     assert "You see shadows to the east, north." in out
-    parts = out.split("On the ground lies:")
-    assert len(parts) >= 3
-    seg = parts[-1]
-    assert "You see shadows" not in seg
+    assert out.count("You see shadows") == 1
 
 
 def test_debug_clear(cli_runner):
