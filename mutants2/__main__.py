@@ -46,7 +46,7 @@ def main() -> None:
 
     while True:
         try:
-            line = input("> ")
+            line = input("")
         except (EOFError, KeyboardInterrupt):
             print()
             break

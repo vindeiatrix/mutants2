@@ -480,6 +480,8 @@ def make_context(p, w, save, *, dev: bool = False):
         return handle_command(cmd, args)
 
     def dispatch_line(line: str) -> bool:
+        if line.strip():
+            print(line.strip())
         before = (p.year, p.x, p.y)
         dispatch_macro(line)
         if not context.running:
@@ -507,10 +509,7 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
         for msg in render_mod.entry_yell_lines(context):
             print(msg)
-        for msg in render_mod.arrival_lines(context):
-            print(msg)
-            name = msg.split(" has just arrived")[0]
-            print(f"{name} is here.")
+        # arrivals are rendered inside ``render_room_view``
         for msg in render_mod.footsteps_lines(context):
             print(msg)
         return False

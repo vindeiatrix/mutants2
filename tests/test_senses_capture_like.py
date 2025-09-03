@@ -96,7 +96,8 @@ def test_faint_then_loud_then_shadows_progression(cli, staged_world_far_south):
 def test_arrival_message(cli, staged_world_adjacent_south):
     out = cli.run(["loo"])
     assert "has just arrived from the west" in out
-    assert "is here" in out
+    # Presence should be suppressed on the same tick as the arrival
+    assert "is here" not in out.split("has just arrived")[-1]
 
 
 def test_multi_shadow(cli, world_two_adjacent):

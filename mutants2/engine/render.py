@@ -45,6 +45,7 @@ def render_room_view(player: Player, world: World, context=None, *, consume_cues
         player.y,
         include_shadows=True,
         shadow_dirs_extra=cues.shadow_dirs,
+        context=context,
     )
     print(text)
 
