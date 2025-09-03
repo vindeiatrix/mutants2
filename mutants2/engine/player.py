@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
+from typing import Dict, Tuple, cast
 
 from .senses import SensesBuffer
+from .types import Direction
 from . import items as items_mod
 from ..ui.theme import red
 
@@ -44,8 +45,9 @@ class Player:
         if direction not in {"north", "south", "east", "west"}:
             print("can't go that way.")
             return False
-        if world.is_open(self.year, x, y, direction):
-            nx, ny = world.step(x, y, direction)
+        d = cast(Direction, direction)
+        if world.is_open(self.year, x, y, d):
+            nx, ny = world.step(x, y, d)
             self.positions[self.year] = (nx, ny)
             return True
         self._last_move_struck_back = True

@@ -1,7 +1,9 @@
-from dataclasses import dataclass, field
-from typing import Optional, Set, Literal
+from __future__ import annotations
 
-Direction = Literal["north", "south", "east", "west"]
+from dataclasses import dataclass, field
+from typing import Optional, Set
+
+from .types import Direction
 
 
 @dataclass

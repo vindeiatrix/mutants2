@@ -12,7 +12,7 @@ def world_with_mutant_on_start(tmp_path):
     persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    w = World(monsters={(2000, 0, 0): {'key': 'mutant', 'hp': 3}}, seeded_years={2000})
+    w = World(monsters={(2000, 0, 0): [{'key': 'mutant', 'hp': 3}]}, seeded_years={2000})
     save = persistence.Save()
     persistence.save(p, w, save)
     return None
@@ -42,7 +42,7 @@ def test_retaliation_and_death_respawn(world_with_mutant_on_start, cli_runner):
     persistence.SAVE_PATH = save_path
     p = Player()
     p.max_hp = p.hp = 1
-    w = World(monsters={(2000, 0, 0): {'key': 'mutant', 'hp': 3}}, seeded_years={2000})
+    w = World(monsters={(2000, 0, 0): [{'key': 'mutant', 'hp': 3}]}, seeded_years={2000})
     save = persistence.Save()
     persistence.save(p, w, save)
     out2 = cli_runner.run_commands(["att", "att", "att", "att"])

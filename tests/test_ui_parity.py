@@ -26,7 +26,7 @@ def test_single_item_and_stack():
 
 
 def test_render_order_and_copy():
-    w = World({(2000, 0, 0): "ion_decay"}, {2000})
+    w = World({(2000, 0, 0): ["ion_decay"]}, {2000})
     w.place_monster(2000, 0, 0, "mutant")
     w.place_monster(2000, 1, 0, "mutant")
     out = strip_ansi(render_room_at(w, 2000, 0, 0))

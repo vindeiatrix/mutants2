@@ -30,7 +30,7 @@ def test_pickup_and_drop_roundtrip(tmp_path):
     persistence.SAVE_PATH = Path(tmp_path) / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    w = World({(2000, 0, 0): 'ion_decay'}, {2000})
+    w = World({(2000, 0, 0): ['ion_decay']}, {2000})
     save = persistence.Save()
     persistence.save(p, w, save)
     result = _run_game(['get Ion-Decay', 'look', 'inventory', 'drop Ion-Decay', 'look', 'inventory', 'exit'], tmp_path)
@@ -60,7 +60,7 @@ def test_persistence_inventory_and_ground(tmp_path):
     persistence.SAVE_PATH = Path(tmp_path) / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    w = World({(2000, 0, 0): 'ion_decay'}, {2000})
+    w = World({(2000, 0, 0): ['ion_decay']}, {2000})
     save = persistence.Save()
     persistence.save(p, w, save)
     _run_game(['get Ion-Decay', 'east', 'exit'], tmp_path)
@@ -74,7 +74,7 @@ def test_name_matching_case_insensitive(tmp_path):
     persistence.SAVE_PATH = Path(tmp_path) / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    w = World({(2000, 0, 0): 'ion_decay'}, {2000})
+    w = World({(2000, 0, 0): ['ion_decay']}, {2000})
     save = persistence.Save()
     persistence.save(p, w, save)
     result = _run_game(['get ion-decay', 'drop ion-decay', 'get Ion-Decay', 'inventory', 'exit'], tmp_path)

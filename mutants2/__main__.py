@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import os
 import atexit
@@ -27,11 +29,14 @@ def main() -> None:
 
     from mutants2.cli.shell import make_context, class_menu
     from mutants2.engine import persistence, world as world_mod
+    from mutants2.engine.types import MonsterRec, TileKey
     from mutants2.engine.render import render_room_view
     from mutants2.engine.gen import daily_topup_if_needed
 
     p, ground, monsters, seeded, save = persistence.load()
-    w = world_mod.World(ground, seeded, monsters, global_seed=save.global_seed)
+    ground_map: dict[TileKey, list[str]] = ground
+    monsters_map: dict[TileKey, list[MonsterRec]] = monsters
+    w = world_mod.World(ground_map, seeded, monsters_map, global_seed=save.global_seed)
 
     if p.clazz is None:
         w.reset_all_aggro()
