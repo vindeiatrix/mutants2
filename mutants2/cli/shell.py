@@ -319,18 +319,50 @@ def make_context(p, w, save, *, dev: bool = False):
         elif cmd == "status":
             handle_status()
         elif cmd == "help":
-            topic = " ".join(args).strip().lower() if args else ""
-            if topic in {"macros", "macro"}:
-                print(MACROS_HELP)
+            if args and args[0].lower() == "debug":
+                print(
+"""Debug commands:
+  debug item add <name|key> [count]   Add item(s) to current room's ground.
+  debug item clear                    Remove all ground items here.
+  debug item list                     Show raw ground items here.
+  debug mon here                      Toggle a Mutant on this tile.
+  debug mon spawn <n>                 Spawn n Mutants near the player (dev).
+  debug mon count                     Count monsters in current year.
+  debug today YYYY-MM-DD              Set synthetic 'today' (dev date).
+  debug today clear                   Clear synthetic date.
+  debug topup                         Run daily item top-up now.
+  macro keys debug on|off             Toggle macro key debug (if available).
+"""
+                )
             else:
-                print(COMMANDS_HELP)
-                print()
-                print(ABBREVIATIONS_NOTE)
+                topic = " ".join(args).strip().lower() if args else ""
+                if topic in {"macros", "macro"}:
+                    print(MACROS_HELP)
+                else:
+                    print(COMMANDS_HELP)
+                    print()
+                    print(ABBREVIATIONS_NOTE)
         elif cmd == "debug":
             if not dev:
                 print("Debug commands are available only in dev mode.")
             else:
-                if args[:2] == ["mon", "count"]:
+                if args[:2] == ["item", "add"] and len(args) >= 3:
+                    name_or_key = args[2]
+                    count = int(args[3]) if len(args) >= 4 and args[3].isdigit() else 1
+                    key = items.resolve_key_prefix(name_or_key)
+                    if not key:
+                        print("Unknown item.")
+                        return False
+                    for _ in range(count):
+                        w.add_ground_item(p.year, p.x, p.y, key)
+                    print(f"OK: added {count} x {items.display_name(key)}.")
+                elif args[:2] == ["item", "clear"]:
+                    w.ground.pop((p.year, p.x, p.y), None)
+                    print("OK: cleared ground.")
+                elif args[:2] == ["item", "list"]:
+                    names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
+                    print(f"[dev] ground: {names}")
+                elif args[:2] == ["mon", "count"]:
                     print(w.monster_count(p.year))
                 elif args[:2] == ["mon", "here"]:
                     if w.has_monster(p.year, p.x, p.y):
@@ -473,15 +505,14 @@ def make_context(p, w, save, *, dev: bool = False):
         if context._needs_render:
             render_room_view(p, w, context)
             context._needs_render = False
-        else:
-            for msg in render_mod.entry_yell_lines(context):
-                print(msg)
-            for msg in render_mod.arrival_lines(context):
-                print(msg)
-                name = msg.split(" has just arrived")[0]
-                print(f"{name} is here.")
-            for msg in render_mod.footsteps_lines(context):
-                print(msg)
+        for msg in render_mod.entry_yell_lines(context):
+            print(msg)
+        for msg in render_mod.arrival_lines(context):
+            print(msg)
+            name = msg.split(" has just arrived")[0]
+            print(f"{name} is here.")
+        for msg in render_mod.footsteps_lines(context):
+            print(msg)
         return False
 
     context.run_script = lambda script: macro_store.expand_and_run_script(script, dispatch_macro)

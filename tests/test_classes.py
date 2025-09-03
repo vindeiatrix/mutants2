@@ -15,15 +15,14 @@ def run_cli(inp, home, env_extra=None):
 def test_class_selection_digits_enters_game(tmp_path):
     result = run_cli('1\nexit\n', tmp_path)
     out = result.stdout
-    assert 'Class: Warrior' in out
-    assert '0E : 0N' in out
+    assert 'Compass:' in out
     assert '***' in out
 
 
 def test_class_selection_names_enters_game(tmp_path):
     result = run_cli('wizard\nexit\n', tmp_path)
     out = result.stdout
-    assert 'Class: Wizard' in out
+    assert 'Compass:' in out
     assert '***' in out
 
 
@@ -31,7 +30,7 @@ def test_invalid_then_valid(tmp_path):
     result = run_cli('xyz\n2\nexit\n', tmp_path)
     out = result.stdout
     assert 'Invalid selection.' in out
-    assert 'Class: Mage' in out
+    assert 'Compass:' in out
 
 
 def test_back_behavior(tmp_path):
@@ -39,13 +38,13 @@ def test_back_behavior(tmp_path):
     result = run_cli(inp, tmp_path)
     out = result.stdout
     assert 'Pick a class to begin.' in out
-    assert out.count('Class: Warrior') >= 2
+    assert out.count('Compass:') >= 2
 
 
 def test_persistence_of_class(tmp_path):
     home = tmp_path
     run_cli('4\nnorth\nexit\n', home)
-    result = run_cli('exit\n', home)
+    result = run_cli('sta\nexit\n', home)
     out = result.stdout
     assert 'Class: Thief' in out
     assert 'Choose your class' not in out

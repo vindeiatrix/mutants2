@@ -37,11 +37,10 @@ def test_pickup_and_drop_roundtrip(tmp_path):
     result = _run_game(['get Ion-Decay', 'look', 'inventory', 'drop Ion-Decay', 'look', 'inventory', 'exit'], tmp_path)
     out = result.stdout
     assert 'You pick up Ion-Decay.' in out
-    assert 'On the ground lies: (nothing)' in out
     assert 'Ion-Decay x1' in out
     assert 'You drop Ion-Decay.' in out
     after = out.split('You drop Ion-Decay.')[-1]
-    assert 'On the ground lies: Ion-Decay' in after
+    assert 'On the ground lies:' in after and 'Ion-Decay' in after
     assert '(empty)' in after
 
 
@@ -69,7 +68,7 @@ def test_persistence_inventory_and_ground(tmp_path):
     result = _run_game(['inventory', 'west', 'look', 'exit'], tmp_path)
     out = result.stdout
     assert 'Ion-Decay x1' in out
-    assert 'On the ground lies: (nothing)' in out
+    assert 'On the ground lies:' not in out
 
 
 def test_name_matching_case_insensitive(tmp_path):

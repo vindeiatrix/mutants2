@@ -1,7 +1,7 @@
 from .world import World
 from .player import Player
 from .senses import SensesCues
-from . import items, monsters
+from ..render import render_room_at
 
 
 def shadow_lines(world: World, player: Player) -> list[str]:
@@ -34,53 +34,19 @@ def footsteps_lines(ctx) -> list[str]:
 
 
 def render_room_view(player: Player, world: World, context=None, *, consume_cues: bool = True) -> None:
-    print("---")
-    print(f"Class: {player.clazz}")
-    print(f"{player.x}E : {player.y}N")
-    lines: list[str] = []
-    if context is not None and getattr(context, "_pre_shadow_lines", None):
-        lines.extend(context._pre_shadow_lines)
-        context._pre_shadow_lines = []
-    else:
-        lines.extend(shadow_lines(world, player))
-    if context is not None:
-        lines.extend(getattr(context, "_entry_yells", []) or [])
-        context._entry_yells = []
-        lines.extend(arrival_lines(context))
-        ev = getattr(context, "_footsteps_event", None)
-        context._footsteps_event = None
-        if ev:
-            kind, d = ev
-            if kind == "faint":
-                lines.append(f"You hear faint sounds of footsteps far to the {d}.")
-            else:
-                lines.append(f"You hear loud sounds of footsteps to the {d}.")
     if consume_cues:
         cues = player.senses.pop()
     else:
         cues = SensesCues()
-    for d in ("north", "south", "east", "west"):
-        if d in cues.shadow_dirs:
-            lines.append(f"A shadow flickers to the {d}.")
-    m = world.monster_here(player.year, player.x, player.y)
-    if m:
-        name = m.get("name") or monsters.REGISTRY[m["key"]].name
-        lines.append(f"{name} is here.")
-    for line in lines:
-        print(line)
-    grid = world.year(player.year).grid
-    neighbors = grid.neighbors(player.x, player.y)
-    for direction in sorted(neighbors):
-        print(f"{direction} - open passage.")
-    print("***")
-    item_key = world.ground_item(player.year, player.x, player.y)
-    if item_key:
-        name = items.REGISTRY[item_key].name
-        print(f"On the ground lies: {name}")
-    else:
-        print("On the ground lies: (nothing)")
-    if context is not None:
-        pass
+    text = render_room_at(
+        world,
+        player.year,
+        player.x,
+        player.y,
+        include_shadows=True,
+        shadow_dirs_extra=cues.shadow_dirs,
+    )
+    print(text)
 
 
 # Backwards compatibility

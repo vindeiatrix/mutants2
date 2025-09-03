@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import re
 from typing import Optional
+import collections
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,10 @@ __all__ = [
     "resolve_prefix",
     "first_prefix_match",
     "describe",
+    "article_name",
+    "stack_for_render",
+    "resolve_key_prefix",
+    "display_name",
 ]
 
 
@@ -108,4 +113,44 @@ def describe(name: str) -> str:
     if item:
         return f"You see {item.name}."
     return f"You see {name}."
+
+
+def article_name(name: str) -> str:
+    parts = name.split("-")
+    t = "-".join(p[:1].upper() + p[1:] for p in parts)
+    return f"A {t}"
+
+
+def stack_for_render(item_names: list[str]) -> list[str]:
+    counts = collections.Counter(item_names)
+    tokens: list[str] = []
+    for name in item_names:
+        if counts[name] == 0:
+            continue
+        if counts[name] == 1:
+            tokens.append(article_name(name))
+        else:
+            tokens.append(article_name(name))
+            tokens.append(f"{article_name(name)} ({counts[name]-1})")
+        counts[name] = 0
+    if tokens:
+        tokens[-1] = tokens[-1] + "."
+    return tokens
+
+
+def resolve_key_prefix(query: str) -> Optional[str]:
+    q = norm_name(query)
+    if not q:
+        return None
+    matches = []
+    for key, item in REGISTRY.items():
+        if norm_name(key).startswith(q) or norm_name(item.name).startswith(q):
+            matches.append(key)
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
+def display_name(key: str) -> str:
+    return REGISTRY[key].name
 

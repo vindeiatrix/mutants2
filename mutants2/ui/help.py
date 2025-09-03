@@ -74,6 +74,10 @@ Audio
 • Monsters start passive and don’t move until they aggro.
 • You hear footsteps only if an aggro’d monster actually moved that turn.
 • A monster yells exactly once when it aggroes as you enter its room.
+
+Debug
+-----
+• `help debug` — list developer-only commands for spawning items, monster tools, date overrides, etc.
 """
 
 
