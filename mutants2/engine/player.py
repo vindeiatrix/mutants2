@@ -5,6 +5,7 @@ from typing import Dict, Tuple
 
 from .senses import SensesBuffer
 from . import items as items_mod
+from ..ui.theme import red
 
 
 # Available player classes. These are simple placeholders for now and do not
@@ -27,6 +28,7 @@ class Player:
     inventory: Dict[str, int] = field(default_factory=dict)
     hp: int = 10
     max_hp: int = 10
+    _last_move_struck_back: bool = field(default=False, repr=False)
 
     @property
     def x(self) -> int:
@@ -38,6 +40,7 @@ class Player:
 
     def move(self, direction: str, world) -> bool:
         x, y = self.positions.setdefault(self.year, (0, 0))
+        self._last_move_struck_back = False
         if direction not in {"north", "south", "east", "west"}:
             print("can't go that way.")
             return False
@@ -45,7 +48,8 @@ class Player:
             nx, ny = world.step(x, y, direction)
             self.positions[self.year] = (nx, ny)
             return True
-        print("can't go that way.")
+        self._last_move_struck_back = True
+        print(red("You are struck back."))
         return False
 
     def travel(self, world, target_year: int | None = None) -> None:
