@@ -53,6 +53,7 @@ def load() -> tuple[
         player.inventory.update(
             {k: int(v) for k, v in data.get("inventory", {}).items()}
         )
+        player.ions = int(data.get("ions", 0))
         ground: dict[TileKey, ItemListMut] = {}
         for key, val in data.get("ground", {}).items():
             parts = [int(n) for n in key.split(",")]
@@ -123,6 +124,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "hp": player.hp,
             "max_hp": player.max_hp,
             "inventory": {k: v for k, v in player.inventory.items()},
+            "ions": player.ions,
             "ground": {
                 f"{y},{x},{yy}": (items[0] if len(items) == 1 else items)
                 for (y, x, yy), items in world.ground.items()

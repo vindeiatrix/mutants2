@@ -29,6 +29,7 @@ class Player:
     inventory: Dict[str, int] = field(default_factory=dict)
     hp: int = 10
     max_hp: int = 10
+    ions: int = 0
     _last_move_struck_back: bool = field(default=False, repr=False)
 
     @property

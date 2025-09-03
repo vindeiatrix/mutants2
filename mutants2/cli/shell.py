@@ -13,7 +13,7 @@ from ..engine.macros import MacroStore
 from ..engine.types import Direction
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP
 from ..ui.strings import GET_WHAT, DROP_WHAT
-from ..ui.theme import red, SEP
+from ..ui.theme import red, SEP, yellow, cyan
 from ..ui.render import render_help_hint
 from .input import gerundize
 
@@ -317,6 +317,7 @@ def make_context(p, w, save, *, dev: bool = False):
         print(
             f"Class: {p.clazz} | HP: {p.hp}/{p.max_hp} | Year: {p.year} @ {p.x}E : {p.y}N"
         )
+        print(f"Total Ions: {p.ions}")
 
     def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
@@ -344,9 +345,15 @@ def make_context(p, w, save, *, dev: bool = False):
                 for line in yells:
                     print(line)
         elif cmd == "inventory":
+            total = p.inventory_weight_lbs()
+            print(
+                yellow(
+                    f"You are carrying the following items: (Total Weight: {total} LB's)"
+                )
+            )
             if p.inventory:
                 for key, count in p.inventory.items():
-                    print(f"{items.REGISTRY[key].name} x{count}")
+                    print(cyan(f"{items.REGISTRY[key].name} x{count}"))
             else:
                 print("(empty)")
         elif cmd == "get":
