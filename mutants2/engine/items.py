@@ -8,7 +8,8 @@ import collections
 class ItemDef:
     key: str
     name: str
-    ions: Optional[int] = None
+    weight_lbs: Optional[int] = None
+    ion_value: Optional[int] = None
     riblets: Optional[int] = None
     tags: tuple[str, ...] = ()
 
@@ -16,24 +17,24 @@ class ItemDef:
 REGISTRY: dict[str, ItemDef] = {}
 
 
-def _add(key, name, ions=None, riblets=None, tags=("spawnable",)):
-    REGISTRY[key] = ItemDef(key, name, ions, riblets, tags)
+def _add(key, name, weight_lbs=None, ion_value=None, riblets=None, tags=("spawnable",)):
+    REGISTRY[key] = ItemDef(key, name, weight_lbs, ion_value, riblets, tags)
 
 
 # Populate spawnable items
-_add("nuclear_decay",  "Nuclear-Decay", 85000, 60600)
-_add("ion_decay",      "Ion-Decay",     18000, 19140)
-_add("nuclear_rock",   "Nuclear-Rock",  15000, 49200)
-_add("gold_chunk",     "Gold-Chunk",    25000, 49800)
-_add("cheese",         "Cheese",        12000, 6060)
-_add("light_spear",    "Light-Spear",   None,  None)
-_add("monster_bait",   "Monster-Bait",  None,  None)
-_add("nuclear_thong",  "Nuclear-thong", 13000, 600)
-_add("ion_pack",       "Ion-Pack",      20000, 6)
-_add("ion_booster",    "Ion-Booster",   13000, 300)
-_add("nuclear_waste",  "Nuclear-Waste", 15000, 55200)
-_add("cigarette_butt", "Cigarette-Butt",11000, 606)
-_add("bottle_cap",     "Bottle-Cap",    22000, 606)
+_add("nuclear_decay", "Nuclear-Decay", 50, 85000, 60600)
+_add("ion_decay", "Ion-Decay", 10, 18000, 19140)
+_add("nuclear_rock", "Nuclear-Rock", 10, 15000, 49200)
+_add("gold_chunk", "Gold-Chunk", 25, 25000, 49800)
+_add("cheese", "Cheese", 1, 12000, 6060)
+_add("light_spear", "Light-Spear", 10, 11000, None)
+_add("monster_bait", "Monster-Bait", None, None)
+_add("nuclear_thong", "Nuclear-thong", 20, 13000, 600)
+_add("ion_pack", "Ion-Pack", 50, 20000, 6)
+_add("ion_booster", "Ion-Booster", 10, 13000, 300)
+_add("nuclear_waste", "Nuclear-Waste", 30, 15000, 55200)
+_add("cigarette_butt", "Cigarette-Butt", 1, 11000, 606)
+_add("bottle_cap", "Bottle-Cap", 1, 22000, 606)
 
 SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if "spawnable" in v.tags]
 
@@ -81,7 +82,9 @@ def first_prefix_match(prefix: str, names_in_order: list[str]) -> str | None:
     return None
 
 
-def resolve_item_prefix(query: str, candidates: list[str]) -> tuple[Optional[str], list[str]]:
+def resolve_item_prefix(
+    query: str, candidates: list[str]
+) -> tuple[Optional[str], list[str]]:
     """Resolve ``query`` against ``candidates`` by prefix.
 
     Returns a tuple of ``(match, ambiguous)`` where ``match`` is the matched
@@ -101,7 +104,9 @@ def resolve_item_prefix(query: str, candidates: list[str]) -> tuple[Optional[str
     return None, matches[:6]
 
 
-def resolve_prefix(query: str, ground_names: list[str], inv_names: list[str]) -> Optional[str]:
+def resolve_prefix(
+    query: str, ground_names: list[str], inv_names: list[str]
+) -> Optional[str]:
     name, amb = resolve_item_prefix(query, ground_names + inv_names)
     if name and not amb:
         return name
@@ -153,4 +158,3 @@ def resolve_key_prefix(query: str) -> Optional[str]:
 
 def display_name(key: str) -> str:
     return REGISTRY[key].name
-
