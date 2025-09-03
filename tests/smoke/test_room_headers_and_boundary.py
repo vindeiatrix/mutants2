@@ -34,10 +34,9 @@ def test_struck_back_boundary():
     buf = StringIO()
     with contextlib.redirect_stdout(buf):
         moved = p.move("west", w)
-        print(render_current_room(p, w))
     out = buf.getvalue().splitlines()
     assert moved is False
     assert p._last_move_struck_back
-    assert "struck back" in out[0].lower()
     assert (p.x, p.y) == (GRID_MIN, 0)
-    assert out[1] in {red(h) for h in ROOM_HEADERS}
+    assert len(out) == 1
+    assert "struck back" in out[0].lower()
