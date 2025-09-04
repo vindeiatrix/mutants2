@@ -128,7 +128,7 @@ def load() -> tuple[
                 name = entry.get("name")
                 aggro = entry.get("aggro", False)
                 seen = entry.get("seen", False)
-                yelled_once = entry.get("yelled_once", False)
+                has_yelled = entry.get("has_yelled_this_aggro", False)
                 mid = entry.get("id")
                 base = monsters_mod.REGISTRY[m_key].base_hp
                 m: dict[str, object] = {
@@ -137,12 +137,14 @@ def load() -> tuple[
                     "name": name or monsters_mod.REGISTRY[m_key].name,
                     "aggro": bool(aggro),
                     "seen": bool(seen),
-                    "yelled_once": bool(yelled_once),
+                    "has_yelled_this_aggro": bool(has_yelled),
                 }
                 if mid is not None:
                     m["id"] = int(mid)
                 if m.get("aggro") and not m.get("seen"):
                     m["aggro"] = False
+                if not m.get("aggro"):
+                    m["has_yelled_this_aggro"] = False
                 lst.append(m)
             if lst:
                 monsters_data[coord] = lst
@@ -213,7 +215,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                                 "name": m.get("name"),
                                 "aggro": m.get("aggro", False),
                                 "seen": m.get("seen", False),
-                                "yelled_once": m.get("yelled_once", False),
+                                "has_yelled_this_aggro": m.get("has_yelled_this_aggro", False),
                                 "id": m.get("id"),
                             }
                             for m in lst

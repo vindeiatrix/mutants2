@@ -33,5 +33,5 @@ def cli(monkeypatch, tmp_path):
 
 def test_gibberish_consumes_turn(cli):
     out = cli.run(["asdf"])
-    assert "You're asdfing!" in out
-    assert "footsteps" in out.lower()
+    assert "you're asdfing!" in out.lower()
+    assert "footsteps" not in out.lower()

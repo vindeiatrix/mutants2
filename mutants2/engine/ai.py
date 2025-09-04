@@ -6,14 +6,15 @@ from ..ui.render import print_yell
 
 
 def set_aggro(mon: MutableMapping[str, object]) -> Optional[str]:
-    """Flip a monster to aggro and emit its yell once.
+    """Flip a monster to aggro and emit its yell once per aggro."""
 
-    Returns the yell line when it was printed, otherwise ``None``.
-    """
     if not mon.get("aggro", False):
         mon["aggro"] = True
         mon["seen"] = True
-        if not mon.get("yelled_once", False):
-            mon["yelled_once"] = True
-            return print_yell(mon)
+        mon["has_yelled_this_aggro"] = False
+
+    if not mon.get("has_yelled_this_aggro", False):
+        mon["has_yelled_this_aggro"] = True
+        return print_yell(mon)
+
     return None

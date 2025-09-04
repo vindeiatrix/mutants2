@@ -339,11 +339,16 @@ def make_context(p, w, save, *, dev: bool = False):
         if iname:
             print(items.describe(iname))
             return False
-        ground_names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
+        ground_items = w.items_on_ground(p.year, p.x, p.y)
+        ground_names = [it.name for it in ground_items]
         gname = items.first_prefix_match(q, ground_names)
         if gname:
-            print(yellow("***"))
-            print(yellow(f"It looks like a lovely {gname}!"))
+            item = next(it for it in ground_items if it.name == gname)
+            if item.spawnable:
+                print(yellow("***"))
+                print(yellow(f"It looks like a lovely {gname}!"))
+            else:
+                print(items.describe(gname))
             return False
 
         d = parse_dir_any_prefix(q)

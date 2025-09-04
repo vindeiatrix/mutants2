@@ -11,32 +11,40 @@ class ItemDef:
     weight_lbs: Optional[int] = None
     ion_value: Optional[int] = None
     riblets: Optional[int] = None
-    tags: tuple[str, ...] = ()
+    spawnable: bool = False
 
 
 REGISTRY: dict[str, ItemDef] = {}
 
 
-def _add(key, name, weight_lbs=None, ion_value=None, riblets=None, tags=("spawnable",)):
-    REGISTRY[key] = ItemDef(key, name, weight_lbs, ion_value, riblets, tags)
+def _add(
+    key,
+    name,
+    weight_lbs=None,
+    ion_value=None,
+    riblets=None,
+    *,
+    spawnable: bool = False,
+):
+    REGISTRY[key] = ItemDef(key, name, weight_lbs, ion_value, riblets, spawnable)
 
 
 # Populate spawnable items
-_add("nuclear_decay", "Nuclear-Decay", 50, 85000, 60600)
-_add("ion_decay", "Ion-Decay", 10, 18000, 19140)
-_add("nuclear_rock", "Nuclear-Rock", 10, 15000, 49200)
-_add("gold_chunk", "Gold-Chunk", 25, 25000, 49800)
-_add("cheese", "Cheese", 1, 12000, 6060)
-_add("light_spear", "Light-Spear", 10, 11000, None)
-_add("monster_bait", "Monster-Bait", 10, 10000)
-_add("nuclear_thong", "Nuclear-thong", 20, 13000, 600)
-_add("ion_pack", "Ion-Pack", 50, 20000, 6)
-_add("ion_booster", "Ion-Booster", 10, 13000, 300)
-_add("nuclear_waste", "Nuclear-Waste", 30, 15000, 55200)
-_add("cigarette_butt", "Cigarette-Butt", 1, 11000, 606)
-_add("bottle_cap", "Bottle-Cap", 1, 22000, 606)
+_add("nuclear_decay", "Nuclear-Decay", 50, 85000, 60600, spawnable=True)
+_add("ion_decay", "Ion-Decay", 10, 18000, 19140, spawnable=True)
+_add("nuclear_rock", "Nuclear-Rock", 10, 15000, 49200, spawnable=True)
+_add("gold_chunk", "Gold-Chunk", 25, 25000, 49800, spawnable=True)
+_add("cheese", "Cheese", 1, 12000, 6060, spawnable=True)
+_add("light_spear", "Light-Spear", 10, 11000, None, spawnable=True)
+_add("monster_bait", "Monster-Bait", 10, 10000, spawnable=True)
+_add("nuclear_thong", "Nuclear-thong", 20, 13000, 600, spawnable=True)
+_add("ion_pack", "Ion-Pack", 50, 20000, 6, spawnable=True)
+_add("ion_booster", "Ion-Booster", 10, 13000, 300, spawnable=True)
+_add("nuclear_waste", "Nuclear-Waste", 30, 15000, 55200, spawnable=True)
+_add("cigarette_butt", "Cigarette-Butt", 1, 11000, 606, spawnable=True)
+_add("bottle_cap", "Bottle-Cap", 1, 22000, 606, spawnable=True)
 
-SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if "spawnable" in v.tags]
+SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if v.spawnable]
 
 __all__ = [
     "ItemDef",

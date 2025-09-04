@@ -63,6 +63,20 @@ def _dir_from(px: int, py: int, tx: int, ty: int) -> Direction:
     return "north" if dy > 0 else "south"
 
 
+def footstep_direction(dx: int, dy: int) -> str:
+    sx = (dx > 0) - (dx < 0)
+    sy = (dy > 0) - (dy < 0)
+    if sx == 0 and sy == 0:
+        return ""
+    if sx == 0:
+        return "north" if sy > 0 else "south"
+    if sy == 0:
+        return "east" if sx > 0 else "west"
+    hor = "east" if sx > 0 else "west"
+    ver = "north" if sy > 0 else "south"
+    return f"{ver}-{hor}"
+
+
 @dataclass
 class Cell:
     x: int
@@ -135,7 +149,7 @@ class World:
                     hp_int = int(cast(int, hp_val)) if hp_val is not None else None
                     aggro = entry.get("aggro", False)
                     seen = entry.get("seen", False)
-                    yelled_once = entry.get("yelled_once", False)
+                    has_yelled = entry.get("has_yelled_this_aggro", False)
                     mid_val = entry.get("id")
                     mid = int(cast(int, mid_val)) if mid_val is not None else None
                     base = monsters_mod.REGISTRY[m_key].base_hp
@@ -150,11 +164,12 @@ class World:
                         "name": name,
                         "aggro": bool(aggro),
                         "seen": bool(seen),
-                        "yelled_once": bool(yelled_once),
+                        "has_yelled_this_aggro": bool(has_yelled),
                         "id": int(mid),
                     }
                     if m.get("aggro") and not m.get("seen"):
                         m["aggro"] = False
+                        m["has_yelled_this_aggro"] = False
                     lst.append(m)
                 if lst:
                     self._monsters[coord] = lst
@@ -294,11 +309,15 @@ class World:
     def reset_all_aggro(self) -> None:
         for lst in self._monsters.values():
             for m in lst:
-                cast(MutableMapping[str, object], m)["aggro"] = False
+                mm = cast(MutableMapping[str, object], m)
+                mm["aggro"] = False
+                mm["has_yelled_this_aggro"] = False
 
     def reset_aggro_in_year(self, year: int) -> None:
         for _, _, m in self.monster_positions(year):
-            cast(MutableMapping[str, object], m)["aggro"] = False
+            mm = cast(MutableMapping[str, object], m)
+            mm["aggro"] = False
+            mm["has_yelled_this_aggro"] = False
 
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
@@ -348,7 +367,7 @@ class World:
 
     def move_monsters_one_tick(
         self, year: int, player
-    ) -> tuple[list[tuple[int, str, Direction]], tuple[str, Direction] | None]:
+    ) -> tuple[list[tuple[int, str, Direction]], tuple[str, str] | None]:
         """Advance ONLY aggro'd monsters one step each.
 
         Returns arrival info for monsters entering the player's tile as a list
@@ -361,7 +380,7 @@ class World:
             return [], None
 
         arrivals: list[tuple[int, str, Direction]] = []
-        footsteps_event: tuple[str, Direction] | None = None
+        footsteps_event: tuple[str, str] | None = None
 
         px, py = player.x, player.y
 
@@ -392,7 +411,7 @@ class World:
             if best is None:
                 continue  # no progress toward player
 
-            d, nx, ny, _ = best
+            d, nx, ny, ndist = best
 
             # Commit move
             lst = self._monsters.get((year, x, y)) or []
@@ -413,10 +432,11 @@ class World:
                 )
 
             if footsteps_event is None:
-                if base_d == 2:
-                    footsteps_event = ("loud", pre_dir)
-                elif 3 <= base_d <= 4:
-                    footsteps_event = ("faint", pre_dir)
+                post_dx, post_dy = nx - px, ny - py
+                if ndist == 2:
+                    footsteps_event = ("loud", footstep_direction(post_dx, post_dy))
+                elif 3 <= ndist <= 6:
+                    footsteps_event = ("faint", footstep_direction(post_dx, post_dy))
 
         return arrivals, footsteps_event
 
