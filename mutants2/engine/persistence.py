@@ -88,6 +88,7 @@ def load() -> tuple[
                 {k: int(v) for k, v in data.get("inventory", {}).items()}
             )
             player.ions = int(data.get("ions", 0))
+            player.level = int(data.get("level", 1))
             profiles[clazz] = profile_from_player(player)
             last_class = clazz
 
@@ -193,6 +194,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "class": player.clazz,
             "hp": player.hp,
             "max_hp": player.max_hp,
+            "level": player.level,
             "inventory": {k: v for k, v in player.inventory.items()},
             "ions": player.ions,
             "profiles": {

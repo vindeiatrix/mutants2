@@ -17,8 +17,9 @@ def class_key(name: str) -> str:
 
 
 # Available player classes. These are simple placeholders for now and do not
-# affect gameplay beyond being tracked and persisted.
-CLASS_LIST = ["Warrior", "Mage", "Wizard", "Thief", "Priest"]
+# affect gameplay beyond being tracked and persisted.  The order here controls
+# the class selection menu ordering.
+CLASS_LIST = ["Thief", "Priest", "Wizard", "Warrior", "Mage"]
 CLASS_DISPLAY = {class_key(c): c for c in CLASS_LIST}
 CLASS_BY_NUM = {str(i + 1): class_key(c) for i, c in enumerate(CLASS_LIST)}
 CLASS_BY_NAME = {class_key(c): class_key(c) for c in CLASS_LIST}
@@ -38,6 +39,7 @@ class Player:
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
+    level: int = 1
     _last_move_struck_back: bool = field(default=False, repr=False)
 
     @property

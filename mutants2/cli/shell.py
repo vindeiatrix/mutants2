@@ -44,6 +44,7 @@ NONDIR_CMDS = {
     "status": "status",
     "rest": "rest",
     "attack": "attack",
+    "heal": "heal",
     "debug": "debug",
 }
 
@@ -58,6 +59,7 @@ TURN_CMDS = {
     "convert",
     "attack",
     "rest",
+    "heal",
     "look",
 }
 
@@ -109,7 +111,22 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
     """
     print("Choose your class:")
     for i, name in enumerate(CLASS_LIST, 1):
-        print(f"{i}. {name}")
+        key = class_key(name)
+        prof = save.profiles.get(key)
+        if isinstance(prof, dict):
+            prof = profile_from_raw(prof)
+            save.profiles[key] = prof
+        if isinstance(prof, CharacterProfile):
+            level = getattr(prof, "level", 1)
+            year = prof.year
+            x, y = prof.positions.get(year, (0, 0))
+        else:
+            level = 1
+            year = ALLOWED_CENTURIES[0]
+            x, y = 0, 0
+        print(
+            f"{i}. Mutant {name}    Level: {level}   Year: {year}   ({x} {y})"
+        )
     while True:
         try:
             s = input("class> ").strip().lower()
@@ -394,6 +411,24 @@ def make_context(p, w, save, *, dev: bool = False):
         p.heal_full()
         print(f"You rest and recover. (HP: {p.hp}/{p.max_hp})")
 
+    def handle_heal() -> None:
+        if p.hp >= p.max_hp:
+            print(yellow("***"))
+            print(yellow("Nothing happens!"))
+            return
+        if p.ions < 1000:
+            print(yellow("***"))
+            print(yellow("Nothing happens!"))
+            return
+        delta = min(3, p.max_hp - p.hp)
+        p.ions -= 1000
+        p.hp += delta
+        print(yellow("***"))
+        print(yellow("Your body glows as it heals 3 points!"))
+        if p.hp >= p.max_hp:
+            print(yellow("***"))
+            print(yellow("You're healed to the maximum!"))
+
     def handle_status() -> None:
         disp = CLASS_DISPLAY.get(class_key(p.clazz or ""), p.clazz or "")
         lines = [
@@ -402,7 +437,7 @@ def make_context(p, w, save, *, dev: bool = False):
             yellow("Str: 0   Int: 0   Wis: 0"),
             yellow("Dex: 0   Con: 0   Cha: 0"),
             yellow(f"Hit Points   : {p.hp} / {p.max_hp}"),
-            yellow("Exp. Points  : 0           Level: 1"),
+            yellow(f"Exp. Points  : 0           Level: {p.level}"),
             yellow("Riblets      : 0"),
             yellow(f"Ions         : {p.ions}"),
             yellow("Wearing Armor: Nothing.  Armour Class: 0"),
@@ -484,6 +519,9 @@ def make_context(p, w, save, *, dev: bool = False):
             turn = True
         elif cmd == "rest":
             handle_rest()
+            turn = True
+        elif cmd == "heal":
+            handle_heal()
             turn = True
         elif cmd == "status":
             handle_status()

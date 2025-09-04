@@ -43,7 +43,7 @@ def test_back_behavior(tmp_path):
 
 def test_persistence_of_class(tmp_path):
     home = tmp_path
-    run_cli('4\nnorth\nexit\n', home)
+    run_cli('1\nnorth\nexit\n', home)
     result = run_cli('sta\nexit\n', home)
     out = result.stdout
     assert 'Mutant Thief' in out
