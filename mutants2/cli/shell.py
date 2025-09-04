@@ -11,9 +11,10 @@ from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
 from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
 from ..engine.types import Direction
-from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP
+from ..engine.world import ALLOWED_CENTURIES
+from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
 from ..ui.strings import GET_WHAT, DROP_WHAT
-from ..ui.theme import red, SEP, yellow, cyan
+from ..ui.theme import red, SEP, yellow, cyan, white
 from ..ui.render import render_help_hint
 from .input import gerundize
 
@@ -154,6 +155,10 @@ def make_context(p, w, save, *, dev: bool = False):
         _suppress_room_render=False,
     )
 
+    def render_usage(cmd: str) -> None:
+        for line in USAGE.get(cmd, []):
+            print(line)
+
     def handle_macro(rest: str) -> None:
         if rest.startswith("add "):
             after = rest[4:]
@@ -202,15 +207,24 @@ def make_context(p, w, save, *, dev: bool = False):
             print("Invalid macro command.")
 
     def handle_travel(args: list[str]) -> bool:
-        if args:
-            try:
-                year = int(args[0])
-            except ValueError:
-                print("Invalid year.")
-                return False
-        else:
-            year = None
-        p.travel(w, year)
+        if not args:
+            render_usage("travel")
+            context._suppress_room_render = True
+            return False
+        try:
+            year_input = int(args[0])
+        except ValueError:
+            print("Invalid year.")
+            context._suppress_room_render = True
+            return False
+        if year_input < ALLOWED_CENTURIES[0] or year_input > ALLOWED_CENTURIES[-1]:
+            print(yellow("You can only travel from year 2000 to 2200!"))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
+        p.travel(w, target)
+        print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         return True
 
     def handle_get(args: list[str]) -> bool:
@@ -241,12 +255,17 @@ def make_context(p, w, save, *, dev: bool = False):
 
     def handle_convert(args: list[str]) -> bool:
         if not args:
-            render_help_hint()
+            render_usage("convert")
+            context._suppress_room_render = True
             return False
         inv_names = p.inventory_names_in_order()
-        name = items.first_prefix_match(" ".join(args), inv_names)
+        raw = " ".join(args)
+        name = items.first_prefix_match(raw, inv_names)
         if not name:
-            render_help_hint()
+            print(yellow("***"))
+            print(yellow(f"You're not carrying a {raw}."))
+            context._needs_render = False
+            context._suppress_room_render = True
             return False
         item = p.convert_item(name)
         if not item:

@@ -91,3 +91,19 @@ ABBREVIATIONS_NOTE = """Prefixes
   If multiple names match, the first in the list is used.
 • For LOOK specifically, a name after 'look' prefers monsters over items. If neither matches, 'look <dir>' is tried.
 """
+
+
+USAGE = {
+    "travel": [
+        "You can travel through time by typing:",
+        "TRAVEL [year]",
+        "The years you can travel from is 2000 to 2200 A.D. Your travel will be",
+        "rounded off to the closest century, and you'll be sent into a new world.",
+    ],
+    "convert": [
+        "You may convert items into ions. Each item converts into",
+        "a different ionic value.",
+        "",
+        "Type CONVERT [item name] to convert an item.",
+    ],
+}

@@ -22,7 +22,7 @@ def test_initial_spawn_approx_five_percent(tmp_path, monkeypatch):
     w = World(ground, seeded, monsters, global_seed=save.global_seed)
     w.year(p.year)
     count = sum(len(v) for (yr, _, _), v in w.ground.items() if yr == p.year)
-    assert 180 <= count <= 270
+    assert 400 <= count <= 500
     coords = {(x, y) for (yr, x, y) in w.ground if yr == p.year}
     assert len(coords) <= count
 

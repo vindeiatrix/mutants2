@@ -27,9 +27,9 @@ def world_cross_year(seeded_rng):
     w = world_mod.World()
     w.year(2000)
     w.place_monster(2000, 0, 2, "mutant")  # passive in current year
-    w.year(1999)
-    w.place_monster(1999, 0, 1, "mutant")
-    w.monster_here(1999, 0, 1)["aggro"] = True
+    w.year(2100)
+    w.place_monster(2100, 0, 1, "mutant")
+    w.monster_here(2100, 0, 1)["aggro"] = True
     return w
 
 
@@ -53,8 +53,8 @@ def cli(world_cross_year, tmp_path, monkeypatch):
 
 
 def test_tick_skipped_when_no_aggro(cli, world_cross_year):
-    before = list(world_cross_year.monster_positions(1999))[0][:2]
+    before = list(world_cross_year.monster_positions(2100))[0][:2]
     out = cli.run(["look"])
-    after = list(world_cross_year.monster_positions(1999))[0][:2]
+    after = list(world_cross_year.monster_positions(2100))[0][:2]
     assert before == after
     assert "footsteps" not in out.lower()

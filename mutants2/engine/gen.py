@@ -22,7 +22,7 @@ def seed_items(world: World, year: int, grid: Grid) -> None:
         return
     walkable = list(world.walkable_coords(year))
     rand = random.Random(SEED + year)
-    rate = 0.05 * 5.0
+    rate = 0.05 * 10.0
     target = min(round(0.5 * len(walkable)), round(rate * len(walkable)))
     if target <= 0:
         world.seeded_years.add(year)
