@@ -40,7 +40,21 @@ class Player:
     max_hp: int = 10
     ions: int = 0
     level: int = 1
+    exp: int = 0
+    strength: int = 0
+    intelligence: int = 0
+    wisdom: int = 0
+    dexterity: int = 0
+    constitution: int = 0
+    charisma: int = 0
+    ac: int = 0
     _last_move_struck_back: bool = field(default=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if self.clazz and self.strength == 0 and self.max_hp == 10 and self.hp == 10:
+            from . import classes as classes_mod
+
+            classes_mod.apply_class_defaults(self, class_key(self.clazz))
 
     @property
     def x(self) -> int:

@@ -20,6 +20,14 @@ class CharacterProfile:
     max_hp: int = 10
     ions: int = 0
     level: int = 1
+    exp: int = 0
+    strength: int = 0
+    intelligence: int = 0
+    wisdom: int = 0
+    dexterity: int = 0
+    constitution: int = 0
+    charisma: int = 0
+    ac: int = 0
     macros_name: str | None = None
 
 
@@ -34,6 +42,14 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         max_hp=p.max_hp,
         ions=p.ions,
         level=getattr(p, "level", 1),
+        exp=getattr(p, "exp", 0),
+        strength=getattr(p, "strength", 0),
+        intelligence=getattr(p, "intelligence", 0),
+        wisdom=getattr(p, "wisdom", 0),
+        dexterity=getattr(p, "dexterity", 0),
+        constitution=getattr(p, "constitution", 0),
+        charisma=getattr(p, "charisma", 0),
+        ac=getattr(p, "ac", 0),
     )
 
 
@@ -47,17 +63,35 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.max_hp = prof.max_hp
     p.ions = prof.ions
     p.level = getattr(prof, "level", 1)
+    p.exp = getattr(prof, "exp", 0)
+    p.strength = getattr(prof, "strength", 0)
+    p.intelligence = getattr(prof, "intelligence", 0)
+    p.wisdom = getattr(prof, "wisdom", 0)
+    p.dexterity = getattr(prof, "dexterity", 0)
+    p.constitution = getattr(prof, "constitution", 0)
+    p.charisma = getattr(prof, "charisma", 0)
+    p.ac = getattr(prof, "ac", 0)
 
 
 def profile_to_raw(prof: CharacterProfile) -> dict:
     return {
         "year": prof.year,
-        "positions": {str(y): {"x": x, "y": yy} for y, (x, yy) in prof.positions.items()},
+        "positions": {
+            str(y): {"x": x, "y": yy} for y, (x, yy) in prof.positions.items()
+        },
         "inventory": {k: v for k, v in prof.inventory.items()},
         "hp": prof.hp,
         "max_hp": prof.max_hp,
         "ions": prof.ions,
         "level": getattr(prof, "level", 1),
+        "exp": getattr(prof, "exp", 0),
+        "strength": getattr(prof, "strength", 0),
+        "intelligence": getattr(prof, "intelligence", 0),
+        "wisdom": getattr(prof, "wisdom", 0),
+        "dexterity": getattr(prof, "dexterity", 0),
+        "constitution": getattr(prof, "constitution", 0),
+        "charisma": getattr(prof, "charisma", 0),
+        "ac": getattr(prof, "ac", 0),
         **({"macros_name": prof.macros_name} if prof.macros_name else {}),
     }
 
@@ -74,5 +108,13 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         max_hp=int(data.get("max_hp", 10)),
         ions=int(data.get("ions", 0)),
         level=int(data.get("level", 1)),
+        exp=int(data.get("exp", 0)),
+        strength=int(data.get("strength", 0)),
+        intelligence=int(data.get("intelligence", 0)),
+        wisdom=int(data.get("wisdom", 0)),
+        dexterity=int(data.get("dexterity", 0)),
+        constitution=int(data.get("constitution", 0)),
+        charisma=int(data.get("charisma", 0)),
+        ac=int(data.get("ac", 0)),
         macros_name=data.get("macros_name"),
     )
