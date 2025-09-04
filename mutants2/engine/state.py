@@ -19,6 +19,7 @@ class CharacterProfile:
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
+    level: int = 1
     macros_name: str | None = None
 
 
@@ -32,6 +33,7 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         hp=p.hp,
         max_hp=p.max_hp,
         ions=p.ions,
+        level=getattr(p, "level", 1),
     )
 
 
@@ -44,6 +46,7 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.hp = prof.hp
     p.max_hp = prof.max_hp
     p.ions = prof.ions
+    p.level = getattr(prof, "level", 1)
 
 
 def profile_to_raw(prof: CharacterProfile) -> dict:
@@ -54,6 +57,7 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "hp": prof.hp,
         "max_hp": prof.max_hp,
         "ions": prof.ions,
+        "level": getattr(prof, "level", 1),
         **({"macros_name": prof.macros_name} if prof.macros_name else {}),
     }
 
@@ -69,5 +73,6 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         hp=int(data.get("hp", 10)),
         max_hp=int(data.get("max_hp", 10)),
         ions=int(data.get("ions", 0)),
+        level=int(data.get("level", 1)),
         macros_name=data.get("macros_name"),
     )
