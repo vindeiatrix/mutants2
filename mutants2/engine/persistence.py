@@ -128,6 +128,7 @@ def load() -> tuple[
                 name = entry.get("name")
                 aggro = entry.get("aggro", False)
                 seen = entry.get("seen", False)
+                yelled_once = entry.get("yelled_once", False)
                 mid = entry.get("id")
                 base = monsters_mod.REGISTRY[m_key].base_hp
                 m: dict[str, object] = {
@@ -136,6 +137,7 @@ def load() -> tuple[
                     "name": name or monsters_mod.REGISTRY[m_key].name,
                     "aggro": bool(aggro),
                     "seen": bool(seen),
+                    "yelled_once": bool(yelled_once),
                 }
                 if mid is not None:
                     m["id"] = int(mid)
@@ -205,16 +207,17 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for (y, x, yy), lst in world.monsters.items()
                 for processed in [
                     [
-                        {
-                            "key": m["key"],
-                            "hp": m["hp"],
-                            "name": m.get("name"),
-                            "aggro": m.get("aggro", False),
-                            "seen": m.get("seen", False),
-                            "id": m.get("id"),
-                        }
-                        for m in lst
-                    ]
+                            {
+                                "key": m["key"],
+                                "hp": m["hp"],
+                                "name": m.get("name"),
+                                "aggro": m.get("aggro", False),
+                                "seen": m.get("seen", False),
+                                "yelled_once": m.get("yelled_once", False),
+                                "id": m.get("id"),
+                            }
+                            for m in lst
+                        ]
                 ]
             },
             "seeded_years": list(world.seeded_years),
