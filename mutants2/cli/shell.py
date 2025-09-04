@@ -5,6 +5,7 @@ import datetime
 from typing import Mapping, cast
 
 from ..engine import persistence, items, monsters
+from ..engine.state import CharacterProfile
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
 from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
@@ -125,6 +126,17 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
             print("Invalid selection.")
             continue
         p.clazz = picked
+        prof = save.profiles.get(picked)
+        if prof is None:
+            prof = CharacterProfile()
+            save.profiles[picked] = prof
+        p.year = prof.year
+        p.positions = dict(prof.positions)
+        p.inventory = dict(prof.inventory)
+        p.hp = prof.hp
+        p.max_hp = prof.max_hp
+        p.ions = prof.ions
+        w.year(p.year)
         persistence.save(p, w, save)
         return True
 
@@ -132,7 +144,7 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
 def make_context(p, w, save, *, dev: bool = False):
     macro_store = MacroStore()
     try:
-        macro_store.load_profile("default")
+        macro_store.load_profile(p.clazz or "default")
     except FileNotFoundError:
         pass
     last_move = None
@@ -153,6 +165,7 @@ def make_context(p, w, save, *, dev: bool = False):
         _needs_render=False,
         _last_turn_consumed=False,
         _suppress_room_render=False,
+        _skip_entry_aggro=False,
     )
 
     def render_usage(cmd: str) -> None:
@@ -225,6 +238,7 @@ def make_context(p, w, save, *, dev: bool = False):
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
         p.travel(w, target)
         print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
+        context._suppress_room_render = True
         return True
 
     def handle_get(args: list[str]) -> bool:
@@ -300,11 +314,14 @@ def make_context(p, w, save, *, dev: bool = False):
 
         inv_names = p.inventory_names_in_order()
         iname = items.first_prefix_match(q, inv_names)
-        if not iname:
-            ground_names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
-            iname = items.first_prefix_match(q, ground_names)
         if iname:
             print(items.describe(iname))
+            return False
+        ground_names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
+        gname = items.first_prefix_match(q, ground_names)
+        if gname:
+            print(yellow("***"))
+            print(yellow(f"It looks like a lovely {gname}!"))
             return False
 
         d = parse_dir_any_prefix(q)
@@ -342,6 +359,10 @@ def make_context(p, w, save, *, dev: bool = False):
         print(f"The {name} hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
         if p.is_dead():
             print("You have died.")
+            w.clear_aggro_year(p.year)
+            context._arrivals_this_tick = []
+            context._footsteps_event = None
+            context._skip_entry_aggro = True
             p.heal_full()
             p.positions[p.year] = (0, 0)
         context._needs_render = False
@@ -377,8 +398,15 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = True
         elif cmd == "class":
             w.reset_all_aggro()
+            macro_store.save_profile(p.clazz or "default")
+            persistence.save(p, w, save)
             changed = class_menu(p, w, save, in_game=True)
             if changed:
+                macro_store.clear()
+                try:
+                    macro_store.load_profile(p.clazz or "default")
+                except FileNotFoundError:
+                    pass
                 yells = w.on_entry_aggro_check(
                     p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
                 )
@@ -548,6 +576,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 context._needs_render = True
         elif cmd == "exit":
             w.reset_all_aggro()
+            macro_store.save_profile(p.clazz or "default")
             print("Goodbye.")
             context.running = False
         else:
@@ -603,11 +632,14 @@ def make_context(p, w, save, *, dev: bool = False):
         if not context.running:
             return True
         moved = (p.year, p.x, p.y) != before
-        if moved:
+        if moved and not context._skip_entry_aggro:
             yells = w.on_entry_aggro_check(
                 p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
             )
             context._entry_yells = yells
+        elif context._skip_entry_aggro:
+            context._entry_yells = []
+        context._skip_entry_aggro = False
         if context._needs_render:
             context._pre_shadow_lines = render_mod.shadow_lines(w, p)
         consumed = context._last_turn_consumed
