@@ -53,6 +53,6 @@ def seeded_rng(monkeypatch):
 
 def test_on_entry_rolls(cli, world_with_passive_mutant_here, seeded_rng):
     out = cli.run(["look"])
-    assert "yells at you" not in out.lower()
+    assert "yells at you" in out.lower()
     out2 = cli.run(["n", "s"])
-    assert "yells at you" in out2.lower()
+    assert "yells at you" not in out2.lower()

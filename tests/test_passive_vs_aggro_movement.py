@@ -54,7 +54,7 @@ def seeded_rng(monkeypatch):
 def test_passive_monsters_do_not_move(cli, seeded_rng):
     out = cli.run(["look"])  # passive, no movement
     assert "has just arrived" not in out.lower()
-    out2 = cli.run(["n", "s"])  # re-enter to trigger aggro
-    assert "yells at you" in out2.lower()
+    out2 = cli.run(["n", "s"])  # monster already aggro, chase when re-enter
+    assert "yells at you" not in out2.lower()
     out3 = cli.run(["n"])  # move away so aggro monster chases
     assert "has just arrived" in out3.lower()

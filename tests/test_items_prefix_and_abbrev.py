@@ -5,6 +5,7 @@ import pytest
 from mutants2.engine import persistence
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
+from mutants2.ui.theme import yellow
 
 
 @pytest.fixture
@@ -63,10 +64,10 @@ def test_item_prefix_first_match_cli_runner(cli_runner, inventory_with_ion_items
 
 
 def test_abbrev_rules(cli_runner):
-    assert "You're iing!" in cli_runner.run_commands(["i"])
+    assert yellow("You're iing!") in cli_runner.run_commands(["i"])
     assert "***" in cli_runner.run_commands(["loo"])
     assert "Goodbye." in cli_runner.run_commands(["exi"])
-    assert "You're norring!" in cli_runner.run_commands(["nor"])
+    assert yellow("You're norring!") in cli_runner.run_commands(["nor"])
     assert "***" in cli_runner.run_commands(["n"])
 
 

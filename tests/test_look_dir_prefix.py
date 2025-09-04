@@ -1,11 +1,15 @@
 import pytest
 
 import contextlib
+import contextlib
 from io import StringIO
+
+import pytest
 
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
 from mutants2.cli import shell
+from mutants2.ui.theme import yellow
 
 
 @pytest.fixture
@@ -54,7 +58,7 @@ def test_look_blocked_with_prefix(cli_runner):
 def test_movement_rules_unchanged(cli_runner):
     assert "***" in cli_runner.run_commands(["n"])
     assert "***" in cli_runner.run_commands(["north"])
-    assert "You're noing!" in cli_runner.run_commands(["no"])
+    assert yellow("You're noing!") in cli_runner.run_commands(["no"])
 
 
 def test_look_precedence_monster_over_dir(cli_with_monster):

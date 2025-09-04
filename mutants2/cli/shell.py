@@ -39,6 +39,7 @@ NONDIR_CMDS = {
     "convert": "convert",
     "macro": "macro",
     "help": "help",
+    "?": "help",
     "do": "do",
     "status": "status",
     "rest": "rest",
@@ -116,6 +117,16 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
             s = ""
         if not s:
             continue
+        if s in {"exit", "quit", "q"}:
+            w.reset_all_aggro()
+            persistence.save(p, w, save)
+            print("Goodbye.")
+            raise SystemExit
+        if s == "?":
+            print(COMMANDS_HELP)
+            print()
+            print(ABBREVIATIONS_NOTE)
+            continue
         if s in {"back", "b"}:
             if in_game:
                 return False
@@ -168,6 +179,7 @@ def make_context(p, w, save, *, dev: bool = False):
         _needs_render=False,
         _last_turn_consumed=False,
         _suppress_room_render=False,
+        _suppress_entry_aggro=False,
     )
 
     def render_usage(cmd: str) -> None:
@@ -241,6 +253,7 @@ def make_context(p, w, save, *, dev: bool = False):
         p.travel(w, target)
         print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         context._suppress_room_render = True
+        context._suppress_entry_aggro = True
         return True
 
     def handle_get(args: list[str]) -> bool:
@@ -613,7 +626,8 @@ def make_context(p, w, save, *, dev: bool = False):
                 render_help_hint()
             else:
                 print(SEP)
-                print(f"You're {gerundize(head)}!")
+                print(yellow(f"You're {gerundize(head)}!"))
+                print()
             return False
         if cmd == "macro":
             handle_macro(tail)
@@ -634,10 +648,13 @@ def make_context(p, w, save, *, dev: bool = False):
             return True
         moved = (p.year, p.x, p.y) != before
         if moved:
-            yells = w.on_entry_aggro_check(
-                p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
-            )
-            context._entry_yells = yells
+            if context._suppress_entry_aggro:
+                context._entry_yells = []
+            else:
+                yells = w.on_entry_aggro_check(
+                    p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
+                )
+                context._entry_yells = yells
         if context._needs_render:
             context._pre_shadow_lines = render_mod.shadow_lines(w, p)
         consumed = context._last_turn_consumed
@@ -667,6 +684,7 @@ def make_context(p, w, save, *, dev: bool = False):
                     print(SEP)
         for msg in render_mod.footsteps_lines(context):
             print(msg)
+        context._suppress_entry_aggro = False
         return False
 
     context.run_script = lambda script: macro_store.expand_and_run_script(
