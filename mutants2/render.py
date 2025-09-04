@@ -45,7 +45,8 @@ def render_room_at(
     # (c) exits
     for d in ("north", "south", "east", "west"):
         if world.is_open(year, x, y, d):
-            out.append(cyan(f"{d} – area continues."))
+            # Pad direction labels to align the separator across lines.
+            out.append(cyan(f"{d:<5} – area continues."))
 
     # (d/e) ground items followed by a single separator
     ground_names = [it.name for it in world.items_on_ground(year, x, y)]

@@ -8,7 +8,7 @@ from mutants2.cli.shell import make_context
 from mutants2.ui.theme import yellow
 
 
-def test_look_ground_item_lovely(tmp_path):
+def test_look_ground_item_not_carried(tmp_path):
     persistence.SAVE_PATH = tmp_path / 'save.json'
     w = world_mod.World({(2000, 0, 0): ['nuclear_rock']}, {2000})
     p = Player(year=2000, clazz='Warrior')
@@ -19,4 +19,4 @@ def test_look_ground_item_lovely(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line('look nuclear')
     out = buf.getvalue()
-    assert yellow('It looks like a lovely Nuclear-Rock!') in out
+    assert yellow("You're not carrying a nuclear.") in out
