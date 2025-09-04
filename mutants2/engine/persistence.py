@@ -89,6 +89,14 @@ def load() -> tuple[
             )
             player.ions = int(data.get("ions", 0))
             player.level = int(data.get("level", 1))
+            player.exp = int(data.get("exp", 0))
+            player.strength = int(data.get("strength", 0))
+            player.intelligence = int(data.get("intelligence", 0))
+            player.wisdom = int(data.get("wisdom", 0))
+            player.dexterity = int(data.get("dexterity", 0))
+            player.constitution = int(data.get("constitution", 0))
+            player.charisma = int(data.get("charisma", 0))
+            player.ac = int(data.get("ac", 0))
             profiles[clazz] = profile_from_player(player)
             last_class = clazz
 
@@ -195,8 +203,16 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "hp": player.hp,
             "max_hp": player.max_hp,
             "level": player.level,
+            "exp": player.exp,
             "inventory": {k: v for k, v in player.inventory.items()},
             "ions": player.ions,
+            "strength": player.strength,
+            "intelligence": player.intelligence,
+            "wisdom": player.wisdom,
+            "dexterity": player.dexterity,
+            "constitution": player.constitution,
+            "charisma": player.charisma,
+            "ac": player.ac,
             "profiles": {
                 k: profile_to_raw(v) if isinstance(v, CharacterProfile) else v
                 for k, v in save_meta.profiles.items()
@@ -211,17 +227,19 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for (y, x, yy), lst in world.monsters.items()
                 for processed in [
                     [
-                            {
-                                "key": m["key"],
-                                "hp": m["hp"],
-                                "name": m.get("name"),
-                                "aggro": m.get("aggro", False),
-                                "seen": m.get("seen", False),
-                                "has_yelled_this_aggro": m.get("has_yelled_this_aggro", False),
-                                "id": m.get("id"),
-                            }
-                            for m in lst
-                        ]
+                        {
+                            "key": m["key"],
+                            "hp": m["hp"],
+                            "name": m.get("name"),
+                            "aggro": m.get("aggro", False),
+                            "seen": m.get("seen", False),
+                            "has_yelled_this_aggro": m.get(
+                                "has_yelled_this_aggro", False
+                            ),
+                            "id": m.get("id"),
+                        }
+                        for m in lst
+                    ]
                 ]
             },
             "seeded_years": list(world.seeded_years),

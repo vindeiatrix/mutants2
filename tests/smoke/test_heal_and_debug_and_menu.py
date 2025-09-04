@@ -12,8 +12,8 @@ from mutants2.engine.player import Player
 
 
 def run_cli(inp: str, home, env_extra=None):
-    cmd = [sys.executable, '-m', 'mutants2']
-    env = {'HOME': str(home)}
+    cmd = [sys.executable, "-m", "mutants2"]
+    env = {"HOME": str(home)}
     if env_extra:
         env.update(env_extra)
     return subprocess.run(cmd, input=inp, text=True, capture_output=True, env=env)
@@ -54,9 +54,11 @@ def run_debug(cmd: str, setup=None):
 
 
 def test_class_menu_alignment(tmp_path):
-    result = run_cli('exit\n', tmp_path)
+    result = run_cli("exit\n", tmp_path)
     out = result.stdout
-    lines = [line for line in out.splitlines() if line.strip() and line.strip()[0].isdigit()]
+    lines = [
+        line for line in out.splitlines() if line.strip() and line.strip()[0].isdigit()
+    ]
     assert lines == [
         " 1. Mutant Thief    Level:  1   Year: 2000  ( 0   0)",
         " 2. Mutant Priest   Level:  1   Year: 2000  ( 0   0)",
@@ -67,28 +69,28 @@ def test_class_menu_alignment(tmp_path):
 
 
 def test_heal_insufficient_ions():
-    out, p = run_heal('heal', hp=10, max_hp=20, ions=900)
+    out, p = run_heal("heal", hp=10, max_hp=20, ions=900)
     assert "You don't have enough ions to heal!" in out
     assert p.hp == 10
     assert p.ions == 900
 
 
 def test_heal_below_max():
-    out, p = run_heal('heal', hp=10, max_hp=20, ions=2000)
+    out, p = run_heal("heal", hp=10, max_hp=20, ions=2000)
     assert "Your body glows as it heals 3 points!" in out
     assert p.hp == 13
     assert p.ions == 1000
 
 
 def test_heal_to_max():
-    out, p = run_heal('heal', hp=19, max_hp=20, ions=3000)
+    out, p = run_heal("heal", hp=19, max_hp=20, ions=3000)
     assert "You're healed to the maximum!" in out
     assert p.hp == 20
     assert p.ions == 2000
 
 
 def test_heal_already_max():
-    out, p = run_heal('heal', hp=20, max_hp=20, ions=5000)
+    out, p = run_heal("heal", hp=20, max_hp=20, ions=5000)
     assert "Nothing happens!" in out
     assert p.hp == 20
     assert p.ions == 5000
@@ -99,8 +101,9 @@ def test_debug_mon_clear():
         w._monsters = {k: v for k, v in w.monsters.items() if k[0] != p.year}
         for _ in range(3):
             w.place_monster(p.year, p.x, p.y, "mutant")
-    out, w, p = run_debug('debug mon clear', setup=setup)
-    lines = [l for l in out.splitlines() if l]
+
+    out, w, p = run_debug("debug mon clear", setup=setup)
+    lines = [line for line in out.splitlines() if line]
     assert lines[-1] == "Cleared 3 monster(s) in this room."
     assert not w.has_monster(p.year, p.x, p.y)
 
@@ -111,8 +114,9 @@ def test_debug_mon_clear_year():
         w.place_monster(p.year, 1, 1, "mutant")
         w.place_monster(p.year, 2, 2, "mutant")
         w.place_monster(p.year, 2, 2, "mutant")
-    out, w, p = run_debug('debug mon clear year', setup=setup)
-    lines = [l for l in out.splitlines() if l]
+
+    out, w, p = run_debug("debug mon clear year", setup=setup)
+    lines = [line for line in out.splitlines() if line]
     assert lines[-1].endswith(f"in year {p.year}.")
     assert w.monster_count(p.year) == 0
 
@@ -122,14 +126,16 @@ def test_debug_item_and_mon_count():
         w.ground = {k: v for k, v in w.ground.items() if k[0] != p.year}
         w.add_ground_item(p.year, p.x, p.y, items.SPAWNABLE_KEYS[0])
         w.add_ground_item(p.year, p.x, p.y + 1, items.SPAWNABLE_KEYS[1])
-    out, w, p = run_debug('debug item count', setup=setup_items)
-    lines = [l for l in out.splitlines() if l]
+
+    out, w, p = run_debug("debug item count", setup=setup_items)
+    lines = [line for line in out.splitlines() if line]
     assert lines[-1] == f"Items on ground in year {p.year}: 2"
 
     def setup_mon(w, p):
         w._monsters = {k: v for k, v in w.monsters.items() if k[0] != p.year}
         w.place_monster(p.year, p.x, p.y, "mutant")
         w.place_monster(p.year, p.x + 1, p.y, "mutant")
-    out2, w2, p2 = run_debug('debug mon count', setup=setup_mon)
-    lines2 = [l for l in out2.splitlines() if l]
+
+    out2, w2, p2 = run_debug("debug mon count", setup=setup_mon)
+    lines2 = [line for line in out2.splitlines() if line]
     assert lines2[-1] == f"Monsters in year {p2.year}: 2"

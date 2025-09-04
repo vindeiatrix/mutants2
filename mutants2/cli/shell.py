@@ -15,7 +15,11 @@ from ..engine.player import (
     class_key,
 )
 from ..engine.state import CharacterProfile, apply_profile, profile_from_raw
-from ..engine.gen import daily_topup_if_needed
+from ..engine.gen import (
+    daily_topup_if_needed,
+    debug_item_topup,
+    debug_monster_topup,
+)
 from ..engine.macros import MacroStore
 from ..engine.types import Direction
 from ..engine.world import ALLOWED_CENTURIES
@@ -169,6 +173,9 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
             apply_profile(p, prof_obj)
         else:
             apply_profile(p, CharacterProfile())
+            from ..engine import classes as classes_mod
+
+            classes_mod.apply_class_defaults(p, k)
         w.year(p.year)
         p.clazz = k
         persistence.save(p, w, save)
@@ -311,7 +318,9 @@ def make_context(p, w, save, *, dev: bool = False):
         canon = items.canon_item_key(raw)
         key_match = None
         for k in p.inventory.keys():
-            if items.canon_item_key(k).startswith(canon) or items.canon_item_key(items.display_name(k)).startswith(canon):
+            if items.canon_item_key(k).startswith(canon) or items.canon_item_key(
+                items.display_name(k)
+            ).startswith(canon):
                 key_match = k
                 break
         if not key_match:
@@ -390,6 +399,9 @@ def make_context(p, w, save, *, dev: bool = False):
         dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
         if dead:
             print(f"You defeat the {name}.")
+            from ..engine import combat as combat_mod
+
+            combat_mod.award_kill(p)
             context._needs_render = False
             context._suppress_room_render = True
             return
@@ -434,13 +446,17 @@ def make_context(p, w, save, *, dev: bool = False):
         lines = [
             yellow(f"Name: Vindeiatrix / Mutant {disp}"),
             yellow("Exhaustion   : 0"),
-            yellow("Str: 0   Int: 0   Wis: 0"),
-            yellow("Dex: 0   Con: 0   Cha: 0"),
+            yellow(
+                f"Str: {p.strength:<2}   Int: {p.intelligence:<2}   Wis: {p.wisdom:<2}"
+            ),
+            yellow(
+                f"Dex: {p.dexterity:<2}   Con: {p.constitution:<2}   Cha: {p.charisma:<2}"
+            ),
             yellow(f"Hit Points   : {p.hp} / {p.max_hp}"),
-            yellow(f"Exp. Points  : 0           Level: {p.level}"),
+            yellow(f"Exp. Points  : {p.exp}           Level: {p.level}"),
             yellow("Riblets      : 0"),
             yellow(f"Ions         : {p.ions}"),
-            yellow("Wearing Armor: Nothing.  Armour Class: 0"),
+            yellow(f"Wearing Armor: Nothing.  Armour Class: {p.ac}"),
             yellow("Ready to Combat: NO ONE"),
             yellow("Readied Spell : No spell memorized."),
             yellow(f"Year A.D.     : {p.year}"),
@@ -575,6 +591,13 @@ def make_context(p, w, save, *, dev: bool = False):
                 elif args[:2] == ["item", "count"]:
                     cnt = w.ground_items_count(p.year)
                     print(f"Items on ground in year {p.year}: {cnt}")
+                elif args[:2] == ["item", "topup"]:
+                    before, after, target = debug_item_topup(
+                        w, p.year, save.global_seed
+                    )
+                    print(
+                        f"Item top-up complete for {p.year}: {before} → {after} (target: {target})."
+                    )
                 elif args[:3] == ["mon", "clear", "year"]:
                     total = 0
                     coords = {(x, y) for x, y, _m in w.monster_positions(p.year)}
@@ -588,8 +611,16 @@ def make_context(p, w, save, *, dev: bool = False):
                         n += 1
                     print(f"Cleared {n} monster(s) in this room.")
                 elif args[:2] == ["mon", "count"]:
+                    w.year(p.year)
                     cnt = w.monster_count(p.year)
                     print(f"Monsters in year {p.year}: {cnt}")
+                elif args[:2] == ["mon", "topup"]:
+                    before, after, target = debug_monster_topup(
+                        w, p.year, save.global_seed
+                    )
+                    print(
+                        f"Monster top-up complete for {p.year}: {before} → {after} (target: {target})."
+                    )
                 elif args[:2] == ["mon", "here"]:
                     if w.has_monster(p.year, p.x, p.y):
                         w.remove_monster(p.year, p.x, p.y)
@@ -657,6 +688,14 @@ def make_context(p, w, save, *, dev: bool = False):
                 elif args and args[0] == "topup":
                     count = daily_topup_if_needed(w, p, save)
                     print(f"Topped up {count} item(s).")
+                elif args[:2] == ["ion", "set"] and len(args) >= 3:
+                    try:
+                        val = max(0, int(args[2]))
+                    except ValueError:
+                        print("Invalid ion value.")
+                    else:
+                        p.ions = val
+                        print(f"Ions set to {val}.")
                 else:
                     print("Invalid debug command.")
         elif cmd in {"north", "south", "east", "west"}:
