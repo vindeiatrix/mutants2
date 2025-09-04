@@ -22,8 +22,8 @@ def seed_items(world: World, year: int, grid: Grid) -> None:
         return
     walkable = list(world.walkable_coords(year))
     rand = random.Random(SEED + year)
-    rate = 0.05 * 20.0
-    target = min(round(0.5 * len(walkable)), round(rate * len(walkable)))
+    rate = 0.05 * 60.0
+    target = min(round(1.5 * len(walkable)), round(rate * len(walkable)))
     if target <= 0:
         world.seeded_years.add(year)
         return
@@ -79,9 +79,9 @@ def _empty_walkables(world: World, year: int) -> list[Tuple[int, int]]:
 
 
 def daily_topup_year(world: World, year: int, global_seed: int, day: datetime.date) -> int:
-    """Top up a single year to ~5% target; returns number of items placed."""
+    """Top up a single year to ~15% target; returns number of items placed."""
     walkables = count_walkable(world, year)
-    target = max(0, round(0.05 * walkables))
+    target = max(0, round(0.15 * walkables))
     have = ground_count(world, year)
     need = max(0, target - have)
     if need == 0:
