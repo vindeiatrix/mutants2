@@ -33,6 +33,7 @@ Coordinate = Tuple[int, int]
 
 GRID_MIN = -15
 GRID_MAX = 15
+ALLOWED_CENTURIES = [2000, 2100, 2200]
 
 
 def in_bounds(x: int, y: int) -> bool:
@@ -495,6 +496,8 @@ class World:
 
     def year(self, value: int) -> Year:
         """Return the :class:`Year` for ``value`` generating it if needed."""
+        if value not in ALLOWED_CENTURIES:
+            raise ValueError("Year must be one of the allowed centuries.")
         if value not in self.years:
             from . import gen
 

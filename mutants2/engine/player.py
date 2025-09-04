@@ -6,6 +6,7 @@ from typing import Dict, Tuple, cast
 from .senses import SensesBuffer
 from .types import Direction
 from . import items as items_mod
+from .world import ALLOWED_CENTURIES
 from ..ui.theme import red
 
 
@@ -20,9 +21,9 @@ CLASS_BY_NAME = {c.lower(): c for c in CLASS_LIST}
 class Player:
     """Player state including position for each year."""
 
-    year: int = 2000
+    year: int = ALLOWED_CENTURIES[0]
     positions: Dict[int, Tuple[int, int]] = field(
-        default_factory=lambda: {2000: (0, 0), 2100: (0, 0)}
+        default_factory=lambda: {c: (0, 0) for c in ALLOWED_CENTURIES}
     )
     clazz: str | None = None
     senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
@@ -55,12 +56,9 @@ class Player:
         print(red("You are struck back."))
         return False
 
-    def travel(self, world, target_year: int | None = None) -> None:
+    def travel(self, world, target_year: int) -> None:
         """Travel to ``target_year`` resetting position to origin."""
-        if target_year is None:
-            self.year = 2100 if self.year == 2000 else 2000
-        else:
-            self.year = target_year
+        self.year = target_year
         world.year(self.year)  # ensure world generation
         self.positions[self.year] = (0, 0)
 
