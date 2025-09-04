@@ -39,7 +39,7 @@ def test_attack_no_room_block_but_arrival():
     assert "You are here." not in out
     assert "Compass:" not in out
     assert re.search(r"You defeat the Mutant-\d{4}\.", out)
-    assert "has just arrived from the west." in out
+    assert "has just arrived from the east." in out
 
 
 def test_single_token_gibberish():
@@ -54,7 +54,7 @@ def test_single_token_gibberish():
         out, w, _p, _ = run_commands([src])
         lines = out.strip().splitlines()
         assert lines == [src, "***", f"You're {ger}!"]
-        assert w.turn == 0
+        assert w.turn == 1
 
 
 def test_gibberish_with_spaces():
@@ -63,4 +63,4 @@ def test_gibberish_with_spaces():
         out, w, _p, _ = run_commands([cmd])
         lines = out.strip().splitlines()
         assert lines == [cmd, "***", "Type ? if you need assistance."]
-        assert w.turn == 0
+        assert w.turn == 1

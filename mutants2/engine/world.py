@@ -366,6 +366,7 @@ class World:
                 continue  # passive monsters never move
 
             base_d = abs(px - x) + abs(py - y)
+            pre_dir = _dir_from(px, py, x, y)
 
             best: tuple[str, int, int, int] | None = None
             for d in ORDER:
@@ -403,14 +404,15 @@ class World:
 
             if (nx, ny) == (px, py):
                 mm2 = cast(MutableMapping[str, object], m)
-                arrivals.append((int(cast(int, mm2["id"])), cast(str, mm2["name"]), d))
+                arrivals.append(
+                    (int(cast(int, mm2["id"])), cast(str, mm2["name"]), pre_dir)
+                )
 
             if footsteps_event is None:
-                dist = abs(px - nx) + abs(py - ny)
-                if 3 <= dist <= 6:
-                    footsteps_event = ("faint", _dir_from(px, py, nx, ny))
-                elif dist == 2:
-                    footsteps_event = ("loud", _dir_from(px, py, nx, ny))
+                if base_d == 2:
+                    footsteps_event = ("loud", pre_dir)
+                elif 3 <= base_d <= 4:
+                    footsteps_event = ("faint", pre_dir)
 
         return arrivals, footsteps_event
 

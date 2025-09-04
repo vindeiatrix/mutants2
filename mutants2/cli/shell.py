@@ -180,6 +180,7 @@ def make_context(p, w, save, *, dev: bool = False):
         _last_turn_consumed=False,
         _suppress_room_render=False,
         _suppress_entry_aggro=False,
+        _skip_movement_tick=False,
     )
 
     def render_usage(cmd: str) -> None:
@@ -233,6 +234,21 @@ def make_context(p, w, save, *, dev: bool = False):
         else:
             print("Invalid macro command.")
 
+    def _ordinal_century(year: int) -> str:
+        n = year // 100 + 1
+        if n % 100 not in {11, 12, 13}:
+            if n % 10 == 1:
+                suff = "st"
+            elif n % 10 == 2:
+                suff = "nd"
+            elif n % 10 == 3:
+                suff = "rd"
+            else:
+                suff = "th"
+        else:
+            suff = "th"
+        return f"{n}{suff}"
+
     def handle_travel(args: list[str]) -> bool:
         if not args:
             render_usage("travel")
@@ -250,10 +266,19 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
+        if target == p.year:
+            print(white(f"You're already in the {_ordinal_century(target)} Century!"))
+            context._suppress_room_render = True
+            context._needs_render = False
+            context._suppress_entry_aggro = True
+            context._skip_movement_tick = True
+            return True
         p.travel(w, target)
         print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         context._suppress_room_render = True
         context._suppress_entry_aggro = True
+        context._skip_movement_tick = True
+        context._needs_render = False
         return True
 
     def handle_get(args: list[str]) -> bool:
@@ -584,10 +609,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 turn = True
             context._needs_render = True
         elif cmd == "travel":
-            ok = handle_travel(args)
-            if ok:
-                turn = True
-                context._needs_render = True
+            turn = handle_travel(args)
         elif cmd == "exit":
             macro_store.save_profile(class_key(p.clazz or "default"))
             w.reset_all_aggro()
@@ -628,6 +650,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 print(SEP)
                 print(yellow(f"You're {gerundize(head)}!"))
                 print()
+            context._last_turn_consumed = True
             return False
         if cmd == "macro":
             handle_macro(tail)
@@ -659,7 +682,7 @@ def make_context(p, w, save, *, dev: bool = False):
             context._pre_shadow_lines = render_mod.shadow_lines(w, p)
         consumed = context._last_turn_consumed
         if consumed:
-            if w.any_aggro_in_year(p.year):
+            if not context._skip_movement_tick and w.any_aggro_in_year(p.year):
                 arrivals, foot = w.move_monsters_one_tick(p.year, p)
                 context._arrivals_this_tick = arrivals
                 context._footsteps_event = foot
@@ -667,6 +690,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 context._arrivals_this_tick = []
                 context._footsteps_event = None
             w.turn += 1
+            context._skip_movement_tick = False
         if context._needs_render and not context._suppress_room_render:
             render_room_view(p, w, context, include_arrivals=False)
             context._needs_render = False

@@ -116,5 +116,5 @@ def test_arrival_suppresses_presence(cli, staged_arrival_now_into_room_with_anot
 def test_spawn_scaling(cli_seeded):
     m_count = cli_seeded.world.count_monsters_for_year(cli_seeded.player.year)
     i_count = cli_seeded.world.count_items_for_year(cli_seeded.player.year)
-    assert m_count >= previous_baseline_monsters * 1.5 * 0.8
+    assert m_count >= previous_baseline_monsters * 0.5 * 0.8
     assert i_count >= previous_baseline_items * 10 * 0.8
