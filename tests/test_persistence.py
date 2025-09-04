@@ -5,6 +5,7 @@ from mutants2.engine import persistence
 
 def test_save_load(tmp_path, monkeypatch):
     monkeypatch.setenv('HOME', str(tmp_path))
+    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
     w = World()
     p = Player()
     assert p.move('east', w)

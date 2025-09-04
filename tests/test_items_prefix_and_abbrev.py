@@ -72,5 +72,6 @@ def test_abbrev_rules(cli_runner):
 
 def test_travel_still_renders(cli_runner):
     out = cli_runner.run_commands(["tra 2100"])
-    assert "***" in out and "0E" in out
+    assert "ZAAAAPPPPP!!" in out
+    assert out.count("Compass:") == 1
 

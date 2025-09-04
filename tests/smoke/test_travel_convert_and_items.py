@@ -1,6 +1,8 @@
 import os
 import datetime
 
+import os
+import datetime
 import pytest
 
 from mutants2.engine import persistence, items
@@ -18,7 +20,7 @@ def test_monster_bait_conversion(cli_runner, tmp_path):
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
     persistence.save(p, w, save)
-    out = cli_runner.run_commands(['convert monster-bait', 'inventory', 'status'])
+    out = cli_runner.run_commands(['convert MONSTER_BAIT', 'inventory', 'status'])
     item = items.REGISTRY['monster_bait']
     assert item.weight_lbs == 10
     assert item.ion_value == 10000
