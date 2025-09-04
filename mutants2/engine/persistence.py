@@ -20,6 +20,7 @@ from .state import (
 from .macros import MacroStore
 
 from . import gen
+from ..data.class_tables import BASE_LEVEL1, PROGRESSION
 
 
 @dataclass
@@ -35,6 +36,34 @@ class Save:
 
 
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
+
+
+_ATTR_MAP = {
+    "str": "strength",
+    "int": "intelligence",
+    "wis": "wisdom",
+    "dex": "dexterity",
+    "con": "constitution",
+    "cha": "charisma",
+}
+
+
+def _migrate_profile(clazz: str, prof: CharacterProfile) -> None:
+    if getattr(prof, "tables_migrated", False):
+        return
+    base = BASE_LEVEL1[clazz]
+    for key, attr in _ATTR_MAP.items():
+        setattr(prof, attr, base[key])
+    prof.max_hp = base["hp"]
+    prof.ac = base["ac"]
+    for lvl in range(2, prof.level + 1):
+        row = PROGRESSION[clazz].get(lvl, PROGRESSION[clazz][11])
+        prof.max_hp += row.get("hp_plus", 0)
+        for short, attr in _ATTR_MAP.items():
+            setattr(prof, attr, getattr(prof, attr) + row.get(f"{short}_plus", 0))
+    if prof.hp > prof.max_hp:
+        prof.hp = prof.max_hp
+    prof.tables_migrated = True
 
 
 def load() -> tuple[
@@ -54,7 +83,9 @@ def load() -> tuple[
         profiles_raw = data.get("profiles", {})
         if isinstance(profiles_raw, dict):
             for k, v in profiles_raw.items():
-                profiles[class_key(k)] = profile_from_raw(v)
+                prof = profile_from_raw(v)
+                _migrate_profile(class_key(k), prof)
+                profiles[class_key(k)] = prof
 
         last_class_raw = data.get("last_class")
         last_class = (
@@ -71,6 +102,7 @@ def load() -> tuple[
 
         if active_class:
             prof = profiles[active_class]
+            _migrate_profile(active_class, prof)
             player = Player(year=prof.year, clazz=active_class)
             apply_profile(player, prof)
         else:
@@ -97,7 +129,10 @@ def load() -> tuple[
             player.constitution = int(data.get("constitution", 0))
             player.charisma = int(data.get("charisma", 0))
             player.ac = int(data.get("ac", 0))
-            profiles[clazz] = profile_from_player(player)
+            prof = profile_from_player(player)
+            _migrate_profile(clazz, prof)
+            apply_profile(player, prof)
+            profiles[clazz] = prof
             last_class = clazz
 
             macro_dir = MacroStore.MACRO_DIR

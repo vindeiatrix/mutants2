@@ -29,6 +29,7 @@ class CharacterProfile:
     charisma: int = 0
     ac: int = 0
     macros_name: str | None = None
+    tables_migrated: bool = True
 
 
 def profile_from_player(p: "Player") -> CharacterProfile:
@@ -50,6 +51,7 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         constitution=getattr(p, "constitution", 0),
         charisma=getattr(p, "charisma", 0),
         ac=getattr(p, "ac", 0),
+        tables_migrated=True,
     )
 
 
@@ -92,6 +94,7 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "constitution": getattr(prof, "constitution", 0),
         "charisma": getattr(prof, "charisma", 0),
         "ac": getattr(prof, "ac", 0),
+        "tables_migrated": getattr(prof, "tables_migrated", True),
         **({"macros_name": prof.macros_name} if prof.macros_name else {}),
     }
 
@@ -117,4 +120,5 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         charisma=int(data.get("charisma", 0)),
         ac=int(data.get("ac", 0)),
         macros_name=data.get("macros_name"),
+        tables_migrated=bool(data.get("tables_migrated", False)),
     )

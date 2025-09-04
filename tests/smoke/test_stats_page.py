@@ -21,7 +21,7 @@ def test_stats_page(tmp_path):
         ctx.dispatch_line('status')
     out = buf.getvalue()
     assert yellow('Name: Vindeiatrix / Mutant Warrior') in out
-    assert yellow('Hit Points   : 30 / 30') in out
+    assert yellow('Hit Points   : 40 / 40') in out
     assert yellow('Ions         : 0') in out
     assert yellow('Year A.D.     : 2000') in out
     assert yellow("You are carrying the following items:  (Total Weight: 45 LB's)") in out
