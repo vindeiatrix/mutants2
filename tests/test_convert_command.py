@@ -6,6 +6,7 @@ import pytest
 from mutants2.engine import persistence
 from mutants2.engine.player import Player
 from mutants2.engine.world import World
+from mutants2.ui.theme import yellow
 
 
 @pytest.fixture
@@ -24,7 +25,7 @@ def inventory_with_cap(tmp_path):
 def test_convert_bottle_cap(cli_runner, inventory_with_cap):
     out = cli_runner.run_commands(["convert b", "inventory", "status"])
     assert out.count("***") == 2
-    assert "The Bottle-Cap vanishes with a flash!" in out
-    assert "You convert the Bottle-Cap into 22,000 ions." in out
+    assert yellow("The Bottle-Cap vanishes with a flash!") in out
+    assert yellow("You convert the Bottle-Cap into 22,000 ions.") in out
     assert "(empty)" in out
     assert "Total Ions: 22000" in out

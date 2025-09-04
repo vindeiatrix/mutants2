@@ -6,6 +6,7 @@ import sys
 from mutants2.engine import persistence
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
+from mutants2.ui.theme import cyan
 
 
 def _run_game(commands, tmp_path):
@@ -36,7 +37,7 @@ def test_pickup_and_drop_roundtrip(tmp_path):
     result = _run_game(['get Ion-Decay', 'look', 'inventory', 'drop Ion-Decay', 'look', 'inventory', 'exit'], tmp_path)
     out = result.stdout
     assert 'You pick up Ion-Decay.' in out
-    assert 'Ion-Decay x1' in out
+    assert cyan('Ion-Decay.') in out
     assert 'You drop Ion-Decay.' in out
     after = out.split('You drop Ion-Decay.')[-1]
     assert 'On the ground lies:' in after and 'Ion-Decay' in after
@@ -52,8 +53,7 @@ def test_inventory_rendering(tmp_path):
     save = persistence.Save()
     persistence.save(p, w, save)
     result = _run_game(['inventory', 'exit'], tmp_path)
-    assert 'Ion-Decay x2' in result.stdout
-    assert 'Gold-Chunk x1' in result.stdout
+    assert cyan('Ion-Decay, Ion-Decay, Gold-Chunk.') in result.stdout
 
 
 def test_persistence_inventory_and_ground(tmp_path):
@@ -66,7 +66,7 @@ def test_persistence_inventory_and_ground(tmp_path):
     _run_game(['get Ion-Decay', 'east', 'exit'], tmp_path)
     result = _run_game(['inventory', 'west', 'look', 'exit'], tmp_path)
     out = result.stdout
-    assert 'Ion-Decay x1' in out
+    assert cyan('Ion-Decay.') in out
     assert 'On the ground lies:' not in out
 
 
@@ -78,4 +78,4 @@ def test_name_matching_case_insensitive(tmp_path):
     save = persistence.Save()
     persistence.save(p, w, save)
     result = _run_game(['get ion-decay', 'drop ion-decay', 'get Ion-Decay', 'inventory', 'exit'], tmp_path)
-    assert 'Ion-Decay x1' in result.stdout
+    assert cyan('Ion-Decay.') in result.stdout

@@ -21,7 +21,7 @@ def test_inventory_weight_and_stats(cli_runner, tmp_path):
 
     # Inventory header and weight
     assert yellow("You are carrying the following items: (Total Weight: 45 LB's)") in out
-    assert cyan('Ion-Decay x2') in out and cyan('Gold-Chunk x1') in out
+    assert cyan('Ion-Decay, Ion-Decay, Gold-Chunk.') in out
 
     # Stats page ions
     assert 'Total Ions: 0' in out

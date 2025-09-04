@@ -253,8 +253,8 @@ def make_context(p, w, save, *, dev: bool = False):
             render_help_hint()
             return False
         print(SEP)
-        print(f"The {item.name} vanishes with a flash!")
-        print(f"You convert the {item.name} into {item.ion_value:,} ions.")
+        print(yellow(f"The {item.name} vanishes with a flash!"))
+        print(yellow(f"You convert the {item.name} into {item.ion_value:,} ions."))
         context._needs_render = False
         context._suppress_room_render = True
         return True
@@ -374,8 +374,11 @@ def make_context(p, w, save, *, dev: bool = False):
                 )
             )
             if p.inventory:
+                names: list[str] = []
                 for key, count in p.inventory.items():
-                    print(cyan(f"{items.REGISTRY[key].name} x{count}"))
+                    names.extend([items.REGISTRY[key].name] * count)
+                line = ", ".join(names) + "."
+                print(cyan(line))
             else:
                 print("(empty)")
         elif cmd == "get":
