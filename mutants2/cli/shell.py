@@ -7,7 +7,14 @@ from typing import Mapping, cast
 from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
-from ..engine.player import CLASS_LIST, CLASS_BY_NUM, CLASS_BY_NAME
+from ..engine.player import (
+    CLASS_DISPLAY,
+    CLASS_LIST,
+    CLASS_BY_NUM,
+    CLASS_BY_NAME,
+    class_key,
+)
+from ..engine.state import CharacterProfile, apply_profile, profile_from_raw
 from ..engine.gen import daily_topup_if_needed
 from ..engine.macros import MacroStore
 from ..engine.types import Direction
@@ -124,35 +131,25 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
         else:
             print("Invalid selection.")
             continue
-        prof = save.profiles.get(picked)
-        if prof:
-            p.year = int(prof.get("year", 2000))
-            p.positions = {
-                int(y): (v.get("x", 0), v.get("y", 0))
-                for y, v in prof.get("positions", {}).items()
-            }
-            p.inventory = {k: int(v) for k, v in prof.get("inventory", {}).items()}
-            p.max_hp = int(prof.get("max_hp", p.max_hp))
-            p.hp = int(prof.get("hp", p.max_hp))
-            p.ions = int(prof.get("ions", 0))
+        k = class_key(picked)
+        prof = save.profiles.get(k)
+        if isinstance(prof, CharacterProfile):
+            apply_profile(p, prof)
+        elif isinstance(prof, dict):
+            prof_obj = profile_from_raw(prof)
+            save.profiles[k] = prof_obj
+            apply_profile(p, prof_obj)
         else:
-            p.year = ALLOWED_CENTURIES[0]
-            p.positions = {c: (0, 0) for c in ALLOWED_CENTURIES}
-            p.inventory.clear()
-            p.hp = p.max_hp = 10
-            p.ions = 0
+            apply_profile(p, CharacterProfile())
         w.year(p.year)
-        p.clazz = picked
+        p.clazz = k
         persistence.save(p, w, save)
         return True
 
 
 def make_context(p, w, save, *, dev: bool = False):
     macro_store = MacroStore()
-    try:
-        macro_store.load_profile(p.clazz or "default")
-    except FileNotFoundError:
-        pass
+    macro_store.load_profile(class_key(p.clazz or "default"))
     last_move = None
 
     PLAYER_DMG = 2
@@ -383,8 +380,9 @@ def make_context(p, w, save, *, dev: bool = False):
         print(f"You rest and recover. (HP: {p.hp}/{p.max_hp})")
 
     def handle_status() -> None:
+        disp = CLASS_DISPLAY.get(class_key(p.clazz or ""), p.clazz)
         print(
-            f"Class: {p.clazz} | HP: {p.hp}/{p.max_hp} | Year: {p.year} @ {p.x}E : {p.y}N"
+            f"Class: {disp} | HP: {p.hp}/{p.max_hp} | Year: {p.year} @ {p.x}E : {p.y}N"
         )
         print(f"Total Ions: {p.ions}")
 
@@ -404,12 +402,12 @@ def make_context(p, w, save, *, dev: bool = False):
                 turn = True
             context._needs_render = True
         elif cmd == "class":
-            macro_store.save_profile(p.clazz or "default")
+            macro_store.save_profile(class_key(p.clazz or "default"))
             persistence.save(p, w, save)
             w.reset_all_aggro()
             changed = class_menu(p, w, save, in_game=True)
             if changed:
-                macro_store.load_profile(p.clazz or "default")
+                macro_store.load_profile(class_key(p.clazz or "default"))
                 yells = w.on_entry_aggro_check(
                     p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
                 )
@@ -578,7 +576,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 turn = True
                 context._needs_render = True
         elif cmd == "exit":
-            macro_store.save_profile(p.clazz or "default")
+            macro_store.save_profile(class_key(p.clazz or "default"))
             w.reset_all_aggro()
             print("Goodbye.")
             context.running = False
