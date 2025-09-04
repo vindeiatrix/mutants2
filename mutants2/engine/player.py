@@ -10,11 +10,18 @@ from .world import ALLOWED_CENTURIES
 from ..ui.theme import red
 
 
+def class_key(name: str) -> str:
+    """Return the canonical key for ``name``."""
+
+    return name.strip().lower()
+
+
 # Available player classes. These are simple placeholders for now and do not
 # affect gameplay beyond being tracked and persisted.
 CLASS_LIST = ["Warrior", "Mage", "Wizard", "Thief", "Priest"]
-CLASS_BY_NUM = {str(i + 1): c for i, c in enumerate(CLASS_LIST)}
-CLASS_BY_NAME = {c.lower(): c for c in CLASS_LIST}
+CLASS_DISPLAY = {class_key(c): c for c in CLASS_LIST}
+CLASS_BY_NUM = {str(i + 1): class_key(c) for i, c in enumerate(CLASS_LIST)}
+CLASS_BY_NAME = {class_key(c): class_key(c) for c in CLASS_LIST}
 
 
 @dataclass

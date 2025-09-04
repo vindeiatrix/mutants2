@@ -46,12 +46,20 @@ class MacroStore:
             json.dump(data, f)
 
     def load_profile(self, profile: str) -> None:
+        self.MACRO_DIR.mkdir(parents=True, exist_ok=True)
         path = self.MACRO_DIR / f"{profile}.json"
-        with path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {"macros": {}, "echo": True}
+            with path.open("w", encoding="utf-8") as f:
+                json.dump(data, f)
+        except Exception:
+            data = {"macros": {}, "echo": True}
         self._macros.update(data.get("macros", {}))
         if "echo" in data:
-            self.echo = data["echo"]
+            self.echo = bool(data["echo"])
 
     def list_profiles(self) -> List[str]:
         if not self.MACRO_DIR.is_dir():
