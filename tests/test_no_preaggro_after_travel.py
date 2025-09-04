@@ -1,5 +1,6 @@
 import contextlib
 from io import StringIO
+import contextlib
 
 import pytest
 
@@ -25,8 +26,9 @@ def seeded_rng(monkeypatch):
 @pytest.fixture
 def world_travel_passive(seeded_rng):
     w = world_mod.World()
-    w.year(2200)
-    w.place_monster(2200, 0, 2, "mutant")
+    w.year(2000)
+    w.place_monster(2000, 0, 2, "mutant")
+    w.monster_here(2000, 0, 2)["aggro"] = True
     return w
 
 
@@ -62,3 +64,13 @@ def test_no_preaggro_after_travel(cli):
     text2 = out2.lower()
     assert "footsteps" not in text2
     assert "has just arrived" not in text2
+
+
+def test_travel_same_century_message(cli):
+    out = cli.run(["travel 2000"])
+    lines = [ln for ln in out.strip().splitlines()]
+    assert len(lines) == 2
+    assert "You're already in the 21st Century!" in lines[1]
+    text = out.lower()
+    assert "footsteps" not in text
+    assert "has just arrived" not in text

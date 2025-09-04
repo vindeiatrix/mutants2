@@ -100,4 +100,4 @@ def test_yell_once_on_entry_then_move(cli, world_passive_monster_here_after_move
 def test_footsteps_only_when_moved(cli, world_aggro_monster_two_south):
     out = cli.run(["look"])
     text = out.lower()
-    assert "loud" in text and "footsteps" in text and "south" in text
+    assert "faint" in text and "footsteps" in text and "south" in text

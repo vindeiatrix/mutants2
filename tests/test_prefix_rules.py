@@ -55,10 +55,13 @@ def world_with_monster_and_item_N_on_tile(world, player):
 
 
 def test_command_prefix_3_to_full(cli):
-    for cmd in ["tra 2100", "trav 2100", "trave 2100", "travel 2100"]:
+    cmds = ["tra 2100", "trav 2100", "trave 2100", "travel 2100"]
+    for i, cmd in enumerate(cmds):
         out = cli.run([cmd])
         assert "ZAAAAPPPPP!!" in out
         assert "Compass:" not in out
+        if i < len(cmds) - 1:
+            cli.run(["travel 2000"])
     out = cli.run(["tr 2100"])
     assert "Type ? if you need assistance." in out
 
