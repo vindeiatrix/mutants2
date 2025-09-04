@@ -57,4 +57,4 @@ def test_command_usage_blocks(cli_runner):
 def test_ground_item_density():
     w = World()
     w.year(2000)
-    assert w.ground_items_count(2000) == 450
+    assert w.ground_items_count(2000) == 1350

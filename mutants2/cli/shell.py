@@ -125,7 +125,7 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
             year = ALLOWED_CENTURIES[0]
             x, y = 0, 0
         print(
-            f"{i}. Mutant {name}    Level: {level}   Year: {year}   ({x} {y})"
+            f"{i:>2}. Mutant {name:<7}  Level: {level:>2}   Year: {year:<4}  ({x:>2}  {y:>2})"
         )
     while True:
         try:
@@ -418,7 +418,7 @@ def make_context(p, w, save, *, dev: bool = False):
             return
         if p.ions < 1000:
             print(yellow("***"))
-            print(yellow("Nothing happens!"))
+            print(yellow("You don't have enough ions to heal!"))
             return
         delta = min(3, p.max_hp - p.hp)
         p.ions -= 1000
@@ -532,7 +532,10 @@ def make_context(p, w, save, *, dev: bool = False):
   debug item add <name|key> [count]   Add item(s) to current room's ground.
   debug item clear                    Remove all ground items here.
   debug item list                     Show raw ground items here.
+  debug item count                    Count ground items in current year.
   debug mon here                      Toggle a Mutant on this tile.
+  debug mon clear                     Remove all monsters in this room.
+  debug mon clear year                Remove all monsters in this year.
   debug mon spawn <n>                 Spawn n Mutants near the player (dev).
   debug mon count                     Count monsters in current year.
   debug today YYYY-MM-DD              Set synthetic 'today' (dev date).
@@ -569,8 +572,24 @@ def make_context(p, w, save, *, dev: bool = False):
                 elif args[:2] == ["item", "list"]:
                     names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
                     print(f"[dev] ground: {names}")
+                elif args[:2] == ["item", "count"]:
+                    cnt = w.ground_items_count(p.year)
+                    print(f"Items on ground in year {p.year}: {cnt}")
+                elif args[:3] == ["mon", "clear", "year"]:
+                    total = 0
+                    coords = {(x, y) for x, y, _m in w.monster_positions(p.year)}
+                    for x, y in coords:
+                        while w.remove_monster(p.year, x, y):
+                            total += 1
+                    print(f"Cleared {total} monster(s) in year {p.year}.")
+                elif args[:2] == ["mon", "clear"]:
+                    n = 0
+                    while w.remove_monster(p.year, p.x, p.y):
+                        n += 1
+                    print(f"Cleared {n} monster(s) in this room.")
                 elif args[:2] == ["mon", "count"]:
-                    print(w.monster_count(p.year))
+                    cnt = w.monster_count(p.year)
+                    print(f"Monsters in year {p.year}: {cnt}")
                 elif args[:2] == ["mon", "here"]:
                     if w.has_monster(p.year, p.x, p.y):
                         w.remove_monster(p.year, p.x, p.y)
