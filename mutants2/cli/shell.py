@@ -124,6 +124,24 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
         else:
             print("Invalid selection.")
             continue
+        prof = save.profiles.get(picked)
+        if prof:
+            p.year = int(prof.get("year", 2000))
+            p.positions = {
+                int(y): (v.get("x", 0), v.get("y", 0))
+                for y, v in prof.get("positions", {}).items()
+            }
+            p.inventory = {k: int(v) for k, v in prof.get("inventory", {}).items()}
+            p.max_hp = int(prof.get("max_hp", p.max_hp))
+            p.hp = int(prof.get("hp", p.max_hp))
+            p.ions = int(prof.get("ions", 0))
+        else:
+            p.year = ALLOWED_CENTURIES[0]
+            p.positions = {c: (0, 0) for c in ALLOWED_CENTURIES}
+            p.inventory.clear()
+            p.hp = p.max_hp = 10
+            p.ions = 0
+        w.year(p.year)
         p.clazz = picked
         persistence.save(p, w, save)
         return True
@@ -132,7 +150,7 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
 def make_context(p, w, save, *, dev: bool = False):
     macro_store = MacroStore()
     try:
-        macro_store.load_profile("default")
+        macro_store.load_profile(p.clazz or "default")
     except FileNotFoundError:
         pass
     last_move = None
@@ -225,6 +243,7 @@ def make_context(p, w, save, *, dev: bool = False):
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
         p.travel(w, target)
         print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
+        context._suppress_room_render = True
         return True
 
     def handle_get(args: list[str]) -> bool:
@@ -258,16 +277,20 @@ def make_context(p, w, save, *, dev: bool = False):
             render_usage("convert")
             context._suppress_room_render = True
             return False
-        inv_names = p.inventory_names_in_order()
         raw = " ".join(args)
-        name = items.first_prefix_match(raw, inv_names)
-        if not name:
+        canon = items.canon_item_key(raw)
+        key_match = None
+        for k in p.inventory.keys():
+            if items.canon_item_key(k).startswith(canon) or items.canon_item_key(items.display_name(k)).startswith(canon):
+                key_match = k
+                break
+        if not key_match:
             print(yellow("***"))
             print(yellow(f"You're not carrying a {raw}."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        item = p.convert_item(name)
+        item = p.convert_item(items.display_name(key_match))
         if not item:
             render_help_hint()
             return False
@@ -300,11 +323,14 @@ def make_context(p, w, save, *, dev: bool = False):
 
         inv_names = p.inventory_names_in_order()
         iname = items.first_prefix_match(q, inv_names)
-        if not iname:
-            ground_names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
-            iname = items.first_prefix_match(q, ground_names)
         if iname:
             print(items.describe(iname))
+            return False
+        ground_names = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
+        gname = items.first_prefix_match(q, ground_names)
+        if gname:
+            print(yellow("***"))
+            print(yellow(f"It looks like a lovely {gname}!"))
             return False
 
         d = parse_dir_any_prefix(q)
@@ -344,6 +370,8 @@ def make_context(p, w, save, *, dev: bool = False):
             print("You have died.")
             p.heal_full()
             p.positions[p.year] = (0, 0)
+            w.reset_aggro_in_year(p.year)
+            context._arrivals_this_tick = []
         context._needs_render = False
         context._suppress_room_render = True
 
@@ -376,9 +404,12 @@ def make_context(p, w, save, *, dev: bool = False):
                 turn = True
             context._needs_render = True
         elif cmd == "class":
+            macro_store.save_profile(p.clazz or "default")
+            persistence.save(p, w, save)
             w.reset_all_aggro()
             changed = class_menu(p, w, save, in_game=True)
             if changed:
+                macro_store.load_profile(p.clazz or "default")
                 yells = w.on_entry_aggro_check(
                     p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)
                 )
@@ -547,6 +578,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 turn = True
                 context._needs_render = True
         elif cmd == "exit":
+            macro_store.save_profile(p.clazz or "default")
             w.reset_all_aggro()
             print("Goodbye.")
             context.running = False

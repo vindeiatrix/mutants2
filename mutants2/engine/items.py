@@ -43,6 +43,7 @@ __all__ = [
     "REGISTRY",
     "SPAWNABLE_KEYS",
     "find_by_name",
+    "canon_item_key",
     "norm_name",
     "resolve_item_prefix",
     "resolve_prefix",
@@ -61,6 +62,10 @@ def find_by_name(name: str) -> Optional[ItemDef]:
         if item.name.lower() == target:
             return item
     return None
+
+
+def canon_item_key(s: str) -> str:
+    return s.strip().lower().replace(" ", "_").replace("-", "_")
 
 
 def norm_name(s: str) -> str:

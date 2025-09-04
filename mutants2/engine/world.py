@@ -292,6 +292,10 @@ class World:
             for m in lst:
                 cast(MutableMapping[str, object], m)["aggro"] = False
 
+    def reset_aggro_in_year(self, year: int) -> None:
+        for _, _, m in self.monster_positions(year):
+            cast(MutableMapping[str, object], m)["aggro"] = False
+
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
         mid = self._id_alloc.allocate()
