@@ -57,3 +57,17 @@ def test_debug_unavailable_in_menu(tmp_path):
     out = result.stdout
     assert 'Debug commands are available only in dev mode (in-game).' in out
     assert 'OK.' in out  # debug works in-game
+
+
+def test_exit_from_class_menu(tmp_path):
+    result = run_cli('exit\n', tmp_path)
+    out = result.stdout
+    assert 'Goodbye.' in out
+    assert 'Compass:' not in out
+
+
+def test_question_in_class_menu_shows_help(tmp_path):
+    result = run_cli('?\nexit\n', tmp_path)
+    out = result.stdout
+    assert 'Commands:' in out
+    assert 'Compass:' not in out

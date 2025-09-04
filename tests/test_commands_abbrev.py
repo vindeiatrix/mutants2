@@ -8,6 +8,7 @@ import pytest
 from mutants2.engine import persistence
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
+from mutants2.ui.theme import yellow
 
 
 @pytest.fixture
@@ -41,7 +42,7 @@ def test_inventory_aliases(cli_runner):
     out = cli_runner.run_commands(["inv"])
     assert "(empty)" in out or "Inventory" in out
     out = cli_runner.run_commands(["i"])
-    assert "You're iing!" in out
+    assert yellow("You're iing!") in out
 
 
 def test_get_drop_abbrevs(cli_runner, seeded_world_with_item):
@@ -53,9 +54,9 @@ def test_get_drop_abbrevs(cli_runner, seeded_world_with_item):
 
 def test_directions_one_letter_only(cli_runner):
     out = cli_runner.run_commands(["nor"])
-    assert "You're norring!" in out
+    assert yellow("You're norring!") in out
     out = cli_runner.run_commands(["sou"])
-    assert "You're souing!" in out
+    assert yellow("You're souing!") in out
     out = cli_runner.run_commands(["n"])
     assert "***" in out
     out = cli_runner.run_commands(["north"])

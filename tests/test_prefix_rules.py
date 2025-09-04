@@ -6,6 +6,7 @@ import pytest
 from mutants2.cli.shell import make_context
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
+from mutants2.ui.theme import yellow
 
 
 @pytest.fixture
@@ -65,7 +66,7 @@ def test_command_prefix_3_to_full(cli):
 def test_directions_special(cli):
     assert "***" in cli.run(["n"])
     assert "***" in cli.run(["north"])
-    assert "You're norring!" in cli.run(["nor"])
+    assert yellow("You're norring!") in cli.run(["nor"])
 
 
 def test_item_prefix_first_match(cli, world_with_items):
