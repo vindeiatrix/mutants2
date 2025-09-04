@@ -46,7 +46,7 @@ def test_persistence_of_class(tmp_path):
     run_cli('4\nnorth\nexit\n', home)
     result = run_cli('sta\nexit\n', home)
     out = result.stdout
-    assert 'Class: Thief' in out
+    assert 'Mutant Thief' in out
     assert 'Choose your class' not in out
 
 

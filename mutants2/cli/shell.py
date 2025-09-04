@@ -322,9 +322,10 @@ def make_context(p, w, save, *, dev: bool = False):
             if yells:
                 context._entry_yells.extend(yells)
             context._needs_render = True
-            return False
+            return True
 
-        q = " ".join(args).strip().lower()
+        raw = " ".join(args).strip()
+        q = raw.lower()
 
         here_monsters = [
             monsters.REGISTRY[m["key"]].name for m in w.monsters_here(p.year, p.x, p.y)
@@ -332,30 +333,20 @@ def make_context(p, w, save, *, dev: bool = False):
         mname = monsters.first_mon_prefix(q, here_monsters)
         if mname:
             print(f"It's a {mname}.")
-            return False
+            return True
 
         inv_names = p.inventory_names_in_order()
         iname = items.first_prefix_match(q, inv_names)
         if iname:
-            print(items.describe(iname))
-            return False
-        ground_items = w.items_on_ground(p.year, p.x, p.y)
-        ground_names = [it.name for it in ground_items]
-        gname = items.first_prefix_match(q, ground_names)
-        if gname:
-            item = next(it for it in ground_items if it.name == gname)
-            if item.spawnable:
-                print(yellow("***"))
-                print(yellow(f"It looks like a lovely {gname}!"))
-            else:
-                print(items.describe(gname))
-            return False
+            print(yellow("***"))
+            print(yellow(f"It looks like a lovely {iname}!"))
+            return True
 
         d = parse_dir_any_prefix(q)
         if d:
             if not w.is_open(p.year, p.x, p.y, d):
                 print("You can't look that way.")
-                return False
+                return True
             ax, ay = w.step(p.x, p.y, d)
             text = render_mod.render_room_at(
                 w,
@@ -365,9 +356,12 @@ def make_context(p, w, save, *, dev: bool = False):
                 include_shadows=False,
             )
             print(text)
-            return False
+            return True
 
-        print("You can't look that way.")
+        print(yellow("***"))
+        print(yellow(f"You're not carrying a {raw}."))
+        context._needs_render = False
+        context._suppress_room_render = True
         return False
 
     def handle_attack() -> None:
@@ -401,18 +395,44 @@ def make_context(p, w, save, *, dev: bool = False):
         print(f"You rest and recover. (HP: {p.hp}/{p.max_hp})")
 
     def handle_status() -> None:
-        disp = CLASS_DISPLAY.get(class_key(p.clazz or ""), p.clazz)
-        print(
-            f"Class: {disp} | HP: {p.hp}/{p.max_hp} | Year: {p.year} @ {p.x}E : {p.y}N"
+        disp = CLASS_DISPLAY.get(class_key(p.clazz or ""), p.clazz or "")
+        lines = [
+            yellow(f"Name: Vindeiatrix / Mutant {disp}"),
+            yellow("Exhaustion   : 0"),
+            yellow("Str: 0   Int: 0   Wis: 0"),
+            yellow("Dex: 0   Con: 0   Cha: 0"),
+            yellow(f"Hit Points   : {p.hp} / {p.max_hp}"),
+            yellow("Exp. Points  : 0           Level: 1"),
+            yellow("Riblets      : 0"),
+            yellow(f"Ions         : {p.ions}"),
+            yellow("Wearing Armor: Nothing.  Armour Class: 0"),
+            yellow("Ready to Combat: NO ONE"),
+            yellow("Readied Spell : No spell memorized."),
+            yellow(f"Year A.D.     : {p.year}"),
+            "",
+        ]
+        total = p.inventory_weight_lbs()
+        lines.append(
+            yellow(
+                f"You are carrying the following items:  (Total Weight: {total} LB's)"
+            )
         )
-        print(f"Total Ions: {p.ions}")
+        if p.inventory:
+            names: list[str] = []
+            for key, count in p.inventory.items():
+                names.extend([items.REGISTRY[key].name] * count)
+            line = ", ".join(names) + "."
+            lines.append(cyan(line))
+        else:
+            lines.append("(empty)")
+        for ln in lines:
+            print(ln)
 
     def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
         turn = False
         if cmd == "look":
-            handle_look(args)
-            turn = True
+            turn = handle_look(args)
         elif cmd == "last":
             moved = False
             if last_move:

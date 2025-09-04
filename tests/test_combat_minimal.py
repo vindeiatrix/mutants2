@@ -68,7 +68,7 @@ def test_rest_heals_when_safe(empty_start_world, cli_runner):
 
 def test_status_shows_hp_and_coords(empty_start_world, cli_runner):
     out = cli_runner.run_commands(["sta"])
-    assert "HP:" in out and "Year:" in out
+    assert "Hit Points" in out and "Year A.D." in out
 
 
 def test_room_line_shows_monster_present(world_with_mutant_on_start, cli_runner):
