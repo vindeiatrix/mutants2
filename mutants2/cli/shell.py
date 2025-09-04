@@ -234,21 +234,6 @@ def make_context(p, w, save, *, dev: bool = False):
         else:
             print("Invalid macro command.")
 
-    def _ordinal_century(year: int) -> str:
-        n = year // 100 + 1
-        if n % 100 not in {11, 12, 13}:
-            if n % 10 == 1:
-                suff = "st"
-            elif n % 10 == 2:
-                suff = "nd"
-            elif n % 10 == 3:
-                suff = "rd"
-            else:
-                suff = "th"
-        else:
-            suff = "th"
-        return f"{n}{suff}"
-
     def handle_travel(args: list[str]) -> bool:
         if not args:
             render_usage("travel")
@@ -266,18 +251,11 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
-        if target == p.year:
-            print(white(f"You're already in the {_ordinal_century(target)} Century!"))
-            context._suppress_room_render = True
-            context._needs_render = False
-            context._suppress_entry_aggro = True
-            context._skip_movement_tick = True
-            return True
         p.travel(w, target)
         print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         context._suppress_room_render = True
         context._suppress_entry_aggro = True
-        context._skip_movement_tick = True
+        context._skip_movement_tick = False
         context._needs_render = False
         return True
 

@@ -58,6 +58,7 @@ def spawn(key: str, mid: int) -> dict:
         "name": name,
         "aggro": False,
         "seen": False,
+        "yelled_once": False,
         "id": mid,
         "hp": REGISTRY[key].base_hp,
     }

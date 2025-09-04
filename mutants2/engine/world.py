@@ -23,6 +23,7 @@ from .types import (
     TileKey,
 )
 from . import monsters as monsters_mod, items as items_mod, rng as rng_mod
+from .ai import set_aggro
 from ..data.room_headers import ROOM_HEADERS
 
 Coordinate = Tuple[int, int]
@@ -134,6 +135,7 @@ class World:
                     hp_int = int(cast(int, hp_val)) if hp_val is not None else None
                     aggro = entry.get("aggro", False)
                     seen = entry.get("seen", False)
+                    yelled_once = entry.get("yelled_once", False)
                     mid_val = entry.get("id")
                     mid = int(cast(int, mid_val)) if mid_val is not None else None
                     base = monsters_mod.REGISTRY[m_key].base_hp
@@ -148,6 +150,7 @@ class World:
                         "name": name,
                         "aggro": bool(aggro),
                         "seen": bool(seen),
+                        "yelled_once": bool(yelled_once),
                         "id": int(mid),
                     }
                     if m.get("aggro") and not m.get("seen"):
@@ -283,8 +286,9 @@ class World:
             if mm.get("aggro"):
                 continue
             if hrand(base.random(), mm.get("id"), "mroll").random() < 0.5:
-                mm["aggro"] = True
-                yells.append(f"{mm['name']} yells at you!")
+                msg = set_aggro(mm)
+                if msg:
+                    yells.append(msg)
         return yells
 
     def reset_all_aggro(self) -> None:
