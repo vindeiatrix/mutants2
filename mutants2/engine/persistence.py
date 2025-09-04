@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Set, Tuple
 
@@ -10,6 +10,7 @@ from .player import Player
 from .world import World
 from . import monsters as monsters_mod
 from .types import ItemListMut, MonsterRec, TileKey
+from .state import CharacterProfile
 
 from . import gen
 
@@ -20,6 +21,7 @@ class Save:
 
     global_seed: int = gen.SEED
     last_topup_date: str | None = None
+    profiles: dict[str, CharacterProfile] = field(default_factory=dict)
     # ``fake_today_override`` is session-only and not persisted
     fake_today_override: str | None = None
 
@@ -40,20 +42,57 @@ def load() -> tuple[
         # Ignore legacy wall data if present
         data.pop("walls", None)
         data.pop("blocked", None)
-        year = data.get("year", 2000)
-        positions: Dict[int, Tuple[int, int]] = {
-            int(k): (v.get("x", 0), v.get("y", 0))
-            for k, v in data.get("positions", {}).items()
-        }
+
+        profiles: dict[str, CharacterProfile] = {}
+        for cname, entry in data.get("profiles", {}).items():
+            pos: Dict[int, Tuple[int, int]] = {
+                int(k): (v.get("x", 0), v.get("y", 0))
+                for k, v in entry.get("positions", {}).items()
+            }
+            profiles[cname] = CharacterProfile(
+                year=int(entry.get("year", 2000)),
+                positions=pos,
+                inventory={k: int(v) for k, v in entry.get("inventory", {}).items()},
+                hp=int(entry.get("hp", 10)),
+                max_hp=int(entry.get("max_hp", 10)),
+                ions=int(entry.get("ions", 0)),
+            )
+
         clazz = data.get("class")
-        player = Player(year=year, clazz=clazz)
-        player.positions.update(positions)
-        player.max_hp = int(data.get("max_hp", player.max_hp))
-        player.hp = int(data.get("hp", player.max_hp))
-        player.inventory.update(
-            {k: int(v) for k, v in data.get("inventory", {}).items()}
-        )
-        player.ions = int(data.get("ions", 0))
+
+        if clazz and clazz in profiles:
+            prof = profiles[clazz]
+            player = Player(year=prof.year, clazz=clazz)
+            player.positions.update(prof.positions)
+            player.inventory.update(prof.inventory)
+            player.hp = prof.hp
+            player.max_hp = prof.max_hp
+            player.ions = prof.ions
+        else:
+            # Fallback to legacy single-profile fields
+            year = data.get("year", 2000)
+            positions: Dict[int, Tuple[int, int]] = {
+                int(k): (v.get("x", 0), v.get("y", 0))
+                for k, v in data.get("positions", {}).items()
+            }
+            player = Player(year=year, clazz=clazz)
+            player.positions.update(positions)
+            player.max_hp = int(data.get("max_hp", player.max_hp))
+            player.hp = int(data.get("hp", player.max_hp))
+            player.inventory.update(
+                {k: int(v) for k, v in data.get("inventory", {}).items()}
+            )
+            player.ions = int(data.get("ions", 0))
+            if clazz:
+                profiles[clazz] = CharacterProfile(
+                    year=player.year,
+                    positions=dict(player.positions),
+                    inventory=dict(player.inventory),
+                    hp=player.hp,
+                    max_hp=player.max_hp,
+                    ions=player.ions,
+                )
+
         ground: dict[TileKey, ItemListMut] = {}
         for key, val in data.get("ground", {}).items():
             parts = [int(n) for n in key.split(",")]
@@ -96,6 +135,7 @@ def load() -> tuple[
         save_meta = Save(
             global_seed=int(data.get("global_seed", gen.SEED)),
             last_topup_date=data.get("last_topup_date"),
+            profiles=profiles,
         )
         return player, ground, monsters_data, seeded, save_meta
     except FileNotFoundError:
@@ -113,8 +153,31 @@ def load() -> tuple[
 
 
 def save(player: Player, world: World, save_meta: Save) -> None:
+    if player.clazz:
+        save_meta.profiles[player.clazz] = CharacterProfile(
+            year=player.year,
+            positions=dict(player.positions),
+            inventory=dict(player.inventory),
+            hp=player.hp,
+            max_hp=player.max_hp,
+            ions=player.ions,
+        )
+
     SAVE_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(SAVE_PATH, "w") as fh:
+        profiles_ser = {
+            name: {
+                "year": prof.year,
+                "positions": {
+                    str(y): {"x": x, "y": yy} for y, (x, yy) in prof.positions.items()
+                },
+                "hp": prof.hp,
+                "max_hp": prof.max_hp,
+                "inventory": {k: v for k, v in prof.inventory.items()},
+                "ions": prof.ions,
+            }
+            for name, prof in save_meta.profiles.items()
+        }
         data = {
             "year": player.year,
             "positions": {
@@ -149,6 +212,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "seeded_years": list(world.seeded_years),
             "global_seed": save_meta.global_seed,
             "last_topup_date": save_meta.last_topup_date,
+            "profiles": profiles_ser,
             # no senses data; cues are never persisted
         }
         json.dump(data, fh)

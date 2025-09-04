@@ -292,6 +292,14 @@ class World:
             for m in lst:
                 cast(MutableMapping[str, object], m)["aggro"] = False
 
+    def clear_aggro_year(self, year: int) -> None:
+        """Clear aggro flags for all monsters in ``year``."""
+        for (yr, _, _), lst in self._monsters.items():
+            if yr != year:
+                continue
+            for m in lst:
+                cast(MutableMapping[str, object], m)["aggro"] = False
+
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
         mid = self._id_alloc.allocate()
