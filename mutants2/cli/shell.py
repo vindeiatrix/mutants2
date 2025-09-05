@@ -5,7 +5,7 @@ import datetime
 import time
 from typing import Mapping, cast
 
-from ..engine import persistence, items, monsters, rng as rng_mod
+from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
 from ..engine.loop import (
@@ -33,7 +33,7 @@ from ..engine.types import Direction
 from ..engine.world import ALLOWED_CENTURIES, LOWEST_CENTURY, HIGHEST_CENTURY
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
 from ..ui.strings import GET_WHAT, DROP_WHAT
-from ..ui.theme import red, SEP, yellow, cyan, white
+from ..ui.theme import red, SEP, yellow, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import render_help_hint, render_status
 from .input import gerundize
@@ -317,16 +317,13 @@ def make_context(p, w, save, *, dev: bool = False):
         else:
             steps = abs(target - p.year) // 100
             cost = ION_TRAVEL_COST * steps
-            if p.ions >= cost:
+            if p.ions < cost:
+                print(yellow("***"))
+                print(yellow("You don't have enough ions to create a portal."))
+            else:
                 p.ions -= cost
                 p.travel(w, target)
                 print(yellow(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
-            else:
-                print(yellow("ZAAPPP!!!! You suddenly feel something has gone terribly wrong!"))
-                rng = rng_mod.hrand(w.global_seed, w.turn, p.year, target, "travel_mishap")
-                mishap_target = rng.choice(ALLOWED_CENTURIES)
-                p.travel(w, mishap_target)
-                p.ions = 0
         context._suppress_room_render = True
         context._suppress_entry_aggro = True
         context._skip_movement_tick = False
@@ -342,7 +339,10 @@ def make_context(p, w, save, *, dev: bool = False):
         if not name:
             print(f'No item here matching "{" ".join(args)}".')
             return False
-        p.pick_up(name, w)
+        overflow = p.pick_up(name, w)
+        if overflow:
+            print(yellow("***"))
+            print(yellow(f"The {overflow} fell out of your sack!"))
         print(f"You pick up {name}.")
         return False
 
@@ -355,8 +355,14 @@ def make_context(p, w, save, *, dev: bool = False):
         if not name:
             print(f'No item in inventory matching "{" ".join(args)}".')
             return False
-        ok, msg = p.drop_to_ground(name, w)
+        ok, msg, sack_name, gift_name = p.drop_to_ground(name, w)
         print(f"You drop {name}." if ok else (msg or "You can’t drop that here."))
+        if sack_name:
+            print(yellow("***"))
+            print(yellow(f"The {sack_name} fell out of your sack!"))
+        if gift_name:
+            print(yellow("***"))
+            print(yellow(f"{items.article_name(gift_name)} has magically appeared in your hand!"))
         return False
 
     def handle_convert(args: list[str]) -> bool:
@@ -505,8 +511,8 @@ def make_context(p, w, save, *, dev: bool = False):
             names: list[str] = []
             for key, count in p.inventory.items():
                 names.extend([items.REGISTRY[key].name] * count)
-            line = ", ".join(names) + "."
-            lines.append(cyan(line))
+            line = ", ".join(items.stack_plain(names))
+            lines.append(white(line))
         else:
             lines.append("(empty)")
         for ln in lines:
@@ -556,8 +562,8 @@ def make_context(p, w, save, *, dev: bool = False):
                 names: list[str] = []
                 for key, count in p.inventory.items():
                     names.extend([items.REGISTRY[key].name] * count)
-                line = ", ".join(names) + "."
-                print(cyan(line))
+                line = ", ".join(items.stack_plain(names))
+                print(white(line))
             else:
                 print("(empty)")
         elif cmd == "get":
