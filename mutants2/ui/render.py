@@ -1,4 +1,4 @@
-from .theme import yellow, SEP
+from .theme import yellow, red, SEP
 import re
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
@@ -62,7 +62,7 @@ def render_status(p) -> list[str]:
         ),
         yellow(f"Hit Points   : {p.hp} / {p.max_hp}"),
         yellow(f"Exp. Points  : {p.exp}           Level: {p.level}"),
-        yellow("Riblets      : 0"),
+        yellow(f"Riblets      : {getattr(p, 'riblets', 0)}"),
         yellow(f"Ions         : {p.ions}"),
         yellow(f"Wearing Armor: Nothing.  Armour Class: {p.ac_total}"),
         yellow("Ready to Combat: NO ONE"),
@@ -71,3 +71,21 @@ def render_status(p) -> list[str]:
         "",
     ]
     return lines
+
+
+def render_kill_block(name: str, xp: int, riblets: int, ions: int) -> None:
+    """Render the red kill message block for monster deaths."""
+
+    print(red(f"You have slain {name}!"))
+    print()
+    print(red(f"Your experience points are increased by {xp:,}!"))
+    print()
+    print(
+        red(
+            f"You collect {riblets:,} Riblets and {ions:,} ions from the slain body."
+        )
+    )
+    print()
+    print(red("***"))
+    print()
+    print(red(f"{name} is crumbling to dust!"))

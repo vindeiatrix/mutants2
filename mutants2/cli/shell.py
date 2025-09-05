@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 import datetime
 import time
-from typing import Mapping, cast
+from typing import Mapping, MutableMapping, cast
 
 from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
@@ -40,6 +40,7 @@ from ..ui.render import (
     render_status,
     enumerate_duplicates,
     wrap_ansi,
+    render_kill_block,
 )
 from .input import gerundize
 
@@ -456,19 +457,34 @@ def make_context(p, w, save, *, dev: bool = False):
         if not m:
             print("There is nothing here to attack.")
             return
-        name = cast(str, m.get("name"))
+        mm = cast(MutableMapping[str, object], m)
+        name = cast(str, mm.get("name"))
         dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
         if dead:
-            print(f"You defeat the {name}.")
             from ..engine import combat as combat_mod
 
-            combat_mod.award_kill(p)
+            xp = combat_mod.award_kill(p)
+            base_ions = 20_000
+            base_rib = 20_000
+            loot_i = int(mm.get("loot_ions", 0))
+            loot_r = int(mm.get("loot_riblets", 0))
+            total_i = base_ions + loot_i
+            total_r = base_rib + loot_r
+            p.ions += total_i
+            p.riblets += total_r
+            render_kill_block(name, xp, total_r, total_i)
             context._needs_render = False
             context._suppress_room_render = True
             return
         p.take_damage(MONSTER_DMG)
         print(f"The {name} hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
         if p.is_dead():
+            loot_i = int(mm.get("loot_ions", 0)) + p.ions
+            loot_r = int(mm.get("loot_riblets", 0)) + p.riblets
+            mm["loot_ions"] = loot_i
+            mm["loot_riblets"] = loot_r
+            p.ions = 0
+            p.riblets = 0
             print("You have died.")
             p.heal_full()
             p.positions[p.year] = (0, 0)
@@ -568,6 +584,8 @@ def make_context(p, w, save, *, dev: bool = False):
                     print(ln)
             else:
                 print("(empty)")
+            context._needs_render = False
+            context._suppress_room_render = True
         elif cmd == "get":
             handle_get(args)
             turn = True
@@ -595,6 +613,7 @@ def make_context(p, w, save, *, dev: bool = False):
   debug set ion <N>                   Set ions to N.
   debug set exp <N>                   Set total experience points.
   debug set hp <N>                    Set current HP.
+  debug set riblet <N>                Set riblets to N.
   debug item add <name|key> [count]   Add item(s) to current room's ground.
   debug item clear                    Remove all ground items here.
   debug item list                     Show raw ground items here.
@@ -748,6 +767,16 @@ def make_context(p, w, save, *, dev: bool = False):
                     else:
                         p.ions = val
                         print(yellow(f"Ions set to {val}."))
+                elif (
+                    args[:2] in (["set", "riblet"], ["set", "riblets"]) and len(args) >= 3
+                ):
+                    try:
+                        val = max(0, int(args[2]))
+                    except ValueError:
+                        print("Invalid riblet value.")
+                    else:
+                        p.riblets = val
+                        print(yellow(f"Riblets set to {val}."))
                 elif args[:2] == ["ion", "set"] and len(args) >= 3:
                     global _ION_SET_DEPRECATED_SHOWN
                     if not _ION_SET_DEPRECATED_SHOWN:

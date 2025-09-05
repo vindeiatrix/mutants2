@@ -35,7 +35,7 @@ def empty_start_world(tmp_path):
 
 def test_attack_kills_with_few_hits(world_with_mutant_on_start, cli_runner):
     out = cli_runner.run_commands(["att", "att"])
-    assert re.search(r"You defeat the Mutant-\d{4}", out)
+    assert re.search(r"You have slain Mutant-\d{4}!", out)
 
 
 def test_retaliation_and_death_respawn(world_with_mutant_on_start, cli_runner):

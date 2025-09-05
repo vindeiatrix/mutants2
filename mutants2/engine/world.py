@@ -167,6 +167,8 @@ class World:
                     has_yelled = entry.get("has_yelled_this_aggro", False)
                     mid_val = entry.get("id")
                     mid = int(cast(int, mid_val)) if mid_val is not None else None
+                    loot_i = entry.get("loot_ions", 0)
+                    loot_r = entry.get("loot_riblets", 0)
                     base = monsters_mod.REGISTRY[m_key].base_hp
                     if mid is None:
                         mid = self._id_alloc.allocate()
@@ -181,6 +183,8 @@ class World:
                         "seen": bool(seen),
                         "has_yelled_this_aggro": bool(has_yelled),
                         "id": int(mid),
+                        "loot_ions": int(loot_i),
+                        "loot_riblets": int(loot_r),
                     }
                     if m.get("aggro") and not m.get("seen"):
                         m["aggro"] = False

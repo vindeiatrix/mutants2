@@ -19,6 +19,7 @@ class CharacterProfile:
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
+    riblets: int = 0
     level: int = 1
     exp: int = 0
     strength: int = 0
@@ -44,6 +45,7 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         hp=p.hp,
         max_hp=p.max_hp,
         ions=p.ions,
+        riblets=getattr(p, "riblets", 0),
         level=getattr(p, "level", 1),
         exp=getattr(p, "exp", 0),
         strength=getattr(p, "strength", 0),
@@ -68,6 +70,7 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.hp = prof.hp
     p.max_hp = prof.max_hp
     p.ions = prof.ions
+    p.riblets = getattr(prof, "riblets", 0)
     p.level = getattr(prof, "level", 1)
     p.exp = getattr(prof, "exp", 0)
     p.strength = getattr(prof, "strength", 0)
@@ -92,6 +95,7 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "hp": prof.hp,
         "max_hp": prof.max_hp,
         "ions": prof.ions,
+        "riblets": getattr(prof, "riblets", 0),
         "level": getattr(prof, "level", 1),
         "exp": getattr(prof, "exp", 0),
         "strength": getattr(prof, "strength", 0),
@@ -125,6 +129,7 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         hp=int(data.get("hp", 10)),
         max_hp=int(data.get("max_hp", 10)),
         ions=int(data.get("ions", 0)),
+        riblets=int(data.get("riblets", 0)),
         level=int(data.get("level", 1)),
         exp=int(data.get("exp", 0)),
         strength=int(data.get("strength", 0)),

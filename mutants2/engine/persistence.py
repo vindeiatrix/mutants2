@@ -129,6 +129,7 @@ def load() -> tuple[
             else:
                 player.inventory.extend(str(k) for k in inv_raw)
             player.ions = int(data.get("ions", 0))
+            player.riblets = int(data.get("riblets", 0))
             player.level = int(data.get("level", 1))
             player.exp = int(data.get("exp", 0))
             player.strength = int(data.get("strength", 0))
@@ -183,6 +184,8 @@ def load() -> tuple[
                 seen = entry.get("seen", False)
                 has_yelled = entry.get("has_yelled_this_aggro", False)
                 mid = entry.get("id")
+                loot_i = entry.get("loot_ions", 0)
+                loot_r = entry.get("loot_riblets", 0)
                 base = monsters_mod.REGISTRY[m_key].base_hp
                 m: dict[str, object] = {
                     "key": m_key,
@@ -191,6 +194,8 @@ def load() -> tuple[
                     "aggro": bool(aggro),
                     "seen": bool(seen),
                     "has_yelled_this_aggro": bool(has_yelled),
+                    "loot_ions": int(loot_i),
+                    "loot_riblets": int(loot_r),
                 }
                 if mid is not None:
                     m["id"] = int(mid)
@@ -256,6 +261,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "exp": player.exp,
             "inventory": list(player.inventory),
             "ions": player.ions,
+            "riblets": getattr(player, "riblets", 0),
             "strength": player.strength,
             "intelligence": player.intelligence,
             "wisdom": player.wisdom,
@@ -291,6 +297,8 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                                 "has_yelled_this_aggro", False
                             ),
                             "id": m.get("id"),
+                            "loot_ions": m.get("loot_ions", 0),
+                            "loot_riblets": m.get("loot_riblets", 0),
                         }
                         for m in lst
                     ]
