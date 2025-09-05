@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Tuple, cast
 
+from .state import ItemInstance
+
 from .senses import SensesBuffer
 from .types import Direction
 from . import items as items_mod, rng as rng_mod
@@ -39,7 +41,7 @@ class Player:
     )
     clazz: str | None = None
     senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
-    inventory: list[str] = field(default_factory=list)
+    inventory: list[ItemInstance | str] = field(default_factory=list)
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
@@ -113,11 +115,16 @@ class Player:
 
     def inventory_names_in_order(self) -> list[str]:
         """Return inventory item names preserving pickup order."""
-        return [items_mod.REGISTRY[k].name for k in self.inventory]
+        names: list[str] = []
+        for val in self.inventory:
+            key = val.key if isinstance(val, ItemInstance) else val
+            names.append(items_mod.REGISTRY[key].name)
+        return names
 
     def inventory_weight_lbs(self) -> int:
         total = 0
-        for key in self.inventory:
+        for val in self.inventory:
+            key = val.key if isinstance(val, ItemInstance) else val
             item = items_mod.REGISTRY.get(key)
             if item and item.weight_lbs:
                 total += item.weight_lbs
@@ -128,10 +135,10 @@ class Player:
         item = items_mod.find_by_name(name)
         if not item:
             return None
-        ok = world.remove_ground_item(self.year, self.x, self.y, item.key)
-        if not ok:
+        inst = world.remove_ground_item(self.year, self.x, self.y, item.key)
+        if inst is None:
             return None
-        self.inventory.append(item.key)
+        self.inventory.append(inst)
 
         overflow_name: str | None = None
         total = len(self.inventory)
@@ -139,15 +146,18 @@ class Player:
             rng = rng_mod.hrand(
                 world.global_seed, world.turn, self.year, self.x, self.y, "inv_overflow"
             )
-            candidates = [k for k in self.inventory if k != item.key]
+            candidates = [
+                it for it in self.inventory if (it.key if isinstance(it, ItemInstance) else it) != item.key
+            ]
             if candidates:
-                victim_key = rng.choice(candidates)
+                victim = rng.choice(candidates)
                 try:
-                    self.inventory.remove(victim_key)
+                    self.inventory.remove(victim)
                 except ValueError:
                     pass
-                world.add_ground_item(self.year, self.x, self.y, victim_key)
-                overflow_name = items_mod.REGISTRY[victim_key].name
+                world.add_ground_item(self.year, self.x, self.y, victim)
+                vkey = victim.key if isinstance(victim, ItemInstance) else victim
+                overflow_name = items_mod.REGISTRY[vkey].name
         return overflow_name
 
     def drop_to_ground(
@@ -164,11 +174,17 @@ class Player:
         item = items_mod.find_by_name(name)
         if not item:
             return False, None, None, None
-        if item.key not in self.inventory:
+        inv_obj = None
+        for it in self.inventory:
+            key = it.key if isinstance(it, ItemInstance) else it
+            if key == item.key:
+                inv_obj = it
+                break
+        if inv_obj is None:
             return False, "You don't have that.", None, None
 
-        world.add_ground_item(self.year, self.x, self.y, item.key)
-        self.inventory.remove(item.key)
+        world.add_ground_item(self.year, self.x, self.y, inv_obj)
+        self.inventory.remove(inv_obj)
 
         rng = rng_mod.hrand(
             world.global_seed, world.turn, self.year, self.x, self.y, "drop_overflow"
@@ -180,19 +196,31 @@ class Player:
         if len(ground_items) > GROUND_LIMIT:
             candidates = [it for it in ground_items if it.key != item.key]
             if candidates:
-                gift = rng.choice(candidates)
-                world.remove_ground_item(self.year, self.x, self.y, gift.key)
-                self.inventory.append(gift.key)
-                gift_name = gift.name
+                gift_def = rng.choice(candidates)
+                gift_inst = world.remove_ground_item(
+                    self.year, self.x, self.y, gift_def.key
+                )
+                if gift_inst is not None:
+                    self.inventory.append(gift_inst)
+                    gift_name = gift_def.name
 
-                total = len(self.inventory)
-                if total > INVENTORY_LIMIT:
-                    inv_candidates = [k for k in self.inventory if k != gift.key]
-                    if inv_candidates:
-                        victim_key = rng.choice(inv_candidates)
-                        self.inventory.remove(victim_key)
-                        world.add_ground_item(self.year, self.x, self.y, victim_key)
-                        sack_name = items_mod.REGISTRY[victim_key].name
+                    total = len(self.inventory)
+                    if total > INVENTORY_LIMIT:
+                        inv_candidates = [
+                            it
+                            for it in self.inventory
+                            if (it.key if isinstance(it, ItemInstance) else it) != gift_def.key
+                        ]
+                        if inv_candidates:
+                            victim = rng.choice(inv_candidates)
+                            self.inventory.remove(victim)
+                            world.add_ground_item(
+                                self.year, self.x, self.y, victim
+                            )
+                            vkey = (
+                                victim.key if isinstance(victim, ItemInstance) else victim
+                            )
+                            sack_name = items_mod.REGISTRY[vkey].name
 
         return True, None, sack_name, gift_name
 
@@ -205,10 +233,16 @@ class Player:
         item = items_mod.find_by_name(name)
         if not item:
             return None
-        if item.key not in self.inventory:
+        inv_obj = None
+        for it in self.inventory:
+            key = it.key if isinstance(it, ItemInstance) else it
+            if key == item.key:
+                inv_obj = it
+                break
+        if inv_obj is None:
             return None
         if item.ion_value is None:
             return None
-        self.inventory.remove(item.key)
+        self.inventory.remove(inv_obj)
         self.ions += item.ion_value
         return item

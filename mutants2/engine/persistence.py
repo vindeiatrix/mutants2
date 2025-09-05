@@ -17,6 +17,7 @@ from .state import (
     profile_from_player,
     profile_from_raw,
     profile_to_raw,
+    ItemInstance,
 )
 from .macros import MacroStore
 
@@ -50,6 +51,21 @@ _ATTR_MAP = {
     "con": "constitution",
     "cha": "charisma",
 }
+
+
+def _serialize_item(val):
+    if isinstance(val, ItemInstance):
+        data = {"key": val.key}
+        if val.meta:
+            data["meta"] = val.meta
+        return data
+    return val
+
+
+def _deserialize_item(val):
+    if isinstance(val, dict):
+        return ItemInstance(val.get("key", ""), val.get("meta", {}))
+    return val
 
 
 def _migrate_profile(clazz: str, prof: CharacterProfile) -> None:
@@ -127,7 +143,11 @@ def load() -> tuple[
                 for k, v in inv_raw.items():
                     player.inventory.extend([k] * int(v))
             else:
-                player.inventory.extend(str(k) for k in inv_raw)
+                for k in inv_raw:
+                    if isinstance(k, dict):
+                        player.inventory.append(_deserialize_item(k))
+                    else:
+                        player.inventory.append(str(k))
             player.ions = int(data.get("ions", 0))
             player.riblets = int(data.get("riblets", 0))
             player.level = int(data.get("level", 1))
@@ -165,9 +185,9 @@ def load() -> tuple[
             parts = [int(n) for n in key.split(",")]
             coord: TileKey = (parts[0], parts[1], parts[2])
             if isinstance(val, list):
-                ground[coord] = list(val)
+                ground[coord] = [_deserialize_item(v) for v in val]
             else:
-                ground[coord] = [val]
+                ground[coord] = [_deserialize_item(val)]
         monsters_data: dict[TileKey, list[MonsterRec]] = {}
         for key, val in data.get("monsters", {}).items():
             parts = [int(n) for n in key.split(",")]
@@ -259,7 +279,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "max_hp": player.max_hp,
             "level": player.level,
             "exp": player.exp,
-            "inventory": list(player.inventory),
+            "inventory": [_serialize_item(i) for i in player.inventory],
             "ions": player.ions,
             "riblets": getattr(player, "riblets", 0),
             "strength": player.strength,
@@ -279,7 +299,11 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             ),
             "max_catchup_ticks": save_meta.max_catchup_ticks,
             "ground": {
-                f"{y},{x},{yy}": (items[0] if len(items) == 1 else items)
+                f"{y},{x},{yy}": (
+                    _serialize_item(items[0])
+                    if len(items) == 1
+                    else [_serialize_item(i) for i in items]
+                )
                 for (y, x, yy), items in world.ground.items()
             },
             "monsters": {

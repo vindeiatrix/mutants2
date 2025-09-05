@@ -75,17 +75,7 @@ def render_status(p) -> list[str]:
 
 def render_kill_block(name: str, xp: int, riblets: int, ions: int) -> None:
     """Render the red kill message block for monster deaths."""
-
     print(red(f"You have slain {name}!"))
-    print()
-    print(red(f"Your experience points are increased by {xp:,}!"))
-    print()
-    print(
-        red(
-            f"You collect {riblets:,} Riblets and {ions:,} ions from the slain body."
-        )
-    )
-    print()
-    print(red("***"))
-    print()
-    print(red(f"{name} is crumbling to dust!"))
+    print(red(f"Your experience points are increased by {xp}!"))
+    print(red(f"You collect {riblets} Riblets and {ions} ions from the slain body."))
+    print("***")

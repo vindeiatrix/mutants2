@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Tuple, TYPE_CHECKING
+from typing import Dict, Tuple, TYPE_CHECKING, Any
+
+
+@dataclass
+class ItemInstance:
+    key: str
+    meta: dict[str, Any] = field(default_factory=dict)
+
 
 from .world import ALLOWED_CENTURIES
 
@@ -91,7 +98,10 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "positions": {
             str(y): {"x": x, "y": yy} for y, (x, yy) in prof.positions.items()
         },
-        "inventory": list(prof.inventory),
+        "inventory": [
+            i if isinstance(i, str) else {"key": i.key, "meta": i.meta}
+            for i in prof.inventory
+        ],
         "hp": prof.hp,
         "max_hp": prof.max_hp,
         "ions": prof.ions,
@@ -114,11 +124,15 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
 
 def profile_from_raw(data: dict) -> CharacterProfile:
     inv_raw = data.get("inventory", [])
-    inventory = (
-        list(inv_raw)
-        if isinstance(inv_raw, list)
-        else [k for k, v in inv_raw.items() for _ in range(int(v))]
-    )
+    if isinstance(inv_raw, list):
+        inventory = [
+            ItemInstance(v.get("key", ""), v.get("meta", {}))
+            if isinstance(v, dict)
+            else str(v)
+            for v in inv_raw
+        ]
+    else:
+        inventory = [k for k, v in inv_raw.items() for _ in range(int(v))]
     return CharacterProfile(
         year=int(data.get("year", ALLOWED_CENTURIES[0])),
         positions={
