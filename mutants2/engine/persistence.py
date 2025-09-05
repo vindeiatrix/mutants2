@@ -35,6 +35,7 @@ class Save:
     # ``fake_today_override`` is session-only and not persisted
     fake_today_override: str | None = None
     last_upkeep_tick: float = field(default_factory=lambda: time.monotonic())
+    next_upkeep_tick: float | None = None  # monotonic deadline for next 10s tick
     max_catchup_ticks: int = 6
 
 

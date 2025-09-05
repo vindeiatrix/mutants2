@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 import datetime
+import time
 from typing import Mapping, cast
 
 from ..engine import persistence, items, monsters
@@ -11,6 +12,7 @@ from ..engine.loop import (
     maybe_process_upkeep,
     start_realtime_tick,
     stop_realtime_tick,
+    TICK_SECONDS,
 )
 from ..engine.leveling import recompute_from_exp
 from ..engine.player import (
@@ -117,7 +119,7 @@ def resolve_command(token: str) -> str | None:
     return None
 
 
-def class_menu(p, w, save, *, in_game: bool) -> bool:
+def class_menu(p, w, save, context=None, *, in_game: bool) -> bool:
     """Show the class selection menu.
 
     Returns ``True`` if the player's class was changed, ``False`` otherwise.
@@ -141,6 +143,8 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
         print(
             f"{i:>2}. Mutant {name:<7}  Level: {level:>2}   Year: {year:<4}  ({x:>2}  {y:>2})"
         )
+    if in_game and context is not None:
+        context.in_game = False
     while True:
         try:
             s = input("class> ").strip().lower()
@@ -160,6 +164,8 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
             continue
         if s in {"back", "b"}:
             if in_game:
+                if context is not None:
+                    context.in_game = True
                 return False
             print("Pick a class to begin.")
             continue
@@ -189,6 +195,8 @@ def class_menu(p, w, save, *, in_game: bool) -> bool:
         w.year(p.year)
         p.clazz = k
         persistence.save(p, w, save)
+        if context is not None:
+            context.in_game = True
         return True
 
 
@@ -207,6 +215,7 @@ def make_context(p, w, save, *, dev: bool = False):
         world=w,
         save=save,
         tick_handle=None,
+        in_game=True,
         _arrivals_this_tick=[],
         _footsteps_event=None,
         _entry_yells=[],
@@ -503,8 +512,9 @@ def make_context(p, w, save, *, dev: bool = False):
             persistence.save(p, w, save)
             stop_realtime_tick(context.tick_handle)
             context.tick_handle = None
+            context.in_game = False
             w.reset_all_aggro()
-            changed = class_menu(p, w, save, in_game=True)
+            changed = class_menu(p, w, save, context, in_game=True)
             if changed:
                 macro_store.load_profile(class_key(p.clazz or "default"))
                 yells = w.on_entry_aggro_check(
@@ -513,7 +523,9 @@ def make_context(p, w, save, *, dev: bool = False):
                 render_room_view(p, w, context)
                 for line in yells:
                     print(line)
+            save.next_upkeep_tick = time.monotonic() + TICK_SECONDS
             context.tick_handle = start_realtime_tick(p, w, save, context)
+            context.in_game = True
         elif cmd == "inventory":
             total = p.inventory_weight_lbs()
             print(
