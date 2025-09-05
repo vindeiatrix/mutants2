@@ -5,7 +5,7 @@ import datetime
 import time
 from typing import Mapping, cast
 
-from ..engine import persistence, items, monsters
+from ..engine import persistence, items, monsters, rng as rng_mod
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
 from ..engine.loop import (
@@ -117,6 +117,16 @@ def resolve_command(token: str) -> str | None:
         if kmin <= len(t) <= L and canon.startswith(t):
             return target
     return None
+
+
+def ordinal(n: int) -> str:
+    """Return the ordinal representation of ``n`` (1 -> ``1st``)."""
+
+    if 10 <= (n % 100) <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
 
 
 def class_menu(p, w, save, context=None, *, in_game: bool) -> bool:
@@ -300,16 +310,23 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
-        steps = abs(target - p.year) // 100
-        cost = ION_TRAVEL_COST * steps
-        if p.ions < cost:
-            print(yellow("You don't have enough ions to travel!"))
-            context._needs_render = False
-            context._suppress_room_render = True
-            return False
-        p.ions -= cost
-        p.travel(w, target)
-        print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
+        if target == p.year:
+            p.travel(w, target)
+            ord_century = ordinal(target // 100)
+            print(yellow(f"You're already in the {ord_century} Century!"))
+        else:
+            steps = abs(target - p.year) // 100
+            cost = ION_TRAVEL_COST * steps
+            if p.ions >= cost:
+                p.ions -= cost
+                p.travel(w, target)
+                print(yellow(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
+            else:
+                print(yellow("ZAAPPP!!!! You suddenly feel something has gone terribly wrong!"))
+                rng = rng_mod.hrand(w.global_seed, w.turn, p.year, target, "travel_mishap")
+                mishap_target = rng.choice(ALLOWED_CENTURIES)
+                p.travel(w, mishap_target)
+                p.ions = 0
         context._suppress_room_render = True
         context._suppress_entry_aggro = True
         context._skip_movement_tick = False
