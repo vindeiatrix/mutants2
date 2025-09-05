@@ -5,9 +5,13 @@ from typing import Dict, Tuple, cast
 
 from .senses import SensesBuffer
 from .types import Direction
-from . import items as items_mod
+from . import items as items_mod, rng as rng_mod
 from .world import ALLOWED_CENTURIES
 from ..ui.theme import red
+
+
+INVENTORY_LIMIT = 10
+GROUND_LIMIT = 6
 
 
 def class_key(name: str) -> str:
@@ -118,27 +122,89 @@ class Player:
                 total += item.weight_lbs * count
         return total
 
-    def pick_up(self, name: str, world) -> None:
+    def pick_up(self, name: str, world) -> str | None:
         """Pick up an item by name from the ground at the current tile."""
         item = items_mod.find_by_name(name)
         if not item:
-            return
+            return None
         ok = world.remove_ground_item(self.year, self.x, self.y, item.key)
-        if ok:
-            self.inventory[item.key] = self.inventory.get(item.key, 0) + 1
+        if not ok:
+            return None
+        self.inventory[item.key] = self.inventory.get(item.key, 0) + 1
 
-    def drop_to_ground(self, name: str, world) -> tuple[bool, str | None]:
-        """Drop an item by name onto the ground at the current tile."""
+        overflow_name: str | None = None
+        total = sum(self.inventory.values())
+        if total > INVENTORY_LIMIT:
+            rng = rng_mod.hrand(
+                world.global_seed, world.turn, self.year, self.x, self.y, "inv_overflow"
+            )
+            candidates: list[str] = []
+            for key, count in self.inventory.items():
+                if key == item.key:
+                    continue
+                candidates.extend([key] * count)
+            if candidates:
+                victim_key = rng.choice(candidates)
+                self.inventory[victim_key] -= 1
+                if self.inventory[victim_key] == 0:
+                    del self.inventory[victim_key]
+                world.add_ground_item(self.year, self.x, self.y, victim_key)
+                overflow_name = items_mod.REGISTRY[victim_key].name
+        return overflow_name
+
+    def drop_to_ground(
+        self, name: str, world
+    ) -> tuple[bool, str | None, str | None, str | None]:
+        """Drop an item by name onto the ground at the current tile.
+
+        Returns ``(ok, msg, sack_name, gift_name)`` where ``sack_name`` is the
+        name of an item that fell out of the sack due to inventory overflow and
+        ``gift_name`` is a ground item that was swapped into the inventory when
+        the ground was over capacity.
+        """
+
         item = items_mod.find_by_name(name)
         if not item:
-            return False, None
+            return False, None, None, None
         if self.inventory.get(item.key, 0) <= 0:
-            return False, "You don't have that."
+            return False, "You don't have that.", None, None
+
         world.add_ground_item(self.year, self.x, self.y, item.key)
         self.inventory[item.key] -= 1
         if self.inventory[item.key] == 0:
             del self.inventory[item.key]
-        return True, None
+
+        rng = rng_mod.hrand(
+            world.global_seed, world.turn, self.year, self.x, self.y, "drop_overflow"
+        )
+        sack_name: str | None = None
+        gift_name: str | None = None
+
+        ground_items = world.items_on_ground(self.year, self.x, self.y)
+        if len(ground_items) > GROUND_LIMIT:
+            candidates = [it for it in ground_items if it.key != item.key]
+            if candidates:
+                gift = rng.choice(candidates)
+                world.remove_ground_item(self.year, self.x, self.y, gift.key)
+                self.inventory[gift.key] = self.inventory.get(gift.key, 0) + 1
+                gift_name = gift.name
+
+                total = sum(self.inventory.values())
+                if total > INVENTORY_LIMIT:
+                    inv_candidates: list[str] = []
+                    for key, count in self.inventory.items():
+                        if key == gift.key:
+                            continue
+                        inv_candidates.extend([key] * count)
+                    if inv_candidates:
+                        victim_key = rng.choice(inv_candidates)
+                        self.inventory[victim_key] -= 1
+                        if self.inventory[victim_key] == 0:
+                            del self.inventory[victim_key]
+                        world.add_ground_item(self.year, self.x, self.y, victim_key)
+                        sack_name = items_mod.REGISTRY[victim_key].name
+
+        return True, None, sack_name, gift_name
 
     def convert_item(self, name: str) -> items_mod.ItemDef | None:
         """Convert an inventory item to ions.

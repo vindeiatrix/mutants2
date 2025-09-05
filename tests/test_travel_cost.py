@@ -8,8 +8,6 @@ from mutants2.engine import persistence
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
 from mutants2.ui.theme import yellow
-from mutants2.engine import rng as rng_mod
-from mutants2.engine.world import ALLOWED_CENTURIES
 
 
 def run(commands: list[str], *, ions: int = 0, start_year: int = 2000, start_pos: tuple[int, int] = (0, 0)):
@@ -39,13 +37,11 @@ def test_travel_costs_when_travelling_backward():
     assert p.year == 2300 and p.ions == 5_000
 
 
-def test_travel_insufficient_ions_mishap():
+def test_travel_insufficient_ions_no_move():
     out, p = run(["travel 2500"], ions=14_000)
-    base_seed = World().global_seed
-    rng = rng_mod.hrand(base_seed, 0, 2000, 2500, "travel_mishap")
-    expected = rng.choice(ALLOWED_CENTURIES)
-    assert yellow("ZAAPPP!!!! You suddenly feel something has gone terribly wrong!") in out
-    assert p.year == expected and p.ions == 0
+    assert yellow("***") in out
+    assert yellow("You don't have enough ions to create a portal.") in out
+    assert p.year == 2000 and p.ions == 14_000
 
 
 def test_same_century_travel_free_and_resets_position():

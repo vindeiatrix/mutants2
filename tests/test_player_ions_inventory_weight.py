@@ -4,7 +4,7 @@ from pathlib import Path
 from mutants2.engine import persistence
 from mutants2.engine.player import Player
 from mutants2.engine.world import World
-from mutants2.ui.theme import yellow, cyan
+from mutants2.ui.theme import yellow, white
 
 
 def test_inventory_weight_and_stats(cli_runner, tmp_path):
@@ -21,7 +21,7 @@ def test_inventory_weight_and_stats(cli_runner, tmp_path):
 
     # Inventory header and weight
     assert yellow("You are carrying the following items: (Total Weight: 45 LB's)") in out
-    assert cyan('Ion-Decay, Ion-Decay, Gold-Chunk.') in out
+    assert white('Ion-Decay, Ion-Decay (1), Gold-Chunk.') in out
 
     # Stats page ions
     assert 'Ions         : 0' in out

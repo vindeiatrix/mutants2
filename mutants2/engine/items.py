@@ -59,6 +59,7 @@ __all__ = [
     "describe",
     "article_name",
     "stack_for_render",
+    "stack_plain",
     "resolve_key_prefix",
     "display_name",
 ]
@@ -150,6 +151,23 @@ def stack_for_render(item_names: list[str]) -> list[str]:
         else:
             tokens.append(article_name(name))
             tokens.append(f"{article_name(name)} ({counts[name]-1})")
+        counts[name] = 0
+    if tokens:
+        tokens[-1] = tokens[-1] + "."
+    return tokens
+
+
+def stack_plain(item_names: list[str]) -> list[str]:
+    counts = collections.Counter(item_names)
+    tokens: list[str] = []
+    for name in item_names:
+        if counts[name] == 0:
+            continue
+        if counts[name] == 1:
+            tokens.append(name)
+        else:
+            tokens.append(name)
+            tokens.append(f"{name} ({counts[name]-1})")
         counts[name] = 0
     if tokens:
         tokens[-1] = tokens[-1] + "."
