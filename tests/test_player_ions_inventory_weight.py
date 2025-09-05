@@ -8,21 +8,22 @@ from mutants2.ui.theme import yellow, white
 
 
 def test_inventory_weight_and_stats(cli_runner, tmp_path):
-    persistence.SAVE_PATH = Path(tmp_path) / '.mutants2' / 'save.json'
-    os.environ['HOME'] = str(tmp_path)
+    persistence.SAVE_PATH = Path(tmp_path) / ".mutants2" / "save.json"
+    os.environ["HOME"] = str(tmp_path)
 
     p = Player()
-    p.inventory.extend(['ion_decay', 'ion_decay', 'gold_chunk'])
+    p.inventory.extend(["ion_decay", "ion_decay", "gold_chunk"])
     w = World(seeded_years={2000})
     save = persistence.Save()
     persistence.save(p, w, save)
 
-    out = cli_runner.run_commands(['inventory', 'status'])
+    out = cli_runner.run_commands(["inventory", "status"])
 
     # Inventory header and weight
-    assert yellow("You are carrying the following items: (Total Weight: 45 LB's)") in out
-    assert white('Ion-Decay, Ion-Decay (1), Gold-Chunk.') in out
+    assert (
+        yellow("You are carrying the following items: (Total Weight: 45 LB's)") in out
+    )
+    assert white("Ion-Decay, Ion-Decay\u00a0(1), Gold-Chunk.") in out
 
     # Stats page ions
-    assert 'Ions         : 0' in out
-
+    assert "Ions         : 0" in out

@@ -16,13 +16,17 @@ from ..engine.loop import (
 )
 from ..engine.leveling import recompute_from_exp
 from ..engine.player import (
-    CLASS_DISPLAY,
     CLASS_LIST,
     CLASS_BY_NUM,
     CLASS_BY_NAME,
     class_key,
 )
-from ..engine.state import CharacterProfile, apply_profile, profile_from_raw, ItemInstance
+from ..engine.state import (
+    CharacterProfile,
+    apply_profile,
+    profile_from_raw,
+    ItemInstance,
+)
 from ..engine.gen import (
     daily_topup_if_needed,
     debug_item_topup,
@@ -39,9 +43,9 @@ from ..ui.render import (
     render_help_hint,
     render_status,
     enumerate_duplicates,
-    wrap_ansi,
     render_kill_block,
 )
+from ..ui.wrap import wrap_list_ansi
 from .input import gerundize
 
 
@@ -329,7 +333,9 @@ def make_context(p, w, save, *, dev: bool = False):
             else:
                 p.ions -= cost
                 p.travel(w, target)
-                print(yellow(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
+                print(
+                    yellow(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D.")
+                )
         context._suppress_room_render = True
         context._suppress_entry_aggro = True
         context._skip_movement_tick = False
@@ -368,7 +374,11 @@ def make_context(p, w, save, *, dev: bool = False):
             print(yellow(f"The {sack_name} fell out of your sack!"))
         if gift_name:
             print(yellow("***"))
-            print(yellow(f"{items.article_name(gift_name)} has magically appeared in your hand!"))
+            print(
+                yellow(
+                    f"{items.article_name(gift_name)} has magically appeared in your hand!"
+                )
+            )
         return False
 
     def handle_convert(args: list[str]) -> bool:
@@ -552,13 +562,12 @@ def make_context(p, w, save, *, dev: bool = False):
         )
         if p.inventory:
             names = [
-                items.REGISTRY[
-                    obj.key if isinstance(obj, ItemInstance) else obj
-                ].name
+                items.REGISTRY[obj.key if isinstance(obj, ItemInstance) else obj].name
                 for obj in p.inventory
             ]
-            line = ", ".join(enumerate_duplicates(names)) + "."
-            lines.extend(wrap_ansi(white(line)).splitlines())
+            labels = enumerate_duplicates(names)
+            wrapped = wrap_list_ansi(labels)
+            lines.extend(white(ln) for ln in wrapped.splitlines())
         else:
             lines.append("(empty)")
         for ln in lines:
@@ -611,9 +620,10 @@ def make_context(p, w, save, *, dev: bool = False):
                     ].name
                     for obj in p.inventory
                 ]
-                line = ", ".join(enumerate_duplicates(names)) + "."
-                for ln in wrap_ansi(white(line)).splitlines():
-                    print(ln)
+                labels = enumerate_duplicates(names)
+                wrapped = wrap_list_ansi(labels)
+                for ln in wrapped.splitlines():
+                    print(white(ln))
             else:
                 print("(empty)")
             context._needs_render = False
@@ -800,7 +810,8 @@ def make_context(p, w, save, *, dev: bool = False):
                         p.ions = val
                         print(yellow(f"Ions set to {val}."))
                 elif (
-                    args[:2] in (["set", "riblet"], ["set", "riblets"]) and len(args) >= 3
+                    args[:2] in (["set", "riblet"], ["set", "riblets"])
+                    and len(args) >= 3
                 ):
                     try:
                         val = max(0, int(args[2]))

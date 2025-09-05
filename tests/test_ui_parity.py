@@ -21,7 +21,7 @@ def test_single_item_and_stack():
     w = World({(2000, 0, 0): ["nuclear_thong", "nuclear_thong"]}, {2000})
     out = strip_ansi(render_room_at(w, 2000, 0, 0))
     assert "On the ground lies:" in out
-    assert "A Nuclear-Thong, A Nuclear-Thong (1)." in out
+    assert "A Nuclear-Thong, A Nuclear-Thong\u00a0(1)." in out
 
 
 def test_render_order_and_copy():
