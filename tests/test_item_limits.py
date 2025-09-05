@@ -36,12 +36,12 @@ def test_inventory_limit_swap():
     ]
     p = Player()
     for k in inv_keys:
-        p.inventory[k] = 1
+        p.inventory.append(k)
     w = World({(2000, 0, 0): ["bottle_cap"]}, {2000}, global_seed=123)
 
     out = run(["get Bottle-Cap"], p=p, w=w)
 
-    assert sum(p.inventory.values()) == INVENTORY_LIMIT
+    assert len(p.inventory) == INVENTORY_LIMIT
     ground_items = w.items_on_ground(2000, 0, 0)
     assert len(ground_items) == 1
     victim_name = ground_items[0].name
@@ -63,13 +63,13 @@ def test_ground_limit_swap():
     ]
     w = World({(2000, 0, 0): ground_keys}, {2000}, global_seed=123)
     p = Player()
-    p.inventory["cigarette_butt"] = 1
+    p.inventory.append("cigarette_butt")
 
     out = run(["drop Cigarette-Butt"], p=p, w=w)
 
     assert len(w.items_on_ground(2000, 0, 0)) == 6
-    assert sum(p.inventory.values()) == 1
-    gift_key = next(iter(p.inventory.keys()))
+    assert len(p.inventory) == 1
+    gift_key = p.inventory[0]
     gift_name = items.REGISTRY[gift_key].name
     assert yellow("***") in out
     assert yellow(f"{items.article_name(gift_name)} has magically appeared in your hand!") in out

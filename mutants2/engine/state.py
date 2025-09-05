@@ -15,7 +15,7 @@ class CharacterProfile:
     positions: Dict[int, Tuple[int, int]] = field(
         default_factory=lambda: {c: (0, 0) for c in ALLOWED_CENTURIES}
     )
-    inventory: Dict[str, int] = field(default_factory=dict)
+    inventory: list[str] = field(default_factory=list)
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
@@ -40,7 +40,7 @@ def profile_from_player(p: "Player") -> CharacterProfile:
     return CharacterProfile(
         year=p.year,
         positions=dict(p.positions),
-        inventory=dict(p.inventory),
+        inventory=list(p.inventory),
         hp=p.hp,
         max_hp=p.max_hp,
         ions=p.ions,
@@ -64,7 +64,7 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
 
     p.year = prof.year
     p.positions = {int(y): (x, y2) for y, (x, y2) in prof.positions.items()}
-    p.inventory = dict(prof.inventory)
+    p.inventory = list(prof.inventory)
     p.hp = prof.hp
     p.max_hp = prof.max_hp
     p.ions = prof.ions
@@ -88,7 +88,7 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "positions": {
             str(y): {"x": x, "y": yy} for y, (x, yy) in prof.positions.items()
         },
-        "inventory": {k: v for k, v in prof.inventory.items()},
+        "inventory": list(prof.inventory),
         "hp": prof.hp,
         "max_hp": prof.max_hp,
         "ions": prof.ions,
@@ -109,13 +109,19 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
 
 
 def profile_from_raw(data: dict) -> CharacterProfile:
+    inv_raw = data.get("inventory", [])
+    inventory = (
+        list(inv_raw)
+        if isinstance(inv_raw, list)
+        else [k for k, v in inv_raw.items() for _ in range(int(v))]
+    )
     return CharacterProfile(
         year=int(data.get("year", ALLOWED_CENTURIES[0])),
         positions={
             int(k): (v.get("x", 0), v.get("y", 0))
             for k, v in data.get("positions", {}).items()
         },
-        inventory={k: int(v) for k, v in data.get("inventory", {}).items()},
+        inventory=inventory,
         hp=int(data.get("hp", 10)),
         max_hp=int(data.get("max_hp", 10)),
         ions=int(data.get("ions", 0)),

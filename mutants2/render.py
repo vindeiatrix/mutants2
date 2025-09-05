@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from .ui.theme import red, green, cyan, yellow, white, SEP
-from .engine.items import stack_for_render
+from .ui.render import enumerate_duplicates, wrap_ansi
+from .engine import items as items_mod
 
 
 def _room_desc(world, year, x, y):
@@ -49,11 +50,11 @@ def render_room_at(
             out.append(cyan(f"{d:<5} – area continues."))
 
     # (d/e) ground items followed by a single separator
-    ground_names = [it.name for it in world.items_on_ground(year, x, y)]
+    ground_names = [items_mod.article_name(it.name) for it in world.items_on_ground(year, x, y)]
     if ground_names:
         out.append(yellow("On the ground lies:"))
-        line = ", ".join(stack_for_render(ground_names))
-        out.append(cyan(line))
+        line = ", ".join(enumerate_duplicates(ground_names)) + "."
+        out.extend(wrap_ansi(cyan(line)).splitlines())
     # Always end the header section with one separator
     out.append(SEP)
 
@@ -100,7 +101,7 @@ def render_room_at(
             line = f"{names[0]}, and {names[1]} are here with you."
         else:
             line = f"{', '.join(names[:-1])}, and {names[-1]} are here with you."
-        out.append(white(line))
+        out.extend(wrap_ansi(white(line)).splitlines())
         if shadow_lines or arrivals_for_render:
             out.append(SEP)
 

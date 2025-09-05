@@ -14,7 +14,7 @@ def inventory_with_cap(tmp_path):
     persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    p.inventory['bottle_cap'] = 1
+    p.inventory.append('bottle_cap')
     w = World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()

@@ -122,9 +122,12 @@ def load() -> tuple[
             player.positions.update(positions)
             player.max_hp = int(data.get("max_hp", player.max_hp))
             player.hp = int(data.get("hp", player.max_hp))
-            player.inventory.update(
-                {k: int(v) for k, v in data.get("inventory", {}).items()}
-            )
+            inv_raw = data.get("inventory", [])
+            if isinstance(inv_raw, dict):
+                for k, v in inv_raw.items():
+                    player.inventory.extend([k] * int(v))
+            else:
+                player.inventory.extend(str(k) for k in inv_raw)
             player.ions = int(data.get("ions", 0))
             player.level = int(data.get("level", 1))
             player.exp = int(data.get("exp", 0))
@@ -251,7 +254,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "max_hp": player.max_hp,
             "level": player.level,
             "exp": player.exp,
-            "inventory": {k: v for k, v in player.inventory.items()},
+            "inventory": list(player.inventory),
             "ions": player.ions,
             "strength": player.strength,
             "intelligence": player.intelligence,
