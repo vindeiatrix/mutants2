@@ -1,7 +1,7 @@
 """Level computation and application of per-level gains."""
 from __future__ import annotations
 
-from ..data.class_tables import PROGRESSION
+from ..data.class_tables import PROGRESSION, BASE_LEVEL1
 from ..ui.theme import yellow
 from .player import class_key
 
@@ -43,5 +43,40 @@ def check_level_up(player) -> None:
             inc = deltas.get(f"{short}_plus", 0)
             setattr(player, attr, getattr(player, attr) + inc)
         player.level = next_level
+        player.recompute_ac()
         print(yellow("***"))
         print(yellow(f"You advance to Level {player.level}!"))
+
+
+def recompute_from_exp(player) -> None:
+    """Recompute level and stats from ``player.exp``."""
+
+    if not player.clazz:
+        return
+    clazz = class_key(player.clazz)
+    base = BASE_LEVEL1[clazz]
+    table = PROGRESSION.get(clazz, {})
+
+    # start from base level 1
+    for short, attr in _ATTR_MAP.items():
+        setattr(player, attr, base[short])
+    player.max_hp = base["hp"]
+    player.ac = base["ac"]
+    level = 1
+
+    while True:
+        next_level = level + 1
+        xp_needed = _xp_for_level(clazz, next_level)
+        if player.exp < xp_needed:
+            break
+        deltas = table.get(next_level, table.get(11, {}))
+        player.max_hp += deltas.get("hp_plus", 0)
+        for short, attr in _ATTR_MAP.items():
+            inc = deltas.get(f"{short}_plus", 0)
+            setattr(player, attr, getattr(player, attr) + inc)
+        level = next_level
+
+    player.level = level
+    if player.hp > player.max_hp:
+        player.hp = player.max_hp
+    player.recompute_ac()

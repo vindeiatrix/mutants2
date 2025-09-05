@@ -24,3 +24,4 @@ def apply_class_defaults(player, clazz: str) -> None:
     player.ac = base["ac"]
     player.exp = 0
     player.level = 1
+    player.recompute_ac()

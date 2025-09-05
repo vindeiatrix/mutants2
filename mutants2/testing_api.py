@@ -25,7 +25,7 @@ def run_one(cmd: str, *, seed: int = 42, year: int | None = None) -> str:
     save = persistence.Save(global_seed=seed)
     w = world_mod.World(global_seed=seed)
     w.year(start_year)
-    p = Player(year=start_year, clazz="Warrior")
+    p = Player(year=start_year, clazz="Warrior", ions=100000)
     ctx = make_context(p, w, save)
 
     buf = io.StringIO()

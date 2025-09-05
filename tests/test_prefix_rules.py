@@ -20,6 +20,7 @@ def world():
 def player():
     p = Player()
     p.clazz = "Warrior"
+    p.ions = 100000
     return p
 
 

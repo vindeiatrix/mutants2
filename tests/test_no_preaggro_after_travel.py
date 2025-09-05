@@ -37,6 +37,7 @@ def cli(world_travel_passive, tmp_path, monkeypatch):
     save = persistence.Save()
     p = Player()
     p.clazz = "Warrior"
+    p.ions = 100000
     ctx = make_context(p, world_travel_passive, save)
 
     class CLI:

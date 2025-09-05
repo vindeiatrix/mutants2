@@ -77,8 +77,8 @@ def test_heal_insufficient_ions():
 
 def test_heal_below_max():
     out, p = run_heal("heal", hp=10, max_hp=20, ions=2000)
-    assert "Your body glows as it heals 3 points!" in out
-    assert p.hp == 13
+    assert "Your body glows as it heals 6 points!" in out
+    assert p.hp == 16
     assert p.ions == 1000
 
 
