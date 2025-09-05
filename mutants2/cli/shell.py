@@ -43,7 +43,6 @@ from ..ui.render import (
     render_help_hint,
     render_status,
     enumerate_duplicates,
-    render_kill_block,
 )
 from ..ui.wrap import wrap_list_ansi
 from .input import gerundize
@@ -69,7 +68,7 @@ NONDIR_CMDS = {
     "do": "do",
     "status": "status",
     "rest": "rest",
-    "attack": "attack",
+    "combat": "combat",
     "heal": "heal",
     "debug": "debug",
 }
@@ -83,7 +82,7 @@ TURN_CMDS = {
     "get",
     "drop",
     "convert",
-    "attack",
+    "combat",
     "rest",
     "heal",
     "look",
@@ -225,8 +224,6 @@ def make_context(p, w, save, *, dev: bool = False):
     macro_store.load_profile(class_key(p.clazz or "default"))
     last_move = None
 
-    PLAYER_DMG = 2
-    MONSTER_DMG = 1
 
     context = SimpleNamespace(
         macro_store=macro_store,
@@ -477,53 +474,31 @@ def make_context(p, w, save, *, dev: bool = False):
         context._suppress_room_render = True
         return False
 
-    def handle_attack() -> None:
-        m = w.monster_here(p.year, p.x, p.y)
-        if not m:
-            print("There is nothing here to attack.")
-            return
-        mm = cast(MutableMapping[str, object], m)
-        name = cast(str, mm.get("name"))
-        dead = w.damage_monster(p.year, p.x, p.y, PLAYER_DMG)
-        if dead:
-            from ..engine import combat as combat_mod
-
-            xp = combat_mod.award_kill(p)
-            base_ions = 20_000
-            base_rib = 20_000
-            loot_i = int(mm.get("loot_ions", 0))
-            loot_r = int(mm.get("loot_riblets", 0))
-            total_i = base_ions + loot_i
-            total_r = base_rib + loot_r
-            p.ions += total_i
-            p.riblets += total_r
-            render_kill_block(name, xp, total_r, total_i)
-            skull_inst = ItemInstance(
-                "skull", {"monster_type": monsters.REGISTRY[mm["key"]].name}
-            )
-            w.add_ground_item(p.year, p.x, p.y, skull_inst)
-            print(white(f"A Skull is falling from {name}'s body!"))
-            print("***")
-            print(red(f"{name} is crumbling to dust!"))
+    def handle_combat(args: list[str]) -> bool:
+        if not args:
+            render_usage("combat")
+            context._suppress_room_render = True
+            return False
+        raw = " ".join(args).strip()
+        here = w.monsters_here(p.year, p.x, p.y)
+        names = [cast(str, m.get("name")) for m in here]
+        match = monsters.first_mon_prefix(raw.lower(), names)
+        if not match:
+            print(yellow("***"))
+            print(yellow("No such monster here."))
             context._needs_render = False
             context._suppress_room_render = True
-            return
-        p.take_damage(MONSTER_DMG)
-        print(f"The {name} hits you (-{MONSTER_DMG} HP). (HP: {p.hp}/{p.max_hp})")
-        if p.is_dead():
-            loot_i = int(mm.get("loot_ions", 0)) + p.ions
-            loot_r = int(mm.get("loot_riblets", 0)) + p.riblets
-            mm["loot_ions"] = loot_i
-            mm["loot_riblets"] = loot_r
-            p.ions = 0
-            p.riblets = 0
-            print("You have died.")
-            p.heal_full()
-            p.positions[p.year] = (0, 0)
-            w.reset_aggro_in_year(p.year)
-            context._arrivals_this_tick = []
+            return False
+        for m in here:
+            if cast(str, m.get("name")) == match:
+                p.ready_to_combat_id = str(m.get("id"))
+                p.ready_to_combat_name = match
+                break
+        print(yellow("***"))
+        print(yellow(f"You're ready to combat {match}!"))
         context._needs_render = False
         context._suppress_room_render = True
+        return True
 
     def handle_rest() -> None:
         if w.monster_here(p.year, p.x, p.y):
@@ -637,9 +612,9 @@ def make_context(p, w, save, *, dev: bool = False):
         elif cmd == "convert":
             if handle_convert(args):
                 turn = True
-        elif cmd == "attack":
-            handle_attack()
-            turn = True
+        elif cmd == "combat":
+            if handle_combat(args):
+                turn = True
         elif cmd == "rest":
             handle_rest()
             turn = True
@@ -677,6 +652,9 @@ def make_context(p, w, save, *, dev: bool = False):
                 topic = " ".join(args).strip().lower() if args else ""
                 if topic in {"macros", "macro"}:
                     print(MACROS_HELP)
+                elif topic in USAGE:
+                    for line in USAGE[topic]:
+                        print(line)
                 else:
                     print(COMMANDS_HELP)
                     print()

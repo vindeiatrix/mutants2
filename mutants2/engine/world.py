@@ -363,7 +363,9 @@ class World:
         mid = self._id_alloc.allocate()
         self._monsters.setdefault((year, x, y), []).append(monsters_mod.spawn(key, mid))
 
-    def damage_monster(self, year: int, x: int, y: int, dmg: int) -> bool:
+    def damage_monster(
+        self, year: int, x: int, y: int, dmg: int, player=None
+    ) -> bool:
         coord = (year, x, y)
         lst = self._monsters.get(coord)
         if not lst:
@@ -377,18 +379,25 @@ class World:
             self._id_alloc.release(mid)
             if not lst:
                 self._monsters.pop(coord, None)
+            if player is not None and getattr(player, "ready_to_combat_id", None) == str(mid):
+                player.ready_to_combat_id = None
+                player.ready_to_combat_name = None
             return True
         return False
 
-    def remove_monster(self, year: int, x: int, y: int) -> bool:
+    def remove_monster(self, year: int, x: int, y: int, player=None) -> bool:
         coord = (year, x, y)
         lst = self._monsters.get(coord)
         if not lst:
             return False
         m = lst.pop(0)
-        self._id_alloc.release(int(cast(int, m.get("id", 0))))
+        mid = int(cast(int, m.get("id", 0)))
+        self._id_alloc.release(mid)
         if not lst:
             self._monsters.pop(coord, None)
+        if player is not None and getattr(player, "ready_to_combat_id", None) == str(mid):
+            player.ready_to_combat_id = None
+            player.ready_to_combat_name = None
         return True
 
     def monster_count(self, year: int) -> int:

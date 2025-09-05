@@ -38,6 +38,8 @@ class CharacterProfile:
     ac: int = 0
     natural_dex_ac: int = 0
     ac_total: int = 0
+    ready_to_combat_id: str | None = None
+    ready_to_combat_name: str | None = None
     macros_name: str | None = None
     tables_migrated: bool = True
 
@@ -64,6 +66,8 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         ac=getattr(p, "ac", 0),
         natural_dex_ac=getattr(p, "natural_dex_ac", 0),
         ac_total=getattr(p, "ac_total", getattr(p, "ac", 0)),
+        ready_to_combat_id=getattr(p, "ready_to_combat_id", None),
+        ready_to_combat_name=getattr(p, "ready_to_combat_name", None),
         tables_migrated=True,
     )
 
@@ -89,6 +93,8 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.ac = getattr(prof, "ac", 0)
     p.natural_dex_ac = getattr(prof, "natural_dex_ac", p.dexterity // 10)
     p.ac_total = getattr(prof, "ac_total", p.ac + p.natural_dex_ac)
+    p.ready_to_combat_id = getattr(prof, "ready_to_combat_id", None)
+    p.ready_to_combat_name = getattr(prof, "ready_to_combat_name", None)
     p.recompute_ac()
 
 
@@ -117,6 +123,8 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "ac": getattr(prof, "ac", 0),
         "natural_dex_ac": getattr(prof, "natural_dex_ac", 0),
         "ac_total": getattr(prof, "ac_total", getattr(prof, "ac", 0)),
+        "ready_to_combat_id": getattr(prof, "ready_to_combat_id", None),
+        "ready_to_combat_name": getattr(prof, "ready_to_combat_name", None),
         "tables_migrated": getattr(prof, "tables_migrated", True),
         **({"macros_name": prof.macros_name} if prof.macros_name else {}),
     }
@@ -155,6 +163,8 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         ac=int(data.get("ac", 0)),
         natural_dex_ac=int(data.get("natural_dex_ac", 0)),
         ac_total=int(data.get("ac_total", int(data.get("ac", 0)))),
+        ready_to_combat_id=data.get("ready_to_combat_id"),
+        ready_to_combat_name=data.get("ready_to_combat_name"),
         macros_name=data.get("macros_name"),
         tables_migrated=bool(data.get("tables_migrated", False)),
     )

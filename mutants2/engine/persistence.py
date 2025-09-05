@@ -159,6 +159,8 @@ def load() -> tuple[
             player.constitution = int(data.get("constitution", 0))
             player.charisma = int(data.get("charisma", 0))
             player.ac = int(data.get("ac", 0))
+            player.ready_to_combat_id = data.get("ready_to_combat_id")
+            player.ready_to_combat_name = data.get("ready_to_combat_name")
             prof = profile_from_player(player)
             _migrate_profile(clazz, prof)
             apply_profile(player, prof)
@@ -289,6 +291,8 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "constitution": player.constitution,
             "charisma": player.charisma,
             "ac": player.ac,
+            "ready_to_combat_id": player.ready_to_combat_id,
+            "ready_to_combat_name": player.ready_to_combat_name,
             "profiles": {
                 k: profile_to_raw(v) if isinstance(v, CharacterProfile) else v
                 for k, v in save_meta.profiles.items()
