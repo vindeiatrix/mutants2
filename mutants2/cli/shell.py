@@ -7,6 +7,8 @@ from typing import Mapping, cast
 from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
+from ..engine.loop import ion_upkeep
+from ..engine.leveling import recompute_from_exp
 from ..engine.player import (
     CLASS_DISPLAY,
     CLASS_LIST,
@@ -26,6 +28,7 @@ from ..engine.world import ALLOWED_CENTURIES
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
 from ..ui.strings import GET_WHAT, DROP_WHAT
 from ..ui.theme import red, SEP, yellow, cyan, white
+from ..data.config import ION_TRAVEL_COST
 from ..ui.render import render_help_hint, render_status
 from .input import gerundize
 
@@ -274,7 +277,13 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
+        if p.ions < ION_TRAVEL_COST:
+            print(yellow("You don't have enough ions to travel!"))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
+        p.ions -= ION_TRAVEL_COST
         p.travel(w, target)
         print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         context._suppress_room_render = True
@@ -432,11 +441,11 @@ def make_context(p, w, save, *, dev: bool = False):
             print(yellow("***"))
             print(yellow("You don't have enough ions to heal!"))
             return
-        delta = min(3, p.max_hp - p.hp)
+        heal_amount = 6 + (p.level - 1)
         p.ions -= 1000
-        p.hp += delta
+        p.hp = min(p.max_hp, p.hp + heal_amount)
         print(yellow("***"))
-        print(yellow("Your body glows as it heals 3 points!"))
+        print(yellow(f"Your body glows as it heals {heal_amount} points!"))
         if p.hp >= p.max_hp:
             print(yellow("***"))
             print(yellow("You're healed to the maximum!"))
@@ -526,15 +535,20 @@ def make_context(p, w, save, *, dev: bool = False):
             if args and args[0].lower() == "debug":
                 print(
                     """Debug commands:
+  debug ion set <N>                   Set ions to N.
+  debug set exp <N>                   Set total experience points.
+  debug set hp <N>                    Set current HP.
   debug item add <name|key> [count]   Add item(s) to current room's ground.
   debug item clear                    Remove all ground items here.
   debug item list                     Show raw ground items here.
   debug item count                    Count ground items in current year.
+  debug item topup                    Run item top-up for current year.
   debug mon here                      Toggle a Mutant on this tile.
   debug mon clear                     Remove all monsters in this room.
   debug mon clear year                Remove all monsters in this year.
   debug mon spawn <n>                 Spawn n Mutants near the player (dev).
   debug mon count                     Count monsters in current year.
+  debug mon topup                     Run monster top-up for current year.
   debug today YYYY-MM-DD              Set synthetic 'today' (dev date).
   debug today clear                   Clear synthetic date.
   debug topup                         Run daily item top-up now.
@@ -677,6 +691,23 @@ def make_context(p, w, save, *, dev: bool = False):
                     else:
                         p.ions = val
                         print(f"Ions set to {val}.")
+                elif args[:2] == ["set", "exp"] and len(args) >= 3:
+                    try:
+                        val = max(0, int(args[2]))
+                    except ValueError:
+                        print("Invalid EXP value.")
+                    else:
+                        p.exp = val
+                        recompute_from_exp(p)
+                        print(yellow(f"EXP set to {val}. Level is now {p.level}."))
+                elif args[:2] == ["set", "hp"] and len(args) >= 3:
+                    try:
+                        val = int(args[2])
+                    except ValueError:
+                        print("Invalid HP value.")
+                    else:
+                        p.hp = max(0, min(val, p.max_hp))
+                        print(yellow(f"HP set to {p.hp}/{p.max_hp}."))
                 else:
                     print("Invalid debug command.")
         elif cmd in {"north", "south", "east", "west"}:
@@ -739,6 +770,7 @@ def make_context(p, w, save, *, dev: bool = False):
         return handle_command(cmd, args)
 
     def dispatch_line(line: str) -> bool:
+        ion_upkeep(p, w, save, context)
         stripped = line.strip()
         if not stripped:
             context._last_turn_consumed = False

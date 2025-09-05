@@ -32,6 +32,7 @@ def main() -> None:
     from mutants2.engine.types import MonsterRec, TileKey
     from mutants2.engine.render import render_room_view
     from mutants2.engine.gen import daily_topup_if_needed
+    from mutants2.engine.loop import ion_upkeep
 
     p, ground, monsters, seeded, save = persistence.load()
     ground_map: dict[TileKey, list[str]] = ground
@@ -45,6 +46,8 @@ def main() -> None:
     placed = daily_topup_if_needed(w, p, save)
     if dev and placed:
         print(f"[dev] Daily top-up placed {placed} items.")
+
+    ion_upkeep(p, w, save)
 
     yells = w.on_entry_aggro_check(
         p.year, p.x, p.y, p, seed_parts=(save.global_seed, w.turn)

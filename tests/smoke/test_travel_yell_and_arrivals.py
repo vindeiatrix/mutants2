@@ -12,7 +12,7 @@ from mutants2.engine.ai import set_aggro
 def run_cli(world, commands, tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     save = persistence.Save()
-    p = Player()
+    p = Player(ions=100000)
     p.clazz = "Warrior"
     ctx = make_context(p, world, save)
     buf = StringIO()

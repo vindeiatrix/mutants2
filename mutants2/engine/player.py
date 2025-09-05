@@ -48,6 +48,8 @@ class Player:
     constitution: int = 0
     charisma: int = 0
     ac: int = 0
+    natural_dex_ac: int = 0
+    ac_total: int = 0
     _last_move_struck_back: bool = field(default=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -55,6 +57,12 @@ class Player:
             from . import classes as classes_mod
 
             classes_mod.apply_class_defaults(self, class_key(self.clazz))
+        self.recompute_ac()
+
+    def recompute_ac(self) -> None:
+        """Recompute natural and total armour class."""
+        self.natural_dex_ac = self.dexterity // 10
+        self.ac_total = self.ac + self.natural_dex_ac
 
     @property
     def x(self) -> int:

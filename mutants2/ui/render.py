@@ -30,7 +30,7 @@ def render_status(p) -> list[str]:
         yellow(f"Exp. Points  : {p.exp}           Level: {p.level}"),
         yellow("Riblets      : 0"),
         yellow(f"Ions         : {p.ions}"),
-        yellow(f"Wearing Armor: Nothing.  Armour Class: {p.ac}"),
+        yellow(f"Wearing Armor: Nothing.  Armour Class: {p.ac_total}"),
         yellow("Ready to Combat: NO ONE"),
         yellow("Readied Spell : No spell memorized."),
         yellow(f"Year A.D.     : {p.year}"),

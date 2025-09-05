@@ -31,7 +31,7 @@ def _ensure_profile(tmp_path):
         with open(save_path, "w") as fh:
             json.dump(data, fh)
     else:
-        p = Player(clazz="Warrior")
+        p = Player(clazz="Warrior", ions=100000)
         w = world_mod.World(seeded_years={2000})
         save = persistence.Save()
         save.last_topup_date = datetime.date.today().isoformat()
@@ -42,7 +42,7 @@ def _ensure_profile(tmp_path):
             "hp": p.hp,
             "max_hp": p.max_hp,
             "inventory": {},
-            "ions": 0,
+            "ions": p.ions,
         }
         persistence.save(p, w, save)
 
