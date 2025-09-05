@@ -34,7 +34,7 @@ class Save:
     profiles: Dict[str, CharacterProfile] = field(default_factory=dict)
     # ``fake_today_override`` is session-only and not persisted
     fake_today_override: str | None = None
-    last_ion_tick: float = field(default_factory=lambda: time.time())
+    last_upkeep_tick: float = field(default_factory=lambda: time.time())
 
 
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
@@ -202,7 +202,9 @@ def load() -> tuple[
             last_topup_date=data.get("last_topup_date"),
             last_class=last_class,
             profiles=profiles,
-            last_ion_tick=float(data.get("last_ion_tick", time.time())),
+            last_upkeep_tick=float(
+                data.get("last_upkeep_tick", data.get("last_ion_tick", time.time()))
+            ),
         )
 
         if not active_class and profiles:
@@ -258,7 +260,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for k, v in save_meta.profiles.items()
             },
             "last_class": save_meta.last_class,
-            "last_ion_tick": save_meta.last_ion_tick,
+            "last_upkeep_tick": save_meta.last_upkeep_tick,
             "ground": {
                 f"{y},{x},{yy}": (items[0] if len(items) == 1 else items)
                 for (y, x, yy), items in world.ground.items()

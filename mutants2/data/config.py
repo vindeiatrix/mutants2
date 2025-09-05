@@ -6,3 +6,11 @@ ION_BASE = {
     "warrior": 100,
     "mage": 47,
 }
+
+HEAL_K = {
+    "thief": 200,
+    "priest": 750,
+    "wizard": 1000,
+    "warrior": 750,
+    "mage": 1200,
+}
