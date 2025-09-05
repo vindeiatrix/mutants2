@@ -35,7 +35,7 @@ class Save:
     # ``fake_today_override`` is session-only and not persisted
     fake_today_override: str | None = None
     last_upkeep_tick: float = field(default_factory=lambda: time.monotonic())
-    max_catchup_ticks: int = 60
+    max_catchup_ticks: int = 6
 
 
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
@@ -208,7 +208,7 @@ def load() -> tuple[
             last_class=last_class,
             profiles=profiles,
             last_upkeep_tick=time.monotonic() - max(0.0, now_wall - last_wall),
-            max_catchup_ticks=int(data.get("max_catchup_ticks", 60)),
+            max_catchup_ticks=int(data.get("max_catchup_ticks", 6)),
         )
 
         if not active_class and profiles:

@@ -55,7 +55,7 @@ def main() -> None:
         print(line)
 
     ctx = make_context(p, w, save, dev=dev)
-    tick_handle = loop.start_realtime_tick(p, w, save, ctx)
+    ctx.tick_handle = loop.start_realtime_tick(p, w, save, ctx)
     try:
         while True:
             try:
@@ -66,7 +66,7 @@ def main() -> None:
             if ctx.dispatch_line(line):
                 break
     finally:
-        loop.stop_realtime_tick(tick_handle)
+        loop.stop_realtime_tick(getattr(ctx, "tick_handle", None))
 
 
 if __name__ == "__main__":  # pragma: no cover
