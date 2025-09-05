@@ -97,8 +97,8 @@ USAGE = {
     "travel": [
         "You can travel through time by typing:",
         "TRAVEL [year]",
-        "The years you can travel from is 2000 to 2200 A.D. Your travel will be",
-        "rounded off to the closest century, and you'll be sent into a new world.",
+        "The years you can travel from is 2000 to 3000 A.D. Your travel will be",
+        "rounded down to the closest century, and you'll be sent into a new world.",
     ],
     "convert": [
         "You may convert items into ions. Each item converts into",

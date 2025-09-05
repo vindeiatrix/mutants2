@@ -37,14 +37,14 @@ def test_convert_gibberish(cli_runner):
 
 
 def test_travel_rounding_and_stats(cli_runner):
-    out = cli_runner.run_commands(['tra 2149', 'status'])
-    assert white("ZAAAAPPPPP!! You've been sent to the year 2100 A.D.") in out
-    assert 'Year A.D.     : 2100' in out
+    out = cli_runner.run_commands(['tra 2345', 'status'])
+    assert white("ZAAAAPPPPP!! You've been sent to the year 2300 A.D.") in out
+    assert 'Year A.D.     : 2300' in out
 
 
 def test_travel_out_of_range(cli_runner):
     out = cli_runner.run_commands(['travel 23452353'])
-    assert yellow('You can only travel from year 2000 to 2200!') in out
+    assert yellow('You can only travel from year 2000 to 3000!') in out
 
 
 def test_command_usage_blocks(cli_runner):
