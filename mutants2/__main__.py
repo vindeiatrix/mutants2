@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import atexit
+import time
 
 
 def main() -> None:
@@ -41,7 +42,7 @@ def main() -> None:
 
     if p.clazz is None:
         w.reset_all_aggro()
-        class_menu(p, w, save, in_game=False)
+        class_menu(p, w, save, None, in_game=False)
 
     placed = daily_topup_if_needed(w, p, save)
     if dev and placed:
@@ -54,6 +55,7 @@ def main() -> None:
     for line in yells:
         print(line)
 
+    save.next_upkeep_tick = time.monotonic() + loop.TICK_SECONDS
     ctx = make_context(p, w, save, dev=dev)
     ctx.tick_handle = loop.start_realtime_tick(p, w, save, ctx)
     try:
