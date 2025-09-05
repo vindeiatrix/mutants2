@@ -19,11 +19,26 @@ def run_cli(inp: str, home, env_extra=None):
     return subprocess.run(cmd, input=inp, text=True, capture_output=True, env=env)
 
 
-def run_heal(cmd: str, *, hp: int, max_hp: int, ions: int):
+def run_heal(
+    cmd: str,
+    *,
+    hp: int,
+    max_hp: int,
+    ions: int,
+    level: int = 1,
+    clazz: str = "Warrior",
+):
     save = persistence.Save(global_seed=42)
     w = world_mod.World(global_seed=42)
     w.year(2000)
-    p = Player(year=2000, clazz="Warrior", hp=hp, max_hp=max_hp, ions=ions)
+    p = Player(
+        year=2000,
+        clazz=clazz,
+        hp=hp,
+        max_hp=max_hp,
+        ions=ions,
+        level=level,
+    )
     ctx = make_context(p, w, save)
     buf = io.StringIO()
     with tempfile.TemporaryDirectory() as tmp:
@@ -69,24 +84,24 @@ def test_class_menu_alignment(tmp_path):
 
 
 def test_heal_insufficient_ions():
-    out, p = run_heal("heal", hp=10, max_hp=20, ions=900)
+    out, p = run_heal("heal", hp=10, max_hp=20, ions=700)
     assert "You don't have enough ions to heal!" in out
     assert p.hp == 10
-    assert p.ions == 900
+    assert p.ions == 700
 
 
 def test_heal_below_max():
     out, p = run_heal("heal", hp=10, max_hp=20, ions=2000)
     assert "Your body glows as it heals 6 points!" in out
     assert p.hp == 16
-    assert p.ions == 1000
+    assert p.ions == 1250
 
 
 def test_heal_to_max():
     out, p = run_heal("heal", hp=19, max_hp=20, ions=3000)
     assert "You're healed to the maximum!" in out
     assert p.hp == 20
-    assert p.ions == 2000
+    assert p.ions == 2250
 
 
 def test_heal_already_max():
@@ -94,6 +109,24 @@ def test_heal_already_max():
     assert "Nothing happens!" in out
     assert p.hp == 20
     assert p.ions == 5000
+
+
+def test_heal_cost_thief_level10():
+    out, p = run_heal(
+        "heal", hp=10, max_hp=40, ions=5000, level=10, clazz="Thief"
+    )
+    assert "Your body glows as it heals 15 points!" in out
+    assert p.hp == 25
+    assert p.ions == 3000
+
+
+def test_heal_cost_mage_level12():
+    out, p = run_heal(
+        "heal", hp=10, max_hp=50, ions=20000, level=12, clazz="Mage"
+    )
+    assert "Your body glows as it heals 17 points!" in out
+    assert p.hp == 27
+    assert p.ions == 5600
 
 
 def test_debug_mon_clear():

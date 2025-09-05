@@ -28,7 +28,7 @@ from ..engine.world import ALLOWED_CENTURIES
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
 from ..ui.strings import GET_WHAT, DROP_WHAT
 from ..ui.theme import red, SEP, yellow, cyan, white
-from ..data.config import ION_TRAVEL_COST
+from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import render_help_hint, render_status
 from .input import gerundize
 
@@ -433,16 +433,18 @@ def make_context(p, w, save, *, dev: bool = False):
         print(f"You rest and recover. (HP: {p.hp}/{p.max_hp})")
 
     def handle_heal() -> None:
+        k = HEAL_K.get(class_key(p.clazz or ""), 0)
+        heal_amount = p.level + 5
+        cost = k * p.level
+        if p.ions < cost:
+            print(yellow("***"))
+            print(yellow("You don't have enough ions to heal!"))
+            return
         if p.hp >= p.max_hp:
             print(yellow("***"))
             print(yellow("Nothing happens!"))
             return
-        if p.ions < 1000:
-            print(yellow("***"))
-            print(yellow("You don't have enough ions to heal!"))
-            return
-        heal_amount = 6 + (p.level - 1)
-        p.ions -= 1000
+        p.ions -= cost
         p.hp = min(p.max_hp, p.hp + heal_amount)
         print(yellow("***"))
         print(yellow(f"Your body glows as it heals {heal_amount} points!"))
