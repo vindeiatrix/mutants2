@@ -12,7 +12,7 @@ def test_inventory_weight_and_stats(cli_runner, tmp_path):
     os.environ['HOME'] = str(tmp_path)
 
     p = Player()
-    p.inventory.update({'ion_decay': 2, 'gold_chunk': 1})
+    p.inventory.extend(['ion_decay', 'ion_decay', 'gold_chunk'])
     w = World(seeded_years={2000})
     save = persistence.Save()
     persistence.save(p, w, save)

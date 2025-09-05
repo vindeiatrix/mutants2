@@ -69,7 +69,7 @@ def test_migration_recomputes_stats(tmp_path, monkeypatch):
             "warrior": {
                 "year": 2000,
                 "positions": {"2000": {"x": 0, "y": 0}},
-                "inventory": {},
+                "inventory": [],
                 "hp": 9999,
                 "max_hp": 9999,
                 "ions": 0,

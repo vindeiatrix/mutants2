@@ -31,6 +31,6 @@ def test_catalog_has_correct_values(name, expected):
 
 def test_inventory_weight_totals():
     p = Player()
-    p.inventory.update({"ion_decay": 2, "gold_chunk": 1})
+    p.inventory.extend(["ion_decay", "ion_decay", "gold_chunk"])
     # weights: ion_decay=10*2=20, gold_chunk=25 -> total 45
     assert p.inventory_weight_lbs() == 45

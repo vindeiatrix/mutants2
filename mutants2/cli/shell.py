@@ -35,7 +35,12 @@ from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
 from ..ui.strings import GET_WHAT, DROP_WHAT
 from ..ui.theme import red, SEP, yellow, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
-from ..ui.render import render_help_hint, render_status
+from ..ui.render import (
+    render_help_hint,
+    render_status,
+    enumerate_duplicates,
+    wrap_ansi,
+)
 from .input import gerundize
 
 
@@ -373,7 +378,7 @@ def make_context(p, w, save, *, dev: bool = False):
         raw = " ".join(args)
         canon = items.canon_item_key(raw)
         key_match = None
-        for k in p.inventory.keys():
+        for k in p.inventory:
             if items.canon_item_key(k).startswith(canon) or items.canon_item_key(
                 items.display_name(k)
             ).startswith(canon):
@@ -508,11 +513,9 @@ def make_context(p, w, save, *, dev: bool = False):
             )
         )
         if p.inventory:
-            names: list[str] = []
-            for key, count in p.inventory.items():
-                names.extend([items.REGISTRY[key].name] * count)
-            line = ", ".join(items.stack_plain(names))
-            lines.append(white(line))
+            names = [items.REGISTRY[key].name for key in p.inventory]
+            line = ", ".join(enumerate_duplicates(names)) + "."
+            lines.extend(wrap_ansi(white(line)).splitlines())
         else:
             lines.append("(empty)")
         for ln in lines:
@@ -559,11 +562,10 @@ def make_context(p, w, save, *, dev: bool = False):
                 )
             )
             if p.inventory:
-                names: list[str] = []
-                for key, count in p.inventory.items():
-                    names.extend([items.REGISTRY[key].name] * count)
-                line = ", ".join(items.stack_plain(names))
-                print(white(line))
+                names = [items.REGISTRY[key].name for key in p.inventory]
+                line = ", ".join(enumerate_duplicates(names)) + "."
+                for ln in wrap_ansi(white(line)).splitlines():
+                    print(ln)
             else:
                 print("(empty)")
         elif cmd == "get":

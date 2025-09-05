@@ -30,7 +30,7 @@ def _ensure_profile(tmp_path):
                 "positions": data.get("positions", {str(2000): {"x": 0, "y": 0}}),
                 "hp": data.get("hp", 10),
                 "max_hp": data.get("max_hp", 10),
-                "inventory": data.get("inventory", {}),
+                "inventory": data.get("inventory", []),
                 "ions": data.get("ions", 0),
             }
         data["last_class"] = "Warrior"
@@ -47,7 +47,7 @@ def _ensure_profile(tmp_path):
             "positions": {str(y): {"x": x, "y": yy} for y, (x, yy) in p.positions.items()},
             "hp": p.hp,
             "max_hp": p.max_hp,
-            "inventory": {},
+            "inventory": [],
             "ions": 0,
         }
         persistence.save(p, w, save)
@@ -93,7 +93,7 @@ def test_inventory_rendering(tmp_path):
     persistence.SAVE_PATH = Path(tmp_path) / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    p.inventory.update({'ion_decay': 2, 'gold_chunk': 1})
+    p.inventory.extend(['ion_decay', 'ion_decay', 'gold_chunk'])
     w = World(seeded_years={2000})
     save = persistence.Save()
     persistence.save(p, w, save)

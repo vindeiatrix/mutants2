@@ -1,4 +1,38 @@
 from .theme import yellow, SEP
+import re
+
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def enumerate_duplicates(items: list[str]) -> list[str]:
+    """Return ``items`` with duplicate names enumerated sequentially."""
+    seen: dict[str, int] = {}
+    out: list[str] = []
+    for name in items:
+        idx = seen.get(name, 0)
+        out.append(name if idx == 0 else f"{name} ({idx})")
+        seen[name] = idx + 1
+    return out
+
+
+def wrap_ansi(text: str, width: int = 80) -> str:
+    """Wrap ``text`` at ``width`` visible characters, preserving ANSI codes."""
+    tokens = text.split(" ")
+    lengths = [len(ANSI_RE.sub("", tok)) for tok in tokens]
+    lines: list[list[str]] = [[]]
+    cur_len = 0
+    for tok, length in zip(tokens, lengths):
+        add = length if cur_len == 0 else length + 1
+        if cur_len + add > width and lines[-1]:
+            lines.append([tok])
+            cur_len = length
+        else:
+            if cur_len:
+                cur_len += 1 + length
+            else:
+                cur_len = length
+            lines[-1].append(tok)
+    return "\n".join(" ".join(line) for line in lines if line)
 
 
 def render_help_hint() -> None:

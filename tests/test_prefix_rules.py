@@ -51,7 +51,7 @@ def world_with_items(world):
 @pytest.fixture
 def world_with_monster_and_item_N_on_tile(world, player):
     world.place_monster(2000, 0, 0, "night_stalker")
-    player.inventory["nuclear_thong"] = 1
+    player.inventory.append("nuclear_thong")
     return world
 
 

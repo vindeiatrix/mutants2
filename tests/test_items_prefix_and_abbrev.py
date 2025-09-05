@@ -25,7 +25,7 @@ def inventory_with_item(tmp_path):
     persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    p.inventory['nuclear_thong'] = 1
+    p.inventory.append('nuclear_thong')
     w = World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
@@ -38,7 +38,7 @@ def inventory_with_ion_items(tmp_path):
     persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
     os.environ['HOME'] = str(tmp_path)
     p = Player()
-    p.inventory.update({'ion_decay': 1, 'ion_pack': 1})
+    p.inventory.extend(['ion_decay', 'ion_pack'])
     w = World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()

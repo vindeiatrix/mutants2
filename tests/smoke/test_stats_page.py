@@ -11,7 +11,7 @@ from mutants2.ui.theme import yellow, white
 def test_stats_page(tmp_path):
     persistence.SAVE_PATH = tmp_path / 'save.json'
     p = Player(year=2000, clazz='Warrior')
-    p.inventory.update({'ion_decay': 2, 'gold_chunk': 1})
+    p.inventory.extend(['ion_decay', 'ion_decay', 'gold_chunk'])
     w = world_mod.World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()

@@ -2,11 +2,12 @@ from .world import World
 from .player import Player
 from .senses import SensesCues
 from ..render import render_room_at
+from ..ui.render import wrap_ansi
 
 
 def shadow_lines(world: World, player: Player) -> list[str]:
     ds = world.shadow_dirs(player.year, player.x, player.y)
-    return [f"You see shadows to the {', '.join(ds)}."] if ds else []
+    return [wrap_ansi(f"You see shadows to the {', '.join(ds)}.")] if ds else []
 
 
 def entry_yell_lines(ctx) -> list[str]:
@@ -18,7 +19,7 @@ def entry_yell_lines(ctx) -> list[str]:
 def arrival_lines(ctx) -> list[str]:
     infos = getattr(ctx, "_arrivals_this_tick", []) or []
     ctx._arrivals_this_tick = []
-    return [f"{name} has just arrived from the {d}." for _, name, d in infos]
+    return [wrap_ansi(f"{name} has just arrived from the {d}.") for _, name, d in infos]
 
 
 def footsteps_lines(ctx) -> list[str]:
@@ -28,9 +29,10 @@ def footsteps_lines(ctx) -> list[str]:
         return []
     kind, d = ev
     if kind == "faint":
-        return [f"You hear faint sounds of footsteps far to the {d}."]
+        msg = f"You hear faint sounds of footsteps far to the {d}."
     else:
-        return [f"You hear loud sounds of footsteps to the {d}."]
+        msg = f"You hear loud sounds of footsteps to the {d}."
+    return [wrap_ansi(msg)]
 
 
 def render_room_view(

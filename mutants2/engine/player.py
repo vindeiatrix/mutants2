@@ -39,7 +39,7 @@ class Player:
     )
     clazz: str | None = None
     senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
-    inventory: Dict[str, int] = field(default_factory=dict)
+    inventory: list[str] = field(default_factory=list)
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
@@ -111,15 +111,15 @@ class Player:
     # Inventory helpers ------------------------------------------------------
 
     def inventory_names_in_order(self) -> list[str]:
-        """Return inventory item names preserving insertion order."""
-        return [items_mod.REGISTRY[k].name for k in self.inventory.keys()]
+        """Return inventory item names preserving pickup order."""
+        return [items_mod.REGISTRY[k].name for k in self.inventory]
 
     def inventory_weight_lbs(self) -> int:
         total = 0
-        for key, count in self.inventory.items():
+        for key in self.inventory:
             item = items_mod.REGISTRY.get(key)
             if item and item.weight_lbs:
-                total += item.weight_lbs * count
+                total += item.weight_lbs
         return total
 
     def pick_up(self, name: str, world) -> str | None:
@@ -130,24 +130,21 @@ class Player:
         ok = world.remove_ground_item(self.year, self.x, self.y, item.key)
         if not ok:
             return None
-        self.inventory[item.key] = self.inventory.get(item.key, 0) + 1
+        self.inventory.append(item.key)
 
         overflow_name: str | None = None
-        total = sum(self.inventory.values())
+        total = len(self.inventory)
         if total > INVENTORY_LIMIT:
             rng = rng_mod.hrand(
                 world.global_seed, world.turn, self.year, self.x, self.y, "inv_overflow"
             )
-            candidates: list[str] = []
-            for key, count in self.inventory.items():
-                if key == item.key:
-                    continue
-                candidates.extend([key] * count)
+            candidates = [k for k in self.inventory if k != item.key]
             if candidates:
                 victim_key = rng.choice(candidates)
-                self.inventory[victim_key] -= 1
-                if self.inventory[victim_key] == 0:
-                    del self.inventory[victim_key]
+                try:
+                    self.inventory.remove(victim_key)
+                except ValueError:
+                    pass
                 world.add_ground_item(self.year, self.x, self.y, victim_key)
                 overflow_name = items_mod.REGISTRY[victim_key].name
         return overflow_name
@@ -166,13 +163,11 @@ class Player:
         item = items_mod.find_by_name(name)
         if not item:
             return False, None, None, None
-        if self.inventory.get(item.key, 0) <= 0:
+        if item.key not in self.inventory:
             return False, "You don't have that.", None, None
 
         world.add_ground_item(self.year, self.x, self.y, item.key)
-        self.inventory[item.key] -= 1
-        if self.inventory[item.key] == 0:
-            del self.inventory[item.key]
+        self.inventory.remove(item.key)
 
         rng = rng_mod.hrand(
             world.global_seed, world.turn, self.year, self.x, self.y, "drop_overflow"
@@ -186,21 +181,15 @@ class Player:
             if candidates:
                 gift = rng.choice(candidates)
                 world.remove_ground_item(self.year, self.x, self.y, gift.key)
-                self.inventory[gift.key] = self.inventory.get(gift.key, 0) + 1
+                self.inventory.append(gift.key)
                 gift_name = gift.name
 
-                total = sum(self.inventory.values())
+                total = len(self.inventory)
                 if total > INVENTORY_LIMIT:
-                    inv_candidates: list[str] = []
-                    for key, count in self.inventory.items():
-                        if key == gift.key:
-                            continue
-                        inv_candidates.extend([key] * count)
+                    inv_candidates = [k for k in self.inventory if k != gift.key]
                     if inv_candidates:
                         victim_key = rng.choice(inv_candidates)
-                        self.inventory[victim_key] -= 1
-                        if self.inventory[victim_key] == 0:
-                            del self.inventory[victim_key]
+                        self.inventory.remove(victim_key)
                         world.add_ground_item(self.year, self.x, self.y, victim_key)
                         sack_name = items_mod.REGISTRY[victim_key].name
 
@@ -215,12 +204,10 @@ class Player:
         item = items_mod.find_by_name(name)
         if not item:
             return None
-        if self.inventory.get(item.key, 0) <= 0:
+        if item.key not in self.inventory:
             return None
         if item.ion_value is None:
             return None
-        self.inventory[item.key] -= 1
-        if self.inventory[item.key] == 0:
-            del self.inventory[item.key]
+        self.inventory.remove(item.key)
         self.ions += item.ion_value
         return item
