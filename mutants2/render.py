@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .ui.theme import red, green, cyan, yellow, white, SEP
 from .ui.render import enumerate_duplicates, wrap_ansi
+from .ui.wrap import wrap_list_ansi
 from .engine import items as items_mod
 
 
@@ -50,11 +51,14 @@ def render_room_at(
             out.append(cyan(f"{d:<5} – area continues."))
 
     # (d/e) ground items followed by a single separator
-    ground_names = [items_mod.article_name(it.name) for it in world.items_on_ground(year, x, y)]
+    ground_names = [
+        items_mod.article_name(it.name) for it in world.items_on_ground(year, x, y)
+    ]
     if ground_names:
         out.append(yellow("On the ground lies:"))
-        line = ", ".join(enumerate_duplicates(ground_names)) + "."
-        out.extend(wrap_ansi(cyan(line)).splitlines())
+        items = enumerate_duplicates(ground_names)
+        wrapped = wrap_list_ansi(items)
+        out.extend(cyan(ln) for ln in wrapped.splitlines())
     # Always end the header section with one separator
     out.append(SEP)
 

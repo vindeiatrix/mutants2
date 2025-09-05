@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 import re
-from typing import Optional, Callable, Any
+from typing import Optional, Callable
 import collections
 
 from .state import ItemInstance
 from ..ui.theme import yellow
-from ..ui.render import wrap_ansi
+from ..ui.wrap import wrap_paragraph_ansi
+
+NBSP = "\u00a0"
 
 
 @dataclass(frozen=True)
@@ -54,13 +56,13 @@ _add("bottle_cap", "Bottle-Cap", 1, 22000, 606, spawnable=True)
 
 
 def describe_skull(inst: ItemInstance) -> str:
-    mt = inst.meta.get("monster_type", "Unknown")
+    monster_type = inst.meta.get("monster_type", "Unknown")
     text = (
-        "A shiver is sent down your spine as you realize this is the skull\n"
-        "of a victim that has lost in a bloody battle. Looking closer, you realize\n"
-        f"this is the skull of a {mt}!"
+        "A shiver is sent down your spine as you realize this is the skull "
+        "of a victim that has lost in a bloody battle. Looking closer, you realize "
+        f"this is the skull of a {monster_type}!"
     )
-    return yellow(wrap_ansi(text))
+    return yellow(wrap_paragraph_ansi(text, 80))
 
 
 _add(
@@ -179,7 +181,7 @@ def stack_for_render(item_names: list[str]) -> list[str]:
             tokens.append(article_name(name))
         else:
             tokens.append(article_name(name))
-            tokens.append(f"{article_name(name)} ({counts[name]-1})")
+            tokens.append(f"{article_name(name)}{NBSP}({counts[name]-1})")
         counts[name] = 0
     if tokens:
         tokens[-1] = tokens[-1] + "."
@@ -196,7 +198,7 @@ def stack_plain(item_names: list[str]) -> list[str]:
             tokens.append(name)
         else:
             tokens.append(name)
-            tokens.append(f"{name} ({counts[name]-1})")
+            tokens.append(f"{name}{NBSP}({counts[name]-1})")
         counts[name] = 0
     if tokens:
         tokens[-1] = tokens[-1] + "."

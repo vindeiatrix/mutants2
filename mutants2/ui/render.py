@@ -1,6 +1,8 @@
 from .theme import yellow, red, SEP
 import re
 
+NBSP = "\u00a0"  # non-breaking space
+
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -10,7 +12,7 @@ def enumerate_duplicates(items: list[str]) -> list[str]:
     out: list[str] = []
     for name in items:
         idx = seen.get(name, 0)
-        out.append(name if idx == 0 else f"{name} ({idx})")
+        out.append(name if idx == 0 else f"{name}{NBSP}({idx})")
         seen[name] = idx + 1
     return out
 
@@ -54,9 +56,7 @@ def render_status(p) -> list[str]:
     lines = [
         yellow(f"Name: Vindeiatrix / Mutant {disp}"),
         yellow("Exhaustion   : 0"),
-        yellow(
-            f"Str: {p.strength:<2}   Int: {p.intelligence:<2}   Wis: {p.wisdom:<2}"
-        ),
+        yellow(f"Str: {p.strength:<2}   Int: {p.intelligence:<2}   Wis: {p.wisdom:<2}"),
         yellow(
             f"Dex: {p.dexterity:<2}   Con: {p.constitution:<2}   Cha: {p.charisma:<2}"
         ),
