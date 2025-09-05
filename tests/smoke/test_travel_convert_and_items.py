@@ -8,7 +8,7 @@ import pytest
 from mutants2.engine import persistence, items
 from mutants2.engine.player import Player
 from mutants2.engine.world import World
-from mutants2.ui.theme import yellow, white
+from mutants2.ui.theme import yellow
 
 
 def test_monster_bait_conversion(cli_runner, tmp_path):
@@ -38,7 +38,7 @@ def test_convert_gibberish(cli_runner):
 
 def test_travel_rounding_and_stats(cli_runner):
     out = cli_runner.run_commands(['tra 2345', 'status'])
-    assert white("ZAAAAPPPPP!! You've been sent to the year 2300 A.D.") in out
+    assert yellow("ZAAAAPPPPP!! You've been sent to the year 2300 A.D.") in out
     assert 'Year A.D.     : 2300' in out
 
 

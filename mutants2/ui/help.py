@@ -99,6 +99,7 @@ USAGE = {
         "TRAVEL [year]",
         "The years you can travel from is 2000 to 3000 A.D. Your travel will be",
         "rounded down to the closest century, and you'll be sent into a new world.",
+        "Travelling within the same century is free and recenters you.",
     ],
     "convert": [
         "You may convert items into ions. Each item converts into",
