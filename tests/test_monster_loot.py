@@ -26,10 +26,40 @@ def test_kill_loot_award(tmp_path):
         ctx.dispatch_line('attack')
     out = strip_ansi(buf.getvalue())
     assert 'You have slain Mutant-' in out
-    assert 'Your experience points are increased by 20,000!' in out
-    assert 'You collect 20,007 Riblets and 20,005 ions' in out
+    assert 'Your experience points are increased by 20000!' in out
+    assert 'You collect 20007 Riblets and 20005 ions' in out
+    assert 'A Skull is falling from Mutant-' in out
+    assert 'is crumbling to dust!' in out
     assert p.ions == 20005
     assert p.riblets == 20007
+
+
+def test_kill_numbers_no_commas(tmp_path):
+    persistence.SAVE_PATH = tmp_path / 'save.json'
+    w = world_mod.World(
+        monsters={
+            (2000, 0, 0): [
+                {
+                    "key": "mutant",
+                    "hp": 3,
+                    "loot_ions": 29821,
+                    "loot_riblets": -6520,
+                }
+            ]
+        },
+        seeded_years={2000},
+    )
+    p = Player(year=2000, clazz='Warrior')
+    save = persistence.Save()
+    ctx = make_context(p, w, save)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        ctx.dispatch_line('attack')
+        ctx.dispatch_line('attack')
+    out = strip_ansi(buf.getvalue())
+    assert 'You collect 13480 Riblets and 49821 ions' in out
+    assert '13,480' not in out
+    assert '49,821' not in out
 
 
 def test_death_transfer_and_reward(tmp_path):

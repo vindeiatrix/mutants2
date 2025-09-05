@@ -23,6 +23,7 @@ from .types import (
     TileKey,
 )
 from . import monsters as monsters_mod, items as items_mod, rng as rng_mod
+from .state import ItemInstance
 from .ai import set_aggro
 from ..data.room_headers import ROOM_HEADERS
 
@@ -199,7 +200,8 @@ class World:
     def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
         items = self.ground.get((year, x, y))
         if items:
-            return items[0]
+            inst = items[0]
+            return inst.key if isinstance(inst, ItemInstance) else inst
         return None
 
     def set_ground_item(
@@ -209,30 +211,43 @@ class World:
         if item_key is None:
             self.ground.pop(key, None)
         else:
-            self.ground[key] = [item_key]
+            self.ground[key] = [ItemInstance(item_key)]
 
-    def add_ground_item(self, year: int, x: int, y: int, item_key: str) -> None:
-        self.ground.setdefault((year, x, y), []).append(item_key)
+    def add_ground_item(
+        self, year: int, x: int, y: int, item: ItemInstance | str
+    ) -> None:
+        self.ground.setdefault((year, x, y), []).append(item)
 
-    def remove_ground_item(self, year: int, x: int, y: int, item_key: str) -> bool:
+    def remove_ground_item(
+        self, year: int, x: int, y: int, item_key: str
+    ) -> ItemInstance | None:
         items = self.ground.get((year, x, y))
         if not items:
-            return False
-        try:
-            items.remove(item_key)
-        except ValueError:
-            return False
-        if not items:
-            self.ground.pop((year, x, y), None)
-        return True
+            return None
+        for i, inst in enumerate(items):
+            key = inst.key if isinstance(inst, ItemInstance) else inst
+            if key == item_key:
+                removed = items.pop(i)
+                if not items:
+                    self.ground.pop((year, x, y), None)
+                return removed
+        return None
 
     def items_here(self, year: int, x: int, y: int) -> list[str]:
-        keys = self.ground.get((year, x, y), [])
-        return [items_mod.REGISTRY[k].name for k in keys]
+        vals = self.ground.get((year, x, y), [])
+        return [
+            items_mod.REGISTRY[
+                v.key if isinstance(v, ItemInstance) else v
+            ].name
+            for v in vals
+        ]
 
     def items_on_ground(self, year: int, x: int, y: int) -> list[items_mod.ItemDef]:
-        keys = self.ground.get((year, x, y), [])
-        return [items_mod.REGISTRY[k] for k in keys]
+        vals = self.ground.get((year, x, y), [])
+        return [
+            items_mod.REGISTRY[v.key if isinstance(v, ItemInstance) else v]
+            for v in vals
+        ]
 
     def room_description(self, year: int, x: int, y: int) -> str:
         """Return the room header for the given tile, generating on demand."""

@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 import re
-from typing import Optional
+from typing import Optional, Callable, Any
 import collections
+
+from .state import ItemInstance
+from ..ui.theme import yellow
+from ..ui.render import wrap_ansi
 
 
 @dataclass(frozen=True)
@@ -12,6 +16,7 @@ class ItemDef:
     ion_value: Optional[int] = None
     riblets: Optional[int] = None
     spawnable: bool = False
+    description_fn: Optional[Callable[[ItemInstance], str]] = None
 
 
 REGISTRY: dict[str, ItemDef] = {}
@@ -25,8 +30,11 @@ def _add(
     riblets=None,
     *,
     spawnable: bool = False,
+    description_fn: Optional[Callable[[ItemInstance], str]] = None,
 ):
-    REGISTRY[key] = ItemDef(key, name, weight_lbs, ion_value, riblets, spawnable)
+    REGISTRY[key] = ItemDef(
+        key, name, weight_lbs, ion_value, riblets, spawnable, description_fn
+    )
 
 
 # Populate spawnable items
@@ -43,6 +51,26 @@ _add("ion_booster", "Ion-Booster", 10, 13000, 300, spawnable=True)
 _add("nuclear_waste", "Nuclear-Waste", 30, 15000, 55200, spawnable=True)
 _add("cigarette_butt", "Cigarette-Butt", 1, 11000, 606, spawnable=True)
 _add("bottle_cap", "Bottle-Cap", 1, 22000, 606, spawnable=True)
+
+
+def describe_skull(inst: ItemInstance) -> str:
+    mt = inst.meta.get("monster_type", "Unknown")
+    text = (
+        "A shiver is sent down your spine as you realize this is the skull\n"
+        "of a victim that has lost in a bloody battle. Looking closer, you realize\n"
+        f"this is the skull of a {mt}!"
+    )
+    return yellow(wrap_ansi(text))
+
+
+_add(
+    "skull",
+    "Skull",
+    5,
+    25000,
+    spawnable=False,
+    description_fn=describe_skull,
+)
 
 SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if v.spawnable]
 
@@ -62,6 +90,7 @@ __all__ = [
     "stack_plain",
     "resolve_key_prefix",
     "display_name",
+    "describe_instance",
 ]
 
 
@@ -189,3 +218,10 @@ def resolve_key_prefix(query: str) -> Optional[str]:
 
 def display_name(key: str) -> str:
     return REGISTRY[key].name
+
+
+def describe_instance(inst: ItemInstance) -> str | None:
+    item = REGISTRY.get(inst.key)
+    if item and item.description_fn:
+        return item.description_fn(inst)
+    return None

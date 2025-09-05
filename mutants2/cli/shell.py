@@ -22,7 +22,7 @@ from ..engine.player import (
     CLASS_BY_NAME,
     class_key,
 )
-from ..engine.state import CharacterProfile, apply_profile, profile_from_raw
+from ..engine.state import CharacterProfile, apply_profile, profile_from_raw, ItemInstance
 from ..engine.gen import (
     daily_topup_if_needed,
     debug_item_topup,
@@ -379,19 +379,23 @@ def make_context(p, w, save, *, dev: bool = False):
         raw = " ".join(args)
         canon = items.canon_item_key(raw)
         key_match = None
-        for k in p.inventory:
-            if items.canon_item_key(k).startswith(canon) or items.canon_item_key(
-                items.display_name(k)
+        for inst in p.inventory:
+            key = inst.key if isinstance(inst, ItemInstance) else inst
+            if items.canon_item_key(key).startswith(canon) or items.canon_item_key(
+                items.display_name(key)
             ).startswith(canon):
-                key_match = k
+                key_match = inst
                 break
-        if not key_match:
+        if key_match is None:
             print(yellow("***"))
             print(yellow(f"You're not carrying a {raw}."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        item = p.convert_item(items.display_name(key_match))
+        key_for_name = (
+            key_match.key if isinstance(key_match, ItemInstance) else key_match
+        )
+        item = p.convert_item(items.display_name(key_for_name))
         if not item:
             render_help_hint()
             return False
@@ -427,6 +431,17 @@ def make_context(p, w, save, *, dev: bool = False):
         iname = items.first_prefix_match(q, inv_names)
         if iname:
             print(yellow("***"))
+            inst_match: ItemInstance | None = None
+            for obj in p.inventory:
+                key = obj.key if isinstance(obj, ItemInstance) else obj
+                if items.display_name(key) == iname:
+                    inst_match = obj if isinstance(obj, ItemInstance) else None
+                    break
+            if inst_match:
+                desc = items.describe_instance(inst_match)
+                if desc:
+                    print(desc)
+                    return True
             print(yellow(f"It looks like a lovely {iname}!"))
             return True
 
@@ -473,6 +488,13 @@ def make_context(p, w, save, *, dev: bool = False):
             p.ions += total_i
             p.riblets += total_r
             render_kill_block(name, xp, total_r, total_i)
+            skull_inst = ItemInstance(
+                "skull", {"monster_type": monsters.REGISTRY[mm["key"]].name}
+            )
+            w.add_ground_item(p.year, p.x, p.y, skull_inst)
+            print(white(f"A Skull is falling from {name}'s body!"))
+            print("***")
+            print(red(f"{name} is crumbling to dust!"))
             context._needs_render = False
             context._suppress_room_render = True
             return
@@ -529,7 +551,12 @@ def make_context(p, w, save, *, dev: bool = False):
             )
         )
         if p.inventory:
-            names = [items.REGISTRY[key].name for key in p.inventory]
+            names = [
+                items.REGISTRY[
+                    obj.key if isinstance(obj, ItemInstance) else obj
+                ].name
+                for obj in p.inventory
+            ]
             line = ", ".join(enumerate_duplicates(names)) + "."
             lines.extend(wrap_ansi(white(line)).splitlines())
         else:
@@ -578,7 +605,12 @@ def make_context(p, w, save, *, dev: bool = False):
                 )
             )
             if p.inventory:
-                names = [items.REGISTRY[key].name for key in p.inventory]
+                names = [
+                    items.REGISTRY[
+                        obj.key if isinstance(obj, ItemInstance) else obj
+                    ].name
+                    for obj in p.inventory
+                ]
                 line = ", ".join(enumerate_duplicates(names)) + "."
                 for ln in wrap_ansi(white(line)).splitlines():
                     print(ln)
