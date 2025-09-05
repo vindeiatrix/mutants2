@@ -30,7 +30,7 @@ from ..engine.gen import (
 )
 from ..engine.macros import MacroStore
 from ..engine.types import Direction
-from ..engine.world import ALLOWED_CENTURIES
+from ..engine.world import ALLOWED_CENTURIES, LOWEST_CENTURY, HIGHEST_CENTURY
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
 from ..ui.strings import GET_WHAT, DROP_WHAT
 from ..ui.theme import red, SEP, yellow, cyan, white
@@ -294,18 +294,20 @@ def make_context(p, w, save, *, dev: bool = False):
             print("Invalid year.")
             context._suppress_room_render = True
             return False
-        if year_input < ALLOWED_CENTURIES[0] or year_input > ALLOWED_CENTURIES[-1]:
-            print(yellow("You can only travel from year 2000 to 2200!"))
-            context._needs_render = False
-            context._suppress_room_render = True
-            return False
-        if p.ions < ION_TRAVEL_COST:
-            print(yellow("You don't have enough ions to travel!"))
+        if year_input < LOWEST_CENTURY or year_input > HIGHEST_CENTURY:
+            print(yellow("You can only travel from year 2000 to 3000!"))
             context._needs_render = False
             context._suppress_room_render = True
             return False
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
-        p.ions -= ION_TRAVEL_COST
+        steps = abs(target - p.year) // 100
+        cost = ION_TRAVEL_COST * steps
+        if p.ions < cost:
+            print(yellow("You don't have enough ions to travel!"))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        p.ions -= cost
         p.travel(w, target)
         print(white(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         context._suppress_room_render = True

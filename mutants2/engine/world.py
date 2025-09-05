@@ -34,7 +34,22 @@ Coordinate = Tuple[int, int]
 
 GRID_MIN = -15
 GRID_MAX = 15
-ALLOWED_CENTURIES = [2000, 2100, 2200]
+# Centuries the player can travel between.  Each century has an independent
+# world state and uses the same generation parameters as the others.
+ALLOWED_CENTURIES = [
+    2000,
+    2100,
+    2200,
+    2300,
+    2400,
+    2500,
+    2600,
+    2700,
+    2800,
+    2900,
+    3000,
+]
+LOWEST_CENTURY, HIGHEST_CENTURY = 2000, 3000
 
 
 def in_bounds(x: int, y: int) -> bool:

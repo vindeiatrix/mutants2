@@ -1,9 +1,9 @@
-from mutants2.engine.world import World, GRID_MIN, GRID_MAX
+from mutants2.engine.world import World, GRID_MIN, GRID_MAX, ALLOWED_CENTURIES
 
 
 def test_world_maps_have_origin_and_exits():
     w = World()
-    for year in (2000, 2100, 2200):
+    for year in ALLOWED_CENTURIES:
         grid = w.year(year).grid
         assert grid.width == GRID_MAX - GRID_MIN and grid.height == GRID_MAX - GRID_MIN
         assert grid.is_walkable(0, 0)
