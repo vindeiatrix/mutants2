@@ -172,3 +172,25 @@ def test_debug_item_and_mon_count():
     out2, w2, p2 = run_debug("debug mon count", setup=setup_mon)
     lines2 = [line for line in out2.splitlines() if line]
     assert lines2[-1] == f"Monsters in year {p2.year}: 2"
+
+
+def test_debug_set_ion():
+    out, w, p = run_debug("debug set ion 123")
+    lines = [line for line in out.splitlines() if line]
+    assert lines[-1] == "Ions set to 123."
+    assert p.ions == 123
+
+
+def test_debug_ion_set_alias_once():
+    save = persistence.Save(global_seed=42)
+    w = world_mod.World(global_seed=42)
+    w.year(2000)
+    p = Player(year=2000, clazz="Warrior")
+    ctx = make_context(p, w, save, dev=True)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        ctx.dispatch_line("debug ion set 7")
+        ctx.dispatch_line("debug ion set 8")
+    out = re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
+    assert out.count("debug ion set is deprecated") == 1
+    assert p.ions == 8

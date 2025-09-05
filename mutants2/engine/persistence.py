@@ -34,7 +34,8 @@ class Save:
     profiles: Dict[str, CharacterProfile] = field(default_factory=dict)
     # ``fake_today_override`` is session-only and not persisted
     fake_today_override: str | None = None
-    last_upkeep_tick: float = field(default_factory=lambda: time.time())
+    last_upkeep_tick: float = field(default_factory=lambda: time.monotonic())
+    max_catchup_ticks: int = 60
 
 
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
@@ -197,14 +198,17 @@ def load() -> tuple[
             if lst:
                 monsters_data[coord] = lst
         seeded = {int(y) for y in data.get("seeded_years", [])}
+        last_wall = float(
+            data.get("last_upkeep_tick", data.get("last_ion_tick", time.time()))
+        )
+        now_wall = time.time()
         save_meta = Save(
             global_seed=int(data.get("global_seed", gen.SEED)),
             last_topup_date=data.get("last_topup_date"),
             last_class=last_class,
             profiles=profiles,
-            last_upkeep_tick=float(
-                data.get("last_upkeep_tick", data.get("last_ion_tick", time.time()))
-            ),
+            last_upkeep_tick=time.monotonic() - max(0.0, now_wall - last_wall),
+            max_catchup_ticks=int(data.get("max_catchup_ticks", 60)),
         )
 
         if not active_class and profiles:
@@ -260,7 +264,10 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                 for k, v in save_meta.profiles.items()
             },
             "last_class": save_meta.last_class,
-            "last_upkeep_tick": save_meta.last_upkeep_tick,
+            "last_upkeep_tick": (
+                time.time() - (time.monotonic() - save_meta.last_upkeep_tick)
+            ),
+            "max_catchup_ticks": save_meta.max_catchup_ticks,
             "ground": {
                 f"{y},{x},{yy}": (items[0] if len(items) == 1 else items)
                 for (y, x, yy), items in world.ground.items()
