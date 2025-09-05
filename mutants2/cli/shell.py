@@ -7,7 +7,7 @@ from typing import Mapping, cast
 from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
-from ..engine.loop import ion_upkeep
+from ..engine.loop import maybe_process_upkeep
 from ..engine.leveling import recompute_from_exp
 from ..engine.player import (
     CLASS_DISPLAY,
@@ -31,6 +31,9 @@ from ..ui.theme import red, SEP, yellow, cyan, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import render_help_hint, render_status
 from .input import gerundize
+
+
+_ION_SET_DEPRECATED_SHOWN = False
 
 
 NONDIR_CMDS = {
@@ -537,7 +540,7 @@ def make_context(p, w, save, *, dev: bool = False):
             if args and args[0].lower() == "debug":
                 print(
                     """Debug commands:
-  debug ion set <N>                   Set ions to N.
+  debug set ion <N>                   Set ions to N.
   debug set exp <N>                   Set total experience points.
   debug set hp <N>                    Set current HP.
   debug item add <name|key> [count]   Add item(s) to current room's ground.
@@ -685,14 +688,26 @@ def make_context(p, w, save, *, dev: bool = False):
                 elif args and args[0] == "topup":
                     count = daily_topup_if_needed(w, p, save)
                     print(f"Topped up {count} item(s).")
-                elif args[:2] == ["ion", "set"] and len(args) >= 3:
+                elif args[:2] == ["set", "ion"] and len(args) >= 3:
                     try:
                         val = max(0, int(args[2]))
                     except ValueError:
                         print("Invalid ion value.")
                     else:
                         p.ions = val
-                        print(f"Ions set to {val}.")
+                        print(yellow(f"Ions set to {val}."))
+                elif args[:2] == ["ion", "set"] and len(args) >= 3:
+                    global _ION_SET_DEPRECATED_SHOWN
+                    if not _ION_SET_DEPRECATED_SHOWN:
+                        print("debug ion set is deprecated; use debug set ion <N>.")
+                        _ION_SET_DEPRECATED_SHOWN = True
+                    try:
+                        val = max(0, int(args[2]))
+                    except ValueError:
+                        print("Invalid ion value.")
+                    else:
+                        p.ions = val
+                        print(yellow(f"Ions set to {val}."))
                 elif args[:2] == ["set", "exp"] and len(args) >= 3:
                     try:
                         val = max(0, int(args[2]))
@@ -772,7 +787,7 @@ def make_context(p, w, save, *, dev: bool = False):
         return handle_command(cmd, args)
 
     def dispatch_line(line: str) -> bool:
-        ion_upkeep(p, w, save, context)
+        maybe_process_upkeep(p, w, save, context)
         stripped = line.strip()
         if not stripped:
             context._last_turn_consumed = False
