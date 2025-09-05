@@ -61,6 +61,8 @@ def spawn(key: str, mid: int) -> dict:
         "has_yelled_this_aggro": False,
         "id": mid,
         "hp": REGISTRY[key].base_hp,
+        "loot_ions": 0,
+        "loot_riblets": 0,
     }
 
 

@@ -38,6 +38,7 @@ def cli_runner(tmp_path):
                         "max_hp": data.get("max_hp", 10),
                         "inventory": data.get("inventory", []),
                         "ions": data.get("ions", 0),
+                        "riblets": data.get("riblets", 0),
                     }
                 data["last_class"] = "Warrior"
                 with open(save_path, "w") as fh:
@@ -55,6 +56,7 @@ def cli_runner(tmp_path):
                     "max_hp": p.max_hp,
                     "inventory": [],
                     "ions": p.ions,
+                    "riblets": p.riblets,
                 }
                 persistence.save(p, w, save)
             inp = "\n".join(commands + ["exit"]) + "\n"

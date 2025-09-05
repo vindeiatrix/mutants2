@@ -43,6 +43,7 @@ class Player:
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
+    riblets: int = 0
     level: int = 1
     exp: int = 0
     strength: int = 0

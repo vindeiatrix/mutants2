@@ -38,7 +38,7 @@ def test_attack_no_room_block_but_arrival():
     out, w, _p, _ = run_commands(["attack"], setup=setup)
     assert "You are here." not in out
     assert "Compass:" not in out
-    assert re.search(r"You defeat the Mutant-\d{4}\.", out)
+    assert re.search(r"You have slain Mutant-\d{4}!", out)
     assert "has just arrived from the east." in out
 
 
