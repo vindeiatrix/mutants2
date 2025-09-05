@@ -9,6 +9,13 @@ from .player import class_key
 
 TICK_SECONDS = 10.0
 REALTIME_TICK_POLL = 1.0
+MAX_CATCHUP = 6
+
+
+def game_is_active(context) -> bool:
+    """Return ``True`` if ``context`` has an active player and world."""
+
+    return bool(getattr(context, "player", None) and getattr(context, "world", None))
 
 
 def ion_upkeep_per_tick(player) -> int:
@@ -27,6 +34,11 @@ def process_upkeep_and_starvation(player, world, save, context=None) -> bool:
 
     Returns ``True`` if the player died during this tick.
     """
+
+    if context is not None and not game_is_active(context):
+        return False
+    if hasattr(player, "is_dead") and player.is_dead():
+        return False
 
     consume = ion_upkeep_per_tick(player)
     if player.ions >= consume:
@@ -54,6 +66,9 @@ def process_upkeep_and_starvation(player, world, save, context=None) -> bool:
 def maybe_process_upkeep(player, world, save, context=None, *, now: float | None = None) -> None:
     """Process at most one owed upkeep/starvation tick based on ``last_upkeep_tick``."""
 
+    if context is not None and not game_is_active(context):
+        return
+
     current = time.monotonic() if now is None else now
     last = getattr(save, "last_upkeep_tick", None)
     if last is None:
@@ -78,7 +93,7 @@ def ion_upkeep(player, world, save, context=None, *, now: float | None = None, m
     if ticks <= 0:
         return
     if max_ticks is None:
-        max_ticks = getattr(save, "max_catchup_ticks", 60)
+        max_ticks = getattr(save, "max_catchup_ticks", MAX_CATCHUP)
     if ticks > max_ticks:
         ticks = max_ticks
     for _ in range(ticks):
@@ -95,11 +110,20 @@ def start_realtime_tick(player, world, save, context=None):
     def _run() -> None:
         while not stop_event.is_set():
             time.sleep(REALTIME_TICK_POLL)
-            current = time.monotonic()
-            ticks = int((current - save.last_upkeep_tick) // TICK_SECONDS)
-            if ticks >= 1:
-                save.last_upkeep_tick += TICK_SECONDS
-                process_upkeep_and_starvation(player, world, save, context)
+            if context is not None and not game_is_active(context):
+                continue
+            now = time.monotonic()
+            last = getattr(save, "last_upkeep_tick", None)
+            if last is None:
+                save.last_upkeep_tick = now
+                continue
+            owed = int((now - last) // TICK_SECONDS)
+            if owed <= 0:
+                continue
+            save.last_upkeep_tick = last + TICK_SECONDS
+            process_upkeep_and_starvation(player, world, save, context)
+            if context is not None and hasattr(context, "request_render"):
+                context.request_render()
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
@@ -109,6 +133,8 @@ def start_realtime_tick(player, world, save, context=None):
 def stop_realtime_tick(handle) -> None:
     """Stop a previously started realtime tick thread."""
 
+    if handle is None:
+        return
     stop_event, thread = handle
     stop_event.set()
     thread.join(timeout=1)

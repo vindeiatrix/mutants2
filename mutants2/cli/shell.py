@@ -7,7 +7,11 @@ from typing import Mapping, cast
 from ..engine import persistence, items, monsters
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
-from ..engine.loop import maybe_process_upkeep
+from ..engine.loop import (
+    maybe_process_upkeep,
+    start_realtime_tick,
+    stop_realtime_tick,
+)
 from ..engine.leveling import recompute_from_exp
 from ..engine.player import (
     CLASS_DISPLAY,
@@ -202,6 +206,7 @@ def make_context(p, w, save, *, dev: bool = False):
         player=p,
         world=w,
         save=save,
+        tick_handle=None,
         _arrivals_this_tick=[],
         _footsteps_event=None,
         _entry_yells=[],
@@ -212,6 +217,11 @@ def make_context(p, w, save, *, dev: bool = False):
         _suppress_entry_aggro=False,
         _skip_movement_tick=False,
     )
+
+    def request_render() -> None:
+        context._needs_render = True
+
+    context.request_render = request_render
 
     def render_usage(cmd: str) -> None:
         for line in USAGE.get(cmd, []):
@@ -491,6 +501,8 @@ def make_context(p, w, save, *, dev: bool = False):
         elif cmd == "class":
             macro_store.save_profile(class_key(p.clazz or "default"))
             persistence.save(p, w, save)
+            stop_realtime_tick(context.tick_handle)
+            context.tick_handle = None
             w.reset_all_aggro()
             changed = class_menu(p, w, save, in_game=True)
             if changed:
@@ -501,6 +513,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 render_room_view(p, w, context)
                 for line in yells:
                     print(line)
+            context.tick_handle = start_realtime_tick(p, w, save, context)
         elif cmd == "inventory":
             total = p.inventory_weight_lbs()
             print(
