@@ -57,6 +57,8 @@ class Player:
     ac: int = 0
     natural_dex_ac: int = 0
     ac_total: int = 0
+    ready_to_combat_id: str | None = None
+    ready_to_combat_name: str | None = None
     _last_move_struck_back: bool = field(default=False, repr=False)
 
     def __post_init__(self) -> None:

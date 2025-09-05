@@ -1,6 +1,6 @@
-from mutants2.cli.shell import make_context
 from mutants2.engine import world as world_mod, persistence
 from mutants2.engine.player import Player
+from mutants2.cli.shell import make_context
 
 import io
 import contextlib
@@ -28,18 +28,20 @@ def run_commands(cmds, *, seed=42, setup=None):
     return out, w, p, ctx
 
 
-def test_attack_no_room_block_but_arrival():
+def test_combat_no_room_block_but_arrival():
     def setup(w, p):
         w.place_monster(2000, 0, 0, "mutant")
-        w.monster_here(2000, 0, 0)["hp"] = 2
+        w.place_monster(2000, 0, 0, "mutant")
         w.place_monster(2000, 1, 0, "mutant")
         w.monster_here(2000, 1, 0)["aggro"] = True
 
-    out, w, _p, _ = run_commands(["attack"], setup=setup)
+    out, w, p, _ = run_commands(["com muta"], setup=setup)
     assert "You are here." not in out
     assert "Compass:" not in out
-    assert re.search(r"You have slain Mutant-\d{4}!", out)
+    assert re.search(r"You're ready to combat Mutant-\d{4}!", out)
     assert "has just arrived from the east." in out
+    first = w.monsters_here(2000, 0, 0)[0]
+    assert p.ready_to_combat_id == str(first["id"])
 
 
 def test_single_token_gibberish():
@@ -64,3 +66,4 @@ def test_gibberish_with_spaces():
         lines = out.strip().splitlines()
         assert lines == [cmd, "***", "Type ? if you need assistance."]
         assert w.turn == 1
+

@@ -61,6 +61,8 @@ def process_upkeep_and_starvation(player, world, save, context=None) -> bool:
             print("You have died.")
             player.heal_full()
             player.positions[player.year] = (0, 0)
+            player.ready_to_combat_id = None
+            player.ready_to_combat_name = None
             world.reset_aggro_in_year(player.year)
             if context is not None:
                 context._arrivals_this_tick = []

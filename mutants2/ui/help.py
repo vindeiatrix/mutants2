@@ -49,7 +49,7 @@ Examples
   do 7e3n; look
 """
 
-COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class (or x), inventory, get, drop, convert, exit, macro, @name, do
+COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class (or x), inventory, get, drop, convert, combat, exit, macro, @name, do
 
 Look
 ----
@@ -106,5 +106,10 @@ USAGE = {
         "a different ionic value.",
         "",
         "Type CONVERT [item name] to convert an item.",
+    ],
+    "combat": [
+        "This command is used to combat another player/monster in the game.",
+        "",
+        "Type COMBAT [name] to ready yourself for battle.",
     ],
 }
