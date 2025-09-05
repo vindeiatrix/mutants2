@@ -7,6 +7,17 @@ from ..ui.theme import yellow
 from .player import class_key
 
 
+def ion_upkeep_per_tick(player) -> int:
+    """Return ions to consume for a single 10 second tick."""
+
+    if player.level <= 1:
+        return 0
+    clazz = class_key(player.clazz or "")
+    base = ION_BASE.get(clazz, 0)
+    steps = 1 + ((player.level - 2) // 2)
+    return base * steps
+
+
 def ion_upkeep(player, world, save, context=None, *, now: float | None = None, max_ticks: int = 60) -> None:
     """Apply ion upkeep and starvation based on elapsed time."""
 
@@ -21,15 +32,9 @@ def ion_upkeep(player, world, save, context=None, *, now: float | None = None, m
         return
     if ticks > max_ticks:
         ticks = max_ticks
-    clazz = class_key(player.clazz or "")
-    base = ION_BASE.get(clazz, 0)
     for _ in range(ticks):
         last += 10
-        if player.level > 1:
-            steps = 1 + ((player.level - 2) // 2)
-            consume = base * steps
-        else:
-            consume = 0
+        consume = ion_upkeep_per_tick(player)
         if player.ions >= consume:
             player.ions -= consume
         else:

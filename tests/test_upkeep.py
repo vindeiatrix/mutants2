@@ -24,7 +24,8 @@ def test_additive_upkeep_examples():
     assert save.last_upkeep_tick == 10
     p2 = Player(year=2000, clazz="Mage", level=12, ions=1000, hp=20, max_hp=20)
     out2, p2, save2 = run_upkeep(p2, now=10)
-    assert p2.ions == 718
+    assert p2.ions == 0
+    assert "You're starving for IONS!" in out2
     assert save2.last_upkeep_tick == 10
 
 
