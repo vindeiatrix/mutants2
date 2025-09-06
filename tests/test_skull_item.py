@@ -6,7 +6,7 @@ import contextlib
 from mutants2.cli.shell import make_context
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
-from mutants2.engine.state import ItemInstance
+from mutants2.types import ItemInstance
 
 
 def strip_ansi(text: str) -> str:
@@ -17,7 +17,7 @@ def test_skull_look_and_convert(tmp_path):
     persistence.SAVE_PATH = tmp_path / 'save.json'
     w = world_mod.World(seeded_years={2000})
     p = Player(year=2000, clazz='Warrior')
-    p.inventory.append(ItemInstance('skull', {'monster_type': 'Crio-Sphinx'}))
+    p.inventory.append({"key": "skull", "meta": {"monster_type": "Crio-Sphinx"}})
     save = persistence.Save()
     ctx = make_context(p, w, save)
 

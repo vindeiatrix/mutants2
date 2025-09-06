@@ -25,8 +25,8 @@ from ..engine.state import (
     CharacterProfile,
     apply_profile,
     profile_from_raw,
-    ItemInstance,
 )
+from mutants2.types import ItemInstance
 from ..engine.gen import (
     daily_topup_if_needed,
     debug_item_topup,
@@ -400,10 +400,9 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        inst_match: ItemInstance | str | None = None
+        inst_match: ItemInstance | None = None
         for obj in p.inventory:
-            key = obj.key if isinstance(obj, ItemInstance) else obj
-            if items.display_name(key) == name:
+            if items.display_name(obj["key"]) == name:
                 inst_match = obj
                 break
         if inst_match is None:
@@ -412,7 +411,7 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        key = inst_match.key if isinstance(inst_match, ItemInstance) else inst_match
+        key = inst_match["key"]
         item = items.REGISTRY.get(key)
         if not item or item.ac_bonus <= 0:
             print(yellow("***"))
@@ -423,8 +422,8 @@ def make_context(p, w, save, *, dev: bool = False):
         print(yellow("***"))
         if p.worn_armor:
             old_key = (
-                p.worn_armor.key
-                if isinstance(p.worn_armor, ItemInstance)
+                p.worn_armor["key"]
+                if isinstance(p.worn_armor, dict)
                 else p.worn_armor
             )
             old_name = items.display_name(old_key)
@@ -447,7 +446,7 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        key = p.worn_armor.key if isinstance(p.worn_armor, ItemInstance) else p.worn_armor
+        key = p.worn_armor["key"] if isinstance(p.worn_armor, dict) else p.worn_armor
         name = items.display_name(key)
         p.worn_armor = None
         p.recompute_ac()
@@ -470,10 +469,9 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        inst_match: ItemInstance | str | None = None
+        inst_match: ItemInstance | None = None
         for obj in p.inventory:
-            key = obj.key if isinstance(obj, ItemInstance) else obj
-            if items.display_name(key) == name:
+            if items.display_name(obj["key"]) == name:
                 inst_match = obj
                 break
         if inst_match is None:
@@ -496,7 +494,7 @@ def make_context(p, w, save, *, dev: bool = False):
             return False
         print(yellow("***"))
         print(yellow(f"You wield the {name}."))
-        key = inst_match.key if isinstance(inst_match, ItemInstance) else inst_match
+        key = inst_match["key"]
         dmg, killed, name_mon = combat.player_attack(p, w, key)
         print(yellow("***"))
         print(yellow(f"You hit {name_mon} for {dmg} damage.  (temp)"))
@@ -513,7 +511,7 @@ def make_context(p, w, save, *, dev: bool = False):
         canon = items.canon_item_key(raw)
         key_match = None
         for inst in p.inventory:
-            key = inst.key if isinstance(inst, ItemInstance) else inst
+            key = inst["key"]
             if items.canon_item_key(key).startswith(canon) or items.canon_item_key(
                 items.display_name(key)
             ).startswith(canon):
@@ -525,9 +523,7 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        key_for_name = (
-            key_match.key if isinstance(key_match, ItemInstance) else key_match
-        )
+        key_for_name = key_match["key"]
         item = p.convert_item(items.display_name(key_for_name))
         if not item:
             render_help_hint()
@@ -562,31 +558,24 @@ def make_context(p, w, save, *, dev: bool = False):
 
         inv_names = p.inventory_names_in_order()
         ground_objs = w.ground.get((p.year, p.x, p.y), [])
-        ground_names = [
-            items.display_name(
-                obj.key if isinstance(obj, ItemInstance) else obj
-            )
-            for obj in ground_objs
-        ]
+        ground_names = [items.display_name(obj["key"]) for obj in ground_objs]
         name = items.resolve_prefix(q, ground_names, inv_names)
         if name:
             print(yellow("***"))
             inst_match: ItemInstance | None = None
             if name in inv_names:
                 for obj in p.inventory:
-                    key = obj.key if isinstance(obj, ItemInstance) else obj
-                    if items.display_name(key) == name:
-                        inst_match = obj if isinstance(obj, ItemInstance) else None
+                    if items.display_name(obj["key"]) == name:
+                        inst_match = obj
                         break
             else:
                 for obj in ground_objs:
-                    key = obj.key if isinstance(obj, ItemInstance) else obj
-                    if items.display_name(key) == name:
-                        inst_match = obj if isinstance(obj, ItemInstance) else None
+                    if items.display_name(obj["key"]) == name:
+                        inst_match = obj
                         break
-            if inst_match and inst_match.meta.get("enchant_level", 0) > 0:
-                lvl = inst_match.meta.get("enchant_level", 0)
-                item_name = items.display_name(inst_match.key)
+            if inst_match and inst_match.get("meta", {}).get("enchant_level", 0) > 0:
+                lvl = inst_match.get("meta", {}).get("enchant_level", 0)
+                item_name = items.display_name(inst_match["key"])
                 print(
                     yellow(
                         f"The {item_name} possesses a magical aura. "

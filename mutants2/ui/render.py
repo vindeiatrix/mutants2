@@ -61,8 +61,8 @@ def render_status(p) -> list[str]:
     armor_name = "Nothing."
     if getattr(p, "worn_armor", None):
         key = (
-            p.worn_armor.key
-            if hasattr(p.worn_armor, "key")
+            p.worn_armor["key"]
+            if isinstance(p.worn_armor, dict)
             else p.worn_armor
         )
         armor_name = items_mod.display_name(key)

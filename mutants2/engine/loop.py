@@ -100,7 +100,9 @@ def ion_upkeep(player, world, save, context=None, *, now: float | None = None, m
     if ticks <= 0:
         return
     if max_ticks is None:
-        max_ticks = getattr(save, "max_catchup_ticks", MAX_CATCHUP)
+        max_ticks = int(getattr(save, "max_catchup_ticks", MAX_CATCHUP))
+    else:
+        max_ticks = int(max_ticks)
     if ticks > max_ticks:
         ticks = max_ticks
     for _ in range(ticks):
