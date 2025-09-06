@@ -19,6 +19,8 @@ class ItemDef:
     riblets: Optional[int] = None
     spawnable: bool = False
     description_fn: Optional[Callable[[ItemInstance], str]] = None
+    base_power: int = 0
+    ac_bonus: int = 0
 
 
 REGISTRY: dict[str, ItemDef] = {}
@@ -33,26 +35,138 @@ def _add(
     *,
     spawnable: bool = False,
     description_fn: Optional[Callable[[ItemInstance], str]] = None,
+    base_power: int = 0,
+    ac_bonus: int = 0,
 ):
     REGISTRY[key] = ItemDef(
-        key, name, weight_lbs, ion_value, riblets, spawnable, description_fn
+        key,
+        name,
+        weight_lbs,
+        ion_value,
+        riblets,
+        spawnable,
+        description_fn,
+        base_power,
+        ac_bonus,
     )
 
 
 # Populate spawnable items
-_add("nuclear_decay", "Nuclear-Decay", 50, 85000, 60600, spawnable=True)
-_add("ion_decay", "Ion-Decay", 10, 18000, 19140, spawnable=True)
-_add("nuclear_rock", "Nuclear-Rock", 10, 15000, 49200, spawnable=True)
-_add("gold_chunk", "Gold-Chunk", 25, 25000, 49800, spawnable=True)
-_add("cheese", "Cheese", 1, 12000, 6060, spawnable=True)
-_add("light_spear", "Light-Spear", 10, 11000, None, spawnable=True)
-_add("monster_bait", "Monster-Bait", 10, 10000, spawnable=True)
-_add("nuclear_thong", "Nuclear-thong", 20, 13000, 600, spawnable=True)
-_add("ion_pack", "Ion-Pack", 50, 20000, 6, spawnable=True)
-_add("ion_booster", "Ion-Booster", 10, 13000, 300, spawnable=True)
-_add("nuclear_waste", "Nuclear-Waste", 30, 15000, 55200, spawnable=True)
-_add("cigarette_butt", "Cigarette-Butt", 1, 11000, 606, spawnable=True)
-_add("bottle_cap", "Bottle-Cap", 1, 22000, 606, spawnable=True)
+_add(
+    "nuclear_decay",
+    "Nuclear-Decay",
+    50,
+    85000,
+    60600,
+    spawnable=True,
+    base_power=77,
+)
+_add(
+    "ion_decay",
+    "Ion-Decay",
+    10,
+    18000,
+    19140,
+    spawnable=True,
+    base_power=10,
+)
+_add(
+    "nuclear_rock",
+    "Nuclear-Rock",
+    10,
+    15000,
+    49200,
+    spawnable=True,
+    base_power=7,
+)
+_add(
+    "gold_chunk",
+    "Gold-Chunk",
+    25,
+    25000,
+    49800,
+    spawnable=True,
+    base_power=17,
+)
+_add("cheese", "Cheese", 1, 12000, 6060, spawnable=True, base_power=4)
+_add(
+    "light_spear",
+    "Light-Spear",
+    10,
+    11000,
+    None,
+    spawnable=True,
+    base_power=3,
+)
+_add(
+    "monster_bait",
+    "Monster-Bait",
+    10,
+    10000,
+    spawnable=True,
+    base_power=2,
+)
+_add(
+    "nuclear_thong",
+    "Nuclear-thong",
+    20,
+    13000,
+    600,
+    spawnable=True,
+    base_power=5,
+)
+_add(
+    "ion_pack",
+    "Ion-Pack",
+    50,
+    20000,
+    6,
+    spawnable=True,
+    base_power=12,
+)
+_add(
+    "ion_booster",
+    "Ion-Booster",
+    10,
+    13000,
+    300,
+    spawnable=True,
+    base_power=5,
+)
+_add(
+    "nuclear_waste",
+    "Nuclear-Waste",
+    30,
+    15000,
+    55200,
+    spawnable=True,
+    base_power=7,
+)
+_add(
+    "cigarette_butt",
+    "Cigarette-Butt",
+    1,
+    11000,
+    606,
+    spawnable=True,
+    base_power=3,
+)
+_add(
+    "bottle_cap",
+    "Bottle-Cap",
+    1,
+    22000,
+    606,
+    spawnable=True,
+    base_power=14,
+)
+_add(
+    "bug_skin_armour",
+    "Bug-Skin-Armour",
+    8,
+    spawnable=True,
+    ac_bonus=3,
+)
 
 
 def describe_skull(inst: ItemInstance) -> str:
@@ -72,6 +186,7 @@ _add(
     25000,
     spawnable=False,
     description_fn=describe_skull,
+    base_power=4,
 )
 
 SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if v.spawnable]

@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import math
+
 from .leveling import check_level_up
+from . import items as items_mod
+from ..data.config import AC_DIVISOR
+from ..ui.render import render_kill_block
 
 MONSTER_XP = 20_000
 
@@ -16,3 +21,31 @@ def award_kill(player) -> int:
     player.exp += MONSTER_XP
     check_level_up(player)
     return MONSTER_XP
+
+
+def player_attack(player, world, weapon_key: str):
+    """Perform a single attack against the first monster here.
+
+    Returns ``(damage, killed, name)`` where ``name`` is the monster's name.
+    """
+
+    mon = world.monster_here(player.year, player.x, player.y)
+    if not mon:
+        return 0, False, ""
+    item = items_mod.REGISTRY.get(weapon_key)
+    base = item.base_power if item else 0
+    str_bonus = player.strength // 10
+    defender_ac = int(mon.get("ac_total", 0))
+    ac_red = math.floor(defender_ac / AC_DIVISOR)
+    raw = base + str_bonus - ac_red
+    dmg = max(1, raw)
+    name = str(mon.get("name", ""))
+    killed = world.damage_monster(player.year, player.x, player.y, dmg, player)
+    if killed:
+        ions = int(mon.get("loot_ions", 0))
+        riblets = int(mon.get("loot_riblets", 0))
+        player.ions += ions
+        player.riblets += riblets
+        xp = award_kill(player)
+        render_kill_block(name, xp, riblets, ions)
+    return dmg, killed, name

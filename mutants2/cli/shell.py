@@ -5,7 +5,7 @@ import datetime
 import time
 from typing import Mapping, MutableMapping, cast
 
-from ..engine import persistence, items, monsters
+from ..engine import persistence, items, monsters, combat
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
 from ..engine.loop import (
@@ -62,6 +62,9 @@ NONDIR_CMDS = {
     "get": "get",
     "take": "get",
     "convert": "convert",
+    "wear": "wear",
+    "remove": "remove",
+    "wield": "wield",
     "macro": "macro",
     "help": "help",
     "?": "help",
@@ -83,6 +86,9 @@ TURN_CMDS = {
     "drop",
     "convert",
     "combat",
+    "wear",
+    "remove",
+    "wield",
     "rest",
     "heal",
     "look",
@@ -378,6 +384,123 @@ def make_context(p, w, save, *, dev: bool = False):
             )
         return False
 
+    def handle_wear(args: list[str]) -> bool:
+        if not args or args[0].lower() == "help":
+            render_usage("wear")
+            context._suppress_room_render = True
+            return False
+        inv_names = p.inventory_names_in_order()
+        name = items.first_prefix_match(" ".join(args), inv_names)
+        if not name:
+            print(yellow("***"))
+            print(yellow(f"You're not carrying a {' '.join(args)}."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        inst_match: ItemInstance | str | None = None
+        for obj in p.inventory:
+            key = obj.key if isinstance(obj, ItemInstance) else obj
+            if items.display_name(key) == name:
+                inst_match = obj
+                break
+        if inst_match is None:
+            print(yellow("***"))
+            print(yellow("You can't wear that."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        key = inst_match.key if isinstance(inst_match, ItemInstance) else inst_match
+        item = items.REGISTRY.get(key)
+        if not item or item.ac_bonus <= 0:
+            print(yellow("***"))
+            print(yellow("You can't wear that."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        print(yellow("***"))
+        if p.worn_armor:
+            old_key = (
+                p.worn_armor.key
+                if isinstance(p.worn_armor, ItemInstance)
+                else p.worn_armor
+            )
+            old_name = items.display_name(old_key)
+            print(yellow(f"You remove the {old_name}."))
+        p.worn_armor = inst_match
+        p.recompute_ac()
+        print(yellow(f"You wear the {name}."))
+        context._needs_render = False
+        context._suppress_room_render = True
+        return False
+
+    def handle_remove(args: list[str]) -> bool:
+        if args and args[0].lower() == "help":
+            render_usage("remove")
+            context._suppress_room_render = True
+            return False
+        if not p.worn_armor:
+            print(yellow("***"))
+            print(yellow("You're not wearing any armor."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        key = p.worn_armor.key if isinstance(p.worn_armor, ItemInstance) else p.worn_armor
+        name = items.display_name(key)
+        p.worn_armor = None
+        p.recompute_ac()
+        print(yellow("***"))
+        print(yellow(f"You remove the {name}."))
+        context._needs_render = False
+        context._suppress_room_render = True
+        return False
+
+    def handle_wield(args: list[str]) -> bool:
+        if not args or args[0].lower() == "help":
+            render_usage("wield")
+            context._suppress_room_render = True
+            return False
+        inv_names = p.inventory_names_in_order()
+        name = items.first_prefix_match(" ".join(args), inv_names)
+        if not name:
+            print(yellow("***"))
+            print(yellow(f"You're not carrying a {' '.join(args)}."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        inst_match: ItemInstance | str | None = None
+        for obj in p.inventory:
+            key = obj.key if isinstance(obj, ItemInstance) else obj
+            if items.display_name(key) == name:
+                inst_match = obj
+                break
+        if inst_match is None:
+            print(yellow("***"))
+            print(yellow(f"You're not carrying a {' '.join(args)}."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        p.wielded_weapon = inst_match
+        print(yellow("***"))
+        print(yellow(f"You wield the {name}."))
+        mon = w.monster_here(p.year, p.x, p.y)
+        if not (
+            p.ready_to_combat_id
+            and mon
+            and str(mon.get("id")) == p.ready_to_combat_id
+        ):
+            print(yellow("***"))
+            print(yellow("You're not ready to combat anyone."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
+        key = inst_match.key if isinstance(inst_match, ItemInstance) else inst_match
+        dmg, killed, name_mon = combat.player_attack(p, w, key)
+        print(yellow("***"))
+        print(yellow(f"You hit {name_mon} for {dmg} damage.  (temp)"))
+        context._needs_render = False
+        context._suppress_room_render = True
+        return False
+
     def handle_convert(args: list[str]) -> bool:
         if not args:
             render_usage("convert")
@@ -608,6 +731,15 @@ def make_context(p, w, save, *, dev: bool = False):
             turn = True
         elif cmd == "drop":
             handle_drop(args)
+            turn = True
+        elif cmd == "wear":
+            handle_wear(args)
+            turn = True
+        elif cmd == "remove":
+            handle_remove(args)
+            turn = True
+        elif cmd == "wield":
+            handle_wield(args)
             turn = True
         elif cmd == "convert":
             if handle_convert(args):

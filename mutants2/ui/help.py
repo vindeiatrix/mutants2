@@ -49,7 +49,7 @@ Examples
   do 7e3n; look
 """
 
-COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class (or x), inventory, get, drop, convert, combat, exit, macro, @name, do
+COMMANDS_HELP = """Commands: look, north, south, east, west, last, travel, class (or x), inventory, get, drop, wear, remove, wield, convert, combat, exit, macro, @name, do
 
 Look
 ----
@@ -111,5 +111,20 @@ USAGE = {
         "This command is used to combat another player/monster in the game.",
         "",
         "Type COMBAT [name] to ready yourself for battle.",
+    ],
+    "wear": [
+        "Wear armor to increase your protection.",
+        "",
+        "Type WEAR [item] to put on a piece of armor.",
+    ],
+    "remove": [
+        "Remove the armor you are currently wearing.",
+        "",
+        "Type REMOVE [item] to take off your armor.",
+    ],
+    "wield": [
+        "Wield a weapon and strike if you are ready to combat.",
+        "",
+        "Type WIELD [item] to wield a weapon.",
     ],
 }

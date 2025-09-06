@@ -51,8 +51,17 @@ def print_yell(mon) -> str:
 
 def render_status(p) -> list[str]:
     from ..engine.player import CLASS_DISPLAY, class_key  # local import to avoid cycle
+    from ..engine import items as items_mod
 
     disp = CLASS_DISPLAY.get(class_key(p.clazz or ""), p.clazz or "")
+    armor_name = "Nothing."
+    if getattr(p, "worn_armor", None):
+        key = (
+            p.worn_armor.key
+            if hasattr(p.worn_armor, "key")
+            else p.worn_armor
+        )
+        armor_name = items_mod.display_name(key)
     lines = [
         yellow(f"Name: Vindeiatrix / Mutant {disp}"),
         yellow("Exhaustion   : 0"),
@@ -64,7 +73,7 @@ def render_status(p) -> list[str]:
         yellow(f"Exp. Points  : {p.exp}           Level: {p.level}"),
         yellow(f"Riblets      : {getattr(p, 'riblets', 0)}"),
         yellow(f"Ions         : {p.ions}"),
-        yellow(f"Wearing Armor: Nothing.  Armour Class: {p.ac_total}"),
+        yellow(f"Wearing Armor: {armor_name}  Armour Class: {p.ac_total}"),
         yellow(
             f"Ready to Combat: {p.ready_to_combat_name}" if p.ready_to_combat_name else "Ready to Combat: NO ONE"
         ),

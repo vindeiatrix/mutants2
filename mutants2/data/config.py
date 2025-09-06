@@ -16,3 +16,6 @@ HEAL_K = {
     "warrior": 750,
     "mage": 1200,
 }
+
+# Armour Class divisor for damage reduction. Tunable constant.
+AC_DIVISOR = 1.30
