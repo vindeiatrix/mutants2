@@ -51,12 +51,12 @@ def run_commands(cmds, setup=None):
 def test_base_powers_and_armor():
     for key, power in BASE_POWERS.items():
         assert items.REGISTRY[key].base_power == power
-    assert items.REGISTRY["bug_skin"].ac_bonus == 3
+    assert items.REGISTRY["bug-skin"].ac_bonus == 3
 
 
 def test_wear_and_remove_updates_ac():
     def setup(w, p):
-        w.add_ground_item(2000, 0, 0, "bug_skin")
+        w.add_ground_item(2000, 0, 0, "bug-skin")
     out, w, p = run_commands([
         "get bug",
         "wear bug",

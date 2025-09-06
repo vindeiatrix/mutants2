@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-import re
 from typing import Optional, Callable
 import collections
 
 from mutants2.types import ItemInstance
 from ..ui.theme import yellow
 from ..ui.wrap import wrap_paragraph_ansi
+from .util.names import norm_name
 
 NBSP = "\u00a0"
 
@@ -21,6 +21,8 @@ class ItemDef:
     description_fn: Optional[Callable[[ItemInstance], str]] = None
     base_power: int = 0
     ac_bonus: int = 0
+    default_enchant_level: int = 0
+    convert_value_ions: Optional[int] = None
 
 
 REGISTRY: dict[str, ItemDef] = {}
@@ -37,6 +39,8 @@ def _add(
     description_fn: Optional[Callable[[ItemInstance], str]] = None,
     base_power: int = 0,
     ac_bonus: int = 0,
+    default_enchant_level: int = 0,
+    convert_value_ions: Optional[int] = None,
 ):
     REGISTRY[key] = ItemDef(
         key,
@@ -48,6 +52,8 @@ def _add(
         description_fn,
         base_power,
         ac_bonus,
+        default_enchant_level,
+        convert_value_ions,
     )
 
 
@@ -161,16 +167,15 @@ _add(
     base_power=14,
 )
 _add(
-    "bug_skin",
+    "bug-skin",
     "Bug-Skin",
     8,
     20000,
     spawnable=True,
     ac_bonus=3,
+    default_enchant_level=1,
+    convert_value_ions=22100,
 )
-
-# backward compatibility for legacy key
-REGISTRY["bug_skin_armour"] = REGISTRY["bug_skin"]
 
 
 def describe_skull(inst: ItemInstance) -> str:
@@ -227,9 +232,20 @@ def canon_item_key(s: str) -> str:
     return s.strip().lower().replace(" ", "_").replace("-", "_")
 
 
-def norm_name(s: str) -> str:
-    """Normalize an item name for case-insensitive prefix matching."""
-    return re.sub(r"[^a-z0-9]", "", s.lower())
+# Alias map for item lookup
+ALIASES = {
+    norm_name(alias): "bug-skin"
+    for alias in [
+        "bug-skin-armour",
+        "bug-skin-armor",
+        "bug skin armour",
+        "bug skin armor",
+        "bug skin",
+        "bugskin",
+        "bug_skin_armour",
+        "bug_skin_armor",
+    ]
+}
 
 
 def first_prefix_match(prefix: str, names_in_order: list[str]) -> str | None:
@@ -271,6 +287,11 @@ def resolve_item_prefix(
 def resolve_prefix(
     query: str, ground_names: list[str], inv_names: list[str]
 ) -> Optional[str]:
+    alias = ALIASES.get(norm_name(query))
+    if alias:
+        disp = REGISTRY[alias].name
+        if disp in ground_names + inv_names:
+            return disp
     name, amb = resolve_item_prefix(query, ground_names + inv_names)
     if name and not amb:
         return name
@@ -328,6 +349,9 @@ def resolve_key_prefix(query: str) -> Optional[str]:
     q = norm_name(query)
     if not q:
         return None
+    alias = ALIASES.get(q)
+    if alias:
+        return alias
     matches = []
     for key, item in REGISTRY.items():
         if norm_name(key).startswith(q) or norm_name(item.name).startswith(q):
@@ -346,3 +370,24 @@ def describe_instance(inst: ItemInstance) -> str | None:
     if item and item.description_fn:
         return item.description_fn(inst)
     return None
+
+SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if v.spawnable]
+
+__all__ = [
+    "ItemDef",
+    "REGISTRY",
+    "SPAWNABLE_KEYS",
+    "find_by_name",
+    "canon_item_key",
+    "norm_name",
+    "first_prefix_match",
+    "resolve_item_prefix",
+    "resolve_prefix",
+    "describe",
+    "article_name",
+    "stack_for_render",
+    "stack_plain",
+    "resolve_key_prefix",
+    "display_name",
+    "describe_instance",
+]

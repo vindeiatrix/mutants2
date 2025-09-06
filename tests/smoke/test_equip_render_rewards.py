@@ -38,7 +38,7 @@ def test_get_suppresses_room_render():
 
 def test_inventory_hides_worn_armor():
     def setup(w, p):
-        w.add_ground_item(2000, 0, 0, {"key": "bug_skin"})
+        w.add_ground_item(2000, 0, 0, {"key": "bug-skin"})
     out, _, _ = run_commands(
         ["get bug", "wear bug", "inventory", "remove", "inventory"], setup=setup
     )
@@ -67,7 +67,7 @@ def test_kill_rewards():
 
 def test_convert_bug_skin_plus_one_and_look():
     def setup(w, p):
-        p.inventory.append({"key": "bug_skin", "meta": {"enchant_level": 1}})
+        p.inventory.append({"key": "bug-skin", "meta": {"enchant_level": 1}})
     out, _, p = run_commands(["look bug", "convert bug", "status"], setup=setup)
     assert "possesses a magical aura" in out
     assert "+1 Bug-Skin" in out

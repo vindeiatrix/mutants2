@@ -508,7 +508,8 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         raw = " ".join(args)
-        canon = items.canon_item_key(raw)
+        alias = items.ALIASES.get(items.norm_name(raw))
+        canon = items.canon_item_key(alias if alias else raw)
         key_match = None
         for inst in p.inventory:
             key = inst["key"]
@@ -726,7 +727,7 @@ def make_context(p, w, save, *, dev: bool = False):
                     f"You are carrying the following items: (Total Weight: {total} LB's)"
                 )
             )
-            names = p.inventory_names_in_order()
+            names = p.inventory_display_names()
             if names:
                 labels = enumerate_duplicates(names)
                 wrapped = wrap_list_ansi(labels)
@@ -809,13 +810,26 @@ def make_context(p, w, save, *, dev: bool = False):
             else:
                 if args[:2] == ["item", "add"] and len(args) >= 3:
                     name_or_key = args[2]
-                    count = int(args[3]) if len(args) >= 4 and args[3].isdigit() else 1
+                    extra = args[3:]
+                    count = 1
+                    enchant = None
+                    if extra and extra[0].isdigit():
+                        count = int(extra[0])
+                        extra = extra[1:]
+                    if extra and extra[0].startswith("+") and extra[0][1:].isdigit():
+                        enchant = int(extra[0][1:])
                     key = items.resolve_key_prefix(name_or_key)
                     if not key:
                         print("Unknown item.")
                         return False
                     for _ in range(count):
-                        w.add_ground_item(p.year, p.x, p.y, key)
+                        lvl = enchant
+                        if lvl is None:
+                            lvl = items.REGISTRY[key].default_enchant_level
+                        inst = {"key": key}
+                        if lvl:
+                            inst["meta"] = {"enchant_level": lvl}
+                        w.add_ground_item(p.year, p.x, p.y, inst)
                     print(f"OK: added {count} x {items.display_name(key)}.")
                 elif args[:2] == ["item", "clear"]:
                     w.ground.pop((p.year, p.x, p.y), None)
