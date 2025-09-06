@@ -161,12 +161,16 @@ _add(
     base_power=14,
 )
 _add(
-    "bug_skin_armour",
-    "Bug-Skin-Armour",
+    "bug_skin",
+    "Bug-Skin",
     8,
+    20000,
     spawnable=True,
     ac_bonus=3,
 )
+
+# backward compatibility for legacy key
+REGISTRY["bug_skin_armour"] = REGISTRY["bug_skin"]
 
 
 def describe_skull(inst: ItemInstance) -> str:
