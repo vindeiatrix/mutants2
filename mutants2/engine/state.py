@@ -10,17 +10,21 @@ class ItemInstance:
     meta: dict[str, Any] = field(default_factory=dict)
 
 
-from .world import ALLOWED_CENTURIES
-
 if TYPE_CHECKING:  # pragma: no cover - import cycle guard
     from .player import Player
 
 
+def allowed_centuries() -> list[int]:
+    from .world import ALLOWED_CENTURIES
+
+    return ALLOWED_CENTURIES
+
+
 @dataclass
 class CharacterProfile:
-    year: int = ALLOWED_CENTURIES[0]
+    year: int = field(default_factory=lambda: allowed_centuries()[0])
     positions: Dict[int, Tuple[int, int]] = field(
-        default_factory=lambda: {c: (0, 0) for c in ALLOWED_CENTURIES}
+        default_factory=lambda: {c: (0, 0) for c in allowed_centuries()}
     )
     inventory: list[str] = field(default_factory=list)
     hp: int = 10
@@ -40,6 +44,8 @@ class CharacterProfile:
     ac_total: int = 0
     ready_to_combat_id: str | None = None
     ready_to_combat_name: str | None = None
+    worn_armor: ItemInstance | str | None = None
+    wielded_weapon: ItemInstance | str | None = None
     macros_name: str | None = None
     tables_migrated: bool = True
 
@@ -68,6 +74,8 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         ac_total=getattr(p, "ac_total", getattr(p, "ac", 0)),
         ready_to_combat_id=getattr(p, "ready_to_combat_id", None),
         ready_to_combat_name=getattr(p, "ready_to_combat_name", None),
+        worn_armor=getattr(p, "worn_armor", None),
+        wielded_weapon=getattr(p, "wielded_weapon", None),
         tables_migrated=True,
     )
 
@@ -95,6 +103,8 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.ac_total = getattr(prof, "ac_total", p.ac + p.natural_dex_ac)
     p.ready_to_combat_id = getattr(prof, "ready_to_combat_id", None)
     p.ready_to_combat_name = getattr(prof, "ready_to_combat_name", None)
+    p.worn_armor = getattr(prof, "worn_armor", None)
+    p.wielded_weapon = getattr(prof, "wielded_weapon", None)
     p.recompute_ac()
 
 
@@ -125,6 +135,16 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "ac_total": getattr(prof, "ac_total", getattr(prof, "ac", 0)),
         "ready_to_combat_id": getattr(prof, "ready_to_combat_id", None),
         "ready_to_combat_name": getattr(prof, "ready_to_combat_name", None),
+        "worn_armor": (
+            prof.worn_armor
+            if isinstance(prof.worn_armor, str) or prof.worn_armor is None
+            else {"key": prof.worn_armor.key, "meta": prof.worn_armor.meta}
+        ),
+        "wielded_weapon": (
+            prof.wielded_weapon
+            if isinstance(prof.wielded_weapon, str) or prof.wielded_weapon is None
+            else {"key": prof.wielded_weapon.key, "meta": prof.wielded_weapon.meta}
+        ),
         "tables_migrated": getattr(prof, "tables_migrated", True),
         **({"macros_name": prof.macros_name} if prof.macros_name else {}),
     }
@@ -142,7 +162,7 @@ def profile_from_raw(data: dict) -> CharacterProfile:
     else:
         inventory = [k for k, v in inv_raw.items() for _ in range(int(v))]
     return CharacterProfile(
-        year=int(data.get("year", ALLOWED_CENTURIES[0])),
+        year=int(data.get("year", allowed_centuries()[0])),
         positions={
             int(k): (v.get("x", 0), v.get("y", 0))
             for k, v in data.get("positions", {}).items()
@@ -165,6 +185,19 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         ac_total=int(data.get("ac_total", int(data.get("ac", 0)))),
         ready_to_combat_id=data.get("ready_to_combat_id"),
         ready_to_combat_name=data.get("ready_to_combat_name"),
+        worn_armor=(
+            ItemInstance(data["worn_armor"].get("key", ""), data["worn_armor"].get("meta", {}))
+            if isinstance(data.get("worn_armor"), dict)
+            else data.get("worn_armor")
+        ),
+        wielded_weapon=(
+            ItemInstance(
+                data["wielded_weapon"].get("key", ""),
+                data["wielded_weapon"].get("meta", {}),
+            )
+            if isinstance(data.get("wielded_weapon"), dict)
+            else data.get("wielded_weapon")
+        ),
         macros_name=data.get("macros_name"),
         tables_migrated=bool(data.get("tables_migrated", False)),
     )

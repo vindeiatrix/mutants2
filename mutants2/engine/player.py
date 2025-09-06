@@ -59,6 +59,8 @@ class Player:
     ac_total: int = 0
     ready_to_combat_id: str | None = None
     ready_to_combat_name: str | None = None
+    worn_armor: ItemInstance | str | None = None
+    wielded_weapon: ItemInstance | str | None = None
     _last_move_struck_back: bool = field(default=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -71,7 +73,20 @@ class Player:
     def recompute_ac(self) -> None:
         """Recompute natural and total armour class."""
         self.natural_dex_ac = self.dexterity // 10
-        self.ac_total = self.ac + self.natural_dex_ac
+
+        def _armor_bonus() -> int:
+            if self.worn_armor:
+                key = (
+                    self.worn_armor.key
+                    if isinstance(self.worn_armor, ItemInstance)
+                    else self.worn_armor
+                )
+                item = items_mod.REGISTRY.get(key)
+                if item:
+                    return item.ac_bonus
+            return 0
+
+        self.ac_total = self.ac + self.natural_dex_ac + _armor_bonus()
 
     @property
     def x(self) -> int:
@@ -187,6 +202,11 @@ class Player:
 
         world.add_ground_item(self.year, self.x, self.y, inv_obj)
         self.inventory.remove(inv_obj)
+        if self.worn_armor is inv_obj:
+            self.worn_armor = None
+            self.recompute_ac()
+        if self.wielded_weapon is inv_obj:
+            self.wielded_weapon = None
 
         rng = rng_mod.hrand(
             world.global_seed, world.turn, self.year, self.x, self.y, "drop_overflow"
