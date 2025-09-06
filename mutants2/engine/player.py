@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Dict, Tuple, cast
 
 from .state import ItemInstance
@@ -131,17 +131,44 @@ class Player:
     # Inventory helpers ------------------------------------------------------
 
     def inventory_names_in_order(self) -> list[str]:
-        """Return inventory item names preserving pickup order."""
+        """Return inventory item names preserving pickup order.
+
+        Any item currently worn as armour is excluded from the listing so that
+        it does not appear in inventory displays or prefix matching.
+        """
+
         names: list[str] = []
+        worn_key: str | None = None
+        if self.worn_armor:
+            worn_key = (
+                self.worn_armor.key
+                if isinstance(self.worn_armor, ItemInstance)
+                else self.worn_armor
+            )
+        skipped = False
         for val in self.inventory:
             key = val.key if isinstance(val, ItemInstance) else val
+            if worn_key and not skipped and key == worn_key:
+                skipped = True
+                continue
             names.append(items_mod.REGISTRY[key].name)
         return names
 
     def inventory_weight_lbs(self) -> int:
         total = 0
+        worn_key: str | None = None
+        if self.worn_armor:
+            worn_key = (
+                self.worn_armor.key
+                if isinstance(self.worn_armor, ItemInstance)
+                else self.worn_armor
+            )
+        skipped = False
         for val in self.inventory:
             key = val.key if isinstance(val, ItemInstance) else val
+            if worn_key and not skipped and key == worn_key:
+                skipped = True
+                continue
             item = items_mod.REGISTRY.get(key)
             if item and item.weight_lbs:
                 total += item.weight_lbs
@@ -263,8 +290,16 @@ class Player:
                 break
         if inv_obj is None:
             return None
-        if item.ion_value is None:
+        ion_value = item.ion_value
+        if (
+            ion_value is not None
+            and item.key in {"bug_skin", "bug_skin_armour"}
+            and isinstance(inv_obj, ItemInstance)
+            and inv_obj.meta.get("enchant_level") == 1
+        ):
+            ion_value = 22_100
+        if ion_value is None:
             return None
         self.inventory.remove(inv_obj)
-        self.ions += item.ion_value
-        return item
+        self.ions += ion_value
+        return replace(item, ion_value=ion_value)

@@ -19,4 +19,4 @@ def test_look_ground_item_not_carried(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line('look nuclear')
     out = buf.getvalue()
-    assert yellow("You're not carrying a nuclear.") in out
+    assert yellow('It looks like a lovely Nuclear-Rock!') in out

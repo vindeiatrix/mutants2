@@ -25,7 +25,7 @@ def test_monster_bait_conversion(cli_runner, tmp_path):
     assert item.weight_lbs == 10
     assert item.ion_value == 10000
     assert yellow('The Monster-Bait vanishes with a flash!') in out
-    assert yellow('You convert the Monster-Bait into 10,000 ions.') in out
+    assert yellow('You convert the Monster-Bait into 10000 ions.') in out
     assert '(empty)' in out
     assert 'Ions         : 10000' in out
 

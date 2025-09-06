@@ -51,12 +51,12 @@ def run_commands(cmds, setup=None):
 def test_base_powers_and_armor():
     for key, power in BASE_POWERS.items():
         assert items.REGISTRY[key].base_power == power
-    assert items.REGISTRY["bug_skin_armour"].ac_bonus == 3
+    assert items.REGISTRY["bug_skin"].ac_bonus == 3
 
 
 def test_wear_and_remove_updates_ac():
     def setup(w, p):
-        w.add_ground_item(2000, 0, 0, "bug_skin_armour")
+        w.add_ground_item(2000, 0, 0, "bug_skin")
     out, w, p = run_commands([
         "get bug",
         "wear bug",
@@ -64,8 +64,8 @@ def test_wear_and_remove_updates_ac():
         "remove",
         "status",
     ], setup=setup)
-    assert "You wear the Bug-Skin-Armour." in out
-    assert "You remove the Bug-Skin-Armour." in out
+    assert "You wear the Bug-Skin." in out
+    assert "You remove the Bug-Skin." in out
     matches = re.findall(r"Wearing Armor: .*  Armour Class: (\d+)", out)
     assert len(matches) == 2 and int(matches[0]) == int(matches[1]) + 3
 
@@ -75,7 +75,7 @@ def test_wield_attack_damage():
         w.add_ground_item(2000, 0, 0, "nuclear_rock")
         w.place_monster(2000, 0, 0, "mutant")
     out, w, p = run_commands([
-        "get nuc",
+        "get nuclear-rock",
         "combat mutant",
         "wield nuc",
         "status",

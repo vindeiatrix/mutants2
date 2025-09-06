@@ -24,15 +24,15 @@ def test_look_inventory_only(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line('look nuclear')
     out = buf.getvalue()
-    assert yellow("You're not carrying a nuclear.") in out
-    assert w.turn == 0
+    assert yellow('It looks like a lovely Nuclear-Rock!') in out
+    assert w.turn == 1
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line('get nuclear-rock')
         ctx.dispatch_line('look nuclear')
     out = buf.getvalue()
     assert yellow('It looks like a lovely Nuclear-Rock!') in out
-    assert w.turn == 2
+    assert w.turn == 3
 
 
 def test_exit_spacing(tmp_path):

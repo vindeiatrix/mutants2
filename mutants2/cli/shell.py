@@ -43,6 +43,7 @@ from ..ui.render import (
     render_help_hint,
     render_status,
     enumerate_duplicates,
+    fmt,
 )
 from ..ui.wrap import wrap_list_ansi
 from .input import gerundize
@@ -178,6 +179,8 @@ def class_menu(p, w, save, context=None, *, in_game: bool) -> bool:
         if not s:
             continue
         if s in {"exit", "quit", "q"}:
+            p.ready_to_combat_id = None
+            p.ready_to_combat_name = None
             w.reset_all_aggro()
             persistence.save(p, w, save)
             print("Goodbye.")
@@ -480,8 +483,6 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         p.wielded_weapon = inst_match
-        print(yellow("***"))
-        print(yellow(f"You wield the {name}."))
         mon = w.monster_here(p.year, p.x, p.y)
         if not (
             p.ready_to_combat_id
@@ -493,6 +494,8 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
+        print(yellow("***"))
+        print(yellow(f"You wield the {name}."))
         key = inst_match.key if isinstance(inst_match, ItemInstance) else inst_match
         dmg, killed, name_mon = combat.player_attack(p, w, key)
         print(yellow("***"))
@@ -531,7 +534,7 @@ def make_context(p, w, save, *, dev: bool = False):
             return False
         print(SEP)
         print(yellow(f"The {item.name} vanishes with a flash!"))
-        print(yellow(f"You convert the {item.name} into {item.ion_value:,} ions."))
+        print(yellow(f"You convert the {item.name} into {fmt(item.ion_value)} ions."))
         context._needs_render = False
         context._suppress_room_render = True
         return True
@@ -558,21 +561,45 @@ def make_context(p, w, save, *, dev: bool = False):
             return True
 
         inv_names = p.inventory_names_in_order()
-        iname = items.first_prefix_match(q, inv_names)
-        if iname:
+        ground_objs = w.ground.get((p.year, p.x, p.y), [])
+        ground_names = [
+            items.display_name(
+                obj.key if isinstance(obj, ItemInstance) else obj
+            )
+            for obj in ground_objs
+        ]
+        name = items.resolve_prefix(q, ground_names, inv_names)
+        if name:
             print(yellow("***"))
             inst_match: ItemInstance | None = None
-            for obj in p.inventory:
-                key = obj.key if isinstance(obj, ItemInstance) else obj
-                if items.display_name(key) == iname:
-                    inst_match = obj if isinstance(obj, ItemInstance) else None
-                    break
+            if name in inv_names:
+                for obj in p.inventory:
+                    key = obj.key if isinstance(obj, ItemInstance) else obj
+                    if items.display_name(key) == name:
+                        inst_match = obj if isinstance(obj, ItemInstance) else None
+                        break
+            else:
+                for obj in ground_objs:
+                    key = obj.key if isinstance(obj, ItemInstance) else obj
+                    if items.display_name(key) == name:
+                        inst_match = obj if isinstance(obj, ItemInstance) else None
+                        break
+            if inst_match and inst_match.meta.get("enchant_level", 0) > 0:
+                lvl = inst_match.meta.get("enchant_level", 0)
+                item_name = items.display_name(inst_match.key)
+                print(
+                    yellow(
+                        f"The {item_name} possesses a magical aura. "
+                        f"Concentrating stronger, you realize this is a +{lvl} {item_name}!"
+                    )
+                )
+                return True
             if inst_match:
                 desc = items.describe_instance(inst_match)
                 if desc:
                     print(desc)
                     return True
-            print(yellow(f"It looks like a lovely {iname}!"))
+            print(yellow(f"It looks like a lovely {name}!"))
             return True
 
         d = parse_dir_any_prefix(q)
@@ -652,17 +679,14 @@ def make_context(p, w, save, *, dev: bool = False):
 
     def handle_status() -> None:
         lines = render_status(p)
-        total = p.inventory_weight_lbs()
+        total = fmt(p.inventory_weight_lbs())
         lines.append(
             yellow(
                 f"You are carrying the following items:  (Total Weight: {total} LB's)"
             )
         )
-        if p.inventory:
-            names = [
-                items.REGISTRY[obj.key if isinstance(obj, ItemInstance) else obj].name
-                for obj in p.inventory
-            ]
+        names = p.inventory_names_in_order()
+        if names:
             labels = enumerate_duplicates(names)
             wrapped = wrap_list_ansi(labels)
             lines.extend(white(ln) for ln in wrapped.splitlines())
@@ -692,6 +716,8 @@ def make_context(p, w, save, *, dev: bool = False):
             context.tick_handle = None
             context.in_game = False
             w.reset_all_aggro()
+            p.ready_to_combat_id = None
+            p.ready_to_combat_name = None
             changed = class_menu(p, w, save, context, in_game=True)
             if changed:
                 macro_store.load_profile(class_key(p.clazz or "default"))
@@ -705,19 +731,14 @@ def make_context(p, w, save, *, dev: bool = False):
             context.tick_handle = start_realtime_tick(p, w, save, context)
             context.in_game = True
         elif cmd == "inventory":
-            total = p.inventory_weight_lbs()
+            total = fmt(p.inventory_weight_lbs())
             print(
                 yellow(
                     f"You are carrying the following items: (Total Weight: {total} LB's)"
                 )
             )
-            if p.inventory:
-                names = [
-                    items.REGISTRY[
-                        obj.key if isinstance(obj, ItemInstance) else obj
-                    ].name
-                    for obj in p.inventory
-                ]
+            names = p.inventory_names_in_order()
+            if names:
                 labels = enumerate_duplicates(names)
                 wrapped = wrap_list_ansi(labels)
                 for ln in wrapped.splitlines():
@@ -728,6 +749,8 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
         elif cmd == "get":
             handle_get(args)
+            context._needs_render = False
+            context._suppress_room_render = True
             turn = True
         elif cmd == "drop":
             handle_drop(args)
@@ -974,6 +997,8 @@ def make_context(p, w, save, *, dev: bool = False):
             turn = handle_travel(args)
         elif cmd == "exit":
             macro_store.save_profile(class_key(p.clazz or "default"))
+            p.ready_to_combat_id = None
+            p.ready_to_combat_name = None
             w.reset_all_aggro()
             print("Goodbye.")
             context.running = False

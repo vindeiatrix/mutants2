@@ -1,6 +1,7 @@
 import contextlib
 import io
 import re
+import contextlib
 
 from mutants2.cli.shell import make_context
 from mutants2.engine import persistence, world as world_mod
@@ -32,6 +33,6 @@ def test_skull_look_and_convert(tmp_path):
         ctx.dispatch_line('inventory')
         ctx.dispatch_line('status')
     out = strip_ansi(buf.getvalue())
-    assert 'You convert the Skull into 25,000 ions.' in out
+    assert 'You convert the Skull into 25000 ions.' in out
     assert '(empty)' in out
     assert 'Ions         : 25000' in out
