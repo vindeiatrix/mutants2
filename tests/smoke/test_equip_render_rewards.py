@@ -8,7 +8,7 @@ from mutants2.engine import persistence
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
 from mutants2.cli.shell import make_context
-from mutants2.engine.state import ItemInstance
+from mutants2.types import ItemInstance
 
 def run_commands(cmds, setup=None):
     save = persistence.Save()
@@ -30,7 +30,7 @@ def run_commands(cmds, setup=None):
 
 def test_get_suppresses_room_render():
     def setup(w, p):
-        w.add_ground_item(2000, 0, 0, "skull")
+        w.add_ground_item(2000, 0, 0, {"key": "skull"})
     out, _, _ = run_commands(["get skull"], setup=setup)
     assert "You pick up Skull." in out
     assert "You are here." not in out
@@ -38,7 +38,7 @@ def test_get_suppresses_room_render():
 
 def test_inventory_hides_worn_armor():
     def setup(w, p):
-        w.add_ground_item(2000, 0, 0, "bug_skin")
+        w.add_ground_item(2000, 0, 0, {"key": "bug_skin"})
     out, _, _ = run_commands(
         ["get bug", "wear bug", "inventory", "remove", "inventory"], setup=setup
     )
@@ -50,14 +50,14 @@ def test_inventory_hides_worn_armor():
 
 def test_wield_without_target_suppresses_line():
     def setup(w, p):
-        w.add_ground_item(2000, 0, 0, "light_spear")
+        w.add_ground_item(2000, 0, 0, {"key": "light_spear"})
     out, _, _ = run_commands(["get light", "wield light"], setup=setup)
     assert "You wield the Light-Spear." not in out
     assert "You're not ready to combat anyone." in out
 
 def test_kill_rewards():
     def setup(w, p):
-        w.add_ground_item(2000, 0, 0, "light_spear")
+        w.add_ground_item(2000, 0, 0, {"key": "light_spear"})
         w.place_monster(2000, 0, 0, "mutant")
     out, _, p = run_commands(
         ["get light", "combat mutant", "wield light", "status"], setup=setup
@@ -67,7 +67,7 @@ def test_kill_rewards():
 
 def test_convert_bug_skin_plus_one_and_look():
     def setup(w, p):
-        p.inventory.append(ItemInstance("bug_skin", {"enchant_level": 1}))
+        p.inventory.append({"key": "bug_skin", "meta": {"enchant_level": 1}})
     out, _, p = run_commands(["look bug", "convert bug", "status"], setup=setup)
     assert "possesses a magical aura" in out
     assert "+1 Bug-Skin" in out

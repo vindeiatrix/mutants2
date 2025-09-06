@@ -69,8 +69,8 @@ def test_ground_limit_swap():
 
     assert len(w.items_on_ground(2000, 0, 0)) == 6
     assert len(p.inventory) == 1
-    gift_key = p.inventory[0]
-    gift_name = items.REGISTRY[gift_key].name
+    gift = p.inventory[0]
+    gift_name = items.REGISTRY[gift["key"]].name
     assert yellow("***") in out
     assert yellow(f"{items.article_name(gift_name)} has magically appeared in your hand!") in out
     assert out.index("You drop Cigarette-Butt.") < out.index(

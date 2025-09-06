@@ -3,7 +3,7 @@ import re
 from typing import Optional, Callable
 import collections
 
-from .state import ItemInstance
+from mutants2.types import ItemInstance
 from ..ui.theme import yellow
 from ..ui.wrap import wrap_paragraph_ansi
 
@@ -174,7 +174,7 @@ REGISTRY["bug_skin_armour"] = REGISTRY["bug_skin"]
 
 
 def describe_skull(inst: ItemInstance) -> str:
-    monster_type = inst.meta.get("monster_type", "Unknown")
+    monster_type = inst.get("meta", {}).get("monster_type", "Unknown")
     text = (
         "A shiver is sent down your spine as you realize this is the skull "
         "of a victim that has lost in a bloody battle. Looking closer, you realize "
@@ -342,7 +342,7 @@ def display_name(key: str) -> str:
 
 
 def describe_instance(inst: ItemInstance) -> str | None:
-    item = REGISTRY.get(inst.key)
+    item = REGISTRY.get(inst["key"])
     if item and item.description_fn:
         return item.description_fn(inst)
     return None

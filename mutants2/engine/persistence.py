@@ -5,20 +5,21 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, Any
 
 from .player import Player, class_key
 from .world import World
 from . import monsters as monsters_mod
 from .types import ItemListMut, MonsterRec, TileKey
+from mutants2.types import ItemInstance
 from .state import (
     CharacterProfile,
     apply_profile,
     profile_from_player,
     profile_from_raw,
     profile_to_raw,
-    ItemInstance,
 )
+from .items_util import coerce_item
 from .macros import MacroStore
 
 from . import gen
@@ -53,19 +54,13 @@ _ATTR_MAP = {
 }
 
 
-def _serialize_item(val):
-    if isinstance(val, ItemInstance):
-        data = {"key": val.key}
-        if val.meta:
-            data["meta"] = val.meta
-        return data
-    return val
+def _serialize_item(val: ItemInstance | str) -> dict[str, Any]:
+    inst = coerce_item(val)
+    return {k: v for k, v in inst.items()}
 
 
-def _deserialize_item(val):
-    if isinstance(val, dict):
-        return ItemInstance(val.get("key", ""), val.get("meta", {}))
-    return val
+def _deserialize_item(val: Any) -> ItemInstance:
+    return coerce_item(val)
 
 
 def _migrate_profile(clazz: str, prof: CharacterProfile) -> None:
@@ -141,13 +136,10 @@ def load() -> tuple[
             inv_raw = data.get("inventory", [])
             if isinstance(inv_raw, dict):
                 for k, v in inv_raw.items():
-                    player.inventory.extend([k] * int(v))
+                    player.inventory.extend([coerce_item(k)] * int(v))
             else:
                 for k in inv_raw:
-                    if isinstance(k, dict):
-                        player.inventory.append(_deserialize_item(k))
-                    else:
-                        player.inventory.append(str(k))
+                    player.inventory.append(coerce_item(k))
             player.ions = int(data.get("ions", 0))
             player.riblets = int(data.get("riblets", 0))
             player.level = int(data.get("level", 1))
@@ -241,6 +233,11 @@ def load() -> tuple[
             last_upkeep_tick=time.monotonic() - max(0.0, now_wall - last_wall),
             max_catchup_ticks=int(data.get("max_catchup_ticks", 6)),
         )
+
+        # coerce any legacy items to ItemInstance
+        player.inventory = [coerce_item(it) for it in player.inventory]
+        for k, items in ground.items():
+            ground[k] = [coerce_item(it) for it in items]
 
         if not active_class and profiles:
             save(

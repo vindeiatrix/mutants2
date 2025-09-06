@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Dict, Tuple, cast
 
-from .state import ItemInstance
+from mutants2.types import ItemInstance
+from .items_util import coerce_item
 
 from .senses import SensesBuffer
 from .types import Direction
@@ -41,7 +42,7 @@ class Player:
     )
     clazz: str | None = None
     senses: SensesBuffer = field(default_factory=SensesBuffer, repr=False)
-    inventory: list[ItemInstance | str] = field(default_factory=list)
+    inventory: list[ItemInstance] = field(default_factory=list)
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
@@ -77,8 +78,8 @@ class Player:
         def _armor_bonus() -> int:
             if self.worn_armor:
                 key = (
-                    self.worn_armor.key
-                    if isinstance(self.worn_armor, ItemInstance)
+                    self.worn_armor["key"]
+                    if isinstance(self.worn_armor, dict)
                     else self.worn_armor
                 )
                 item = items_mod.REGISTRY.get(key)
@@ -141,13 +142,14 @@ class Player:
         worn_key: str | None = None
         if self.worn_armor:
             worn_key = (
-                self.worn_armor.key
-                if isinstance(self.worn_armor, ItemInstance)
+                self.worn_armor["key"]
+                if isinstance(self.worn_armor, dict)
                 else self.worn_armor
             )
         skipped = False
         for val in self.inventory:
-            key = val.key if isinstance(val, ItemInstance) else val
+            inst = coerce_item(val)
+            key = inst["key"]
             if worn_key and not skipped and key == worn_key:
                 skipped = True
                 continue
@@ -159,13 +161,14 @@ class Player:
         worn_key: str | None = None
         if self.worn_armor:
             worn_key = (
-                self.worn_armor.key
-                if isinstance(self.worn_armor, ItemInstance)
+                self.worn_armor["key"]
+                if isinstance(self.worn_armor, dict)
                 else self.worn_armor
             )
         skipped = False
         for val in self.inventory:
-            key = val.key if isinstance(val, ItemInstance) else val
+            inst = coerce_item(val)
+            key = inst["key"]
             if worn_key and not skipped and key == worn_key:
                 skipped = True
                 continue
@@ -191,7 +194,7 @@ class Player:
                 world.global_seed, world.turn, self.year, self.x, self.y, "inv_overflow"
             )
             candidates = [
-                it for it in self.inventory if (it.key if isinstance(it, ItemInstance) else it) != item.key
+                it for it in self.inventory if coerce_item(it)["key"] != item.key
             ]
             if candidates:
                 victim = rng.choice(candidates)
@@ -200,8 +203,7 @@ class Player:
                 except ValueError:
                     pass
                 world.add_ground_item(self.year, self.x, self.y, victim)
-                vkey = victim.key if isinstance(victim, ItemInstance) else victim
-                overflow_name = items_mod.REGISTRY[vkey].name
+                overflow_name = items_mod.REGISTRY[coerce_item(victim)["key"]].name
         return overflow_name
 
     def drop_to_ground(
@@ -220,14 +222,14 @@ class Player:
             return False, None, None, None
         inv_obj = None
         for it in self.inventory:
-            key = it.key if isinstance(it, ItemInstance) else it
-            if key == item.key:
+            inst = coerce_item(it)
+            if inst["key"] == item.key:
                 inv_obj = it
                 break
         if inv_obj is None:
             return False, "You don't have that.", None, None
 
-        world.add_ground_item(self.year, self.x, self.y, inv_obj)
+        world.add_ground_item(self.year, self.x, self.y, coerce_item(inv_obj))
         self.inventory.remove(inv_obj)
         if self.worn_armor is inv_obj:
             self.worn_armor = None
@@ -258,7 +260,7 @@ class Player:
                         inv_candidates = [
                             it
                             for it in self.inventory
-                            if (it.key if isinstance(it, ItemInstance) else it) != gift_def.key
+                            if coerce_item(it)["key"] != gift_def.key
                         ]
                         if inv_candidates:
                             victim = rng.choice(inv_candidates)
@@ -266,10 +268,7 @@ class Player:
                             world.add_ground_item(
                                 self.year, self.x, self.y, victim
                             )
-                            vkey = (
-                                victim.key if isinstance(victim, ItemInstance) else victim
-                            )
-                            sack_name = items_mod.REGISTRY[vkey].name
+                            sack_name = items_mod.REGISTRY[coerce_item(victim)["key"]].name
 
         return True, None, sack_name, gift_name
 
@@ -283,19 +282,20 @@ class Player:
         if not item:
             return None
         inv_obj = None
+        inv_inst: ItemInstance | None = None
         for it in self.inventory:
-            key = it.key if isinstance(it, ItemInstance) else it
-            if key == item.key:
+            inst = coerce_item(it)
+            if inst["key"] == item.key:
                 inv_obj = it
+                inv_inst = inst
                 break
-        if inv_obj is None:
+        if inv_obj is None or inv_inst is None:
             return None
         ion_value = item.ion_value
         if (
             ion_value is not None
             and item.key in {"bug_skin", "bug_skin_armour"}
-            and isinstance(inv_obj, ItemInstance)
-            and inv_obj.meta.get("enchant_level") == 1
+            and inv_inst.get("meta", {}).get("enchant_level") == 1
         ):
             ion_value = 22_100
         if ion_value is None:

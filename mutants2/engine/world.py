@@ -20,10 +20,10 @@ from .types import (
     ItemListMut,
     MonsterList,
     MonsterRec,
-    TileKey,
 )
+from mutants2.types import TileKey, ItemInstance
+from .items_util import coerce_item
 from . import monsters as monsters_mod, items as items_mod, rng as rng_mod
-from .state import ItemInstance
 from .ai import set_aggro
 from ..data.room_headers import ROOM_HEADERS
 
@@ -128,10 +128,13 @@ class Year:
     grid: Grid
 
 
+GroundMap = Mapping[TileKey, Iterable[ItemInstance]]
+
+
 class World:
     def __init__(
         self,
-        ground: Mapping[TileKey, ItemList] | None = None,
+        ground: GroundMap | None = None,
         seeded_years: Optional[Set[int]] = None,
         monsters: Mapping[TileKey, MonsterList] | None = None,
         *,
@@ -139,10 +142,10 @@ class World:
         turn: int = 0,
     ):
         self.years: Dict[int, Year] = {}
-        self.ground: MutableMapping[TileKey, ItemListMut] = {}
+        self.ground: MutableMapping[TileKey, list[ItemInstance]] = {}
         if ground:
             for coord, val in ground.items():
-                self.ground[coord] = list(val)
+                self.ground[coord] = [coerce_item(v) for v in val]
         self.seeded_years: Set[int] = set(seeded_years or [])
         if global_seed is None:
             from . import gen
@@ -184,8 +187,8 @@ class World:
                         "seen": bool(seen),
                         "has_yelled_this_aggro": bool(has_yelled),
                         "id": int(mid),
-                        "loot_ions": int(loot_i),
-                        "loot_riblets": int(loot_r),
+                        "loot_ions": int(cast(int, loot_i)),
+                        "loot_riblets": int(cast(int, loot_r)),
                     }
                     if m.get("aggro") and not m.get("seen"):
                         m["aggro"] = False
@@ -197,11 +200,10 @@ class World:
         self.turn = turn
         self._room_headers: Dict[Tuple[int, int, int], str] = {}
 
-    def ground_item(self, year: int, x: int, y: int) -> Optional[str]:
+    def ground_item(self, year: int, x: int, y: int) -> Optional[ItemInstance]:
         items = self.ground.get((year, x, y))
         if items:
-            inst = items[0]
-            return inst.key if isinstance(inst, ItemInstance) else inst
+            return items[0]
         return None
 
     def set_ground_item(
@@ -211,12 +213,12 @@ class World:
         if item_key is None:
             self.ground.pop(key, None)
         else:
-            self.ground[key] = [ItemInstance(item_key)]
+            self.ground[key] = [coerce_item(item_key)]
 
     def add_ground_item(
         self, year: int, x: int, y: int, item: ItemInstance | str
     ) -> None:
-        self.ground.setdefault((year, x, y), []).append(item)
+        self.ground.setdefault((year, x, y), []).append(coerce_item(item))
 
     def remove_ground_item(
         self, year: int, x: int, y: int, item_key: str
@@ -225,8 +227,7 @@ class World:
         if not items:
             return None
         for i, inst in enumerate(items):
-            key = inst.key if isinstance(inst, ItemInstance) else inst
-            if key == item_key:
+            if inst["key"] == item_key:
                 removed = items.pop(i)
                 if not items:
                     self.ground.pop((year, x, y), None)
@@ -235,19 +236,11 @@ class World:
 
     def items_here(self, year: int, x: int, y: int) -> list[str]:
         vals = self.ground.get((year, x, y), [])
-        return [
-            items_mod.REGISTRY[
-                v.key if isinstance(v, ItemInstance) else v
-            ].name
-            for v in vals
-        ]
+        return [items_mod.REGISTRY[v["key"]].name for v in vals]
 
     def items_on_ground(self, year: int, x: int, y: int) -> list[items_mod.ItemDef]:
         vals = self.ground.get((year, x, y), [])
-        return [
-            items_mod.REGISTRY[v.key if isinstance(v, ItemInstance) else v]
-            for v in vals
-        ]
+        return [items_mod.REGISTRY[v["key"]] for v in vals]
 
     def room_description(self, year: int, x: int, y: int) -> str:
         """Return the room header for the given tile, generating on demand."""
@@ -274,7 +267,7 @@ class World:
             for x in range(GRID_MIN, GRID_MAX):
                 yield (x, y)
 
-    def item_at(self, year: int, x: int, y: int) -> Optional[str]:
+    def item_at(self, year: int, x: int, y: int) -> ItemInstance | None:
         return self.ground_item(year, x, y)
 
     def place_item(self, year: int, x: int, y: int, item_key: str) -> None:

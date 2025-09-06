@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from typing import Mapping, MutableMapping, Sequence, Tuple, Literal, TYPE_CHECKING, Union
+from typing import Mapping, MutableMapping, Sequence, Tuple, Literal
 
-if TYPE_CHECKING:  # pragma: no cover
-    from .state import ItemInstance
-
-TileKey = Tuple[int, int, int]
+from mutants2.types import TileKey, ItemInstance
 Direction = Literal["north", "south", "east", "west"]
-ItemList = Sequence[Union[str, "ItemInstance"]]
-ItemListMut = list[Union[str, "ItemInstance"]]
+ItemList = Sequence[ItemInstance]
+ItemListMut = list[ItemInstance]
 MonsterRec = Mapping[str, object]
 MonsterList = Sequence[MonsterRec]
 

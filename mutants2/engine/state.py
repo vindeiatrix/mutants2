@@ -3,11 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Tuple, TYPE_CHECKING, Any
 
-
-@dataclass
-class ItemInstance:
-    key: str
-    meta: dict[str, Any] = field(default_factory=dict)
+from mutants2.types import ItemInstance
+from .items_util import coerce_item
 
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle guard
@@ -26,7 +23,7 @@ class CharacterProfile:
     positions: Dict[int, Tuple[int, int]] = field(
         default_factory=lambda: {c: (0, 0) for c in allowed_centuries()}
     )
-    inventory: list[str] = field(default_factory=list)
+    inventory: list[ItemInstance] = field(default_factory=list)
     hp: int = 10
     max_hp: int = 10
     ions: int = 0
@@ -114,10 +111,7 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "positions": {
             str(y): {"x": x, "y": yy} for y, (x, yy) in prof.positions.items()
         },
-        "inventory": [
-            i if isinstance(i, str) else {"key": i.key, "meta": i.meta}
-            for i in prof.inventory
-        ],
+        "inventory": [dict(coerce_item(i)) for i in prof.inventory],
         "hp": prof.hp,
         "max_hp": prof.max_hp,
         "ions": prof.ions,
@@ -138,12 +132,12 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "worn_armor": (
             prof.worn_armor
             if isinstance(prof.worn_armor, str) or prof.worn_armor is None
-            else {"key": prof.worn_armor.key, "meta": prof.worn_armor.meta}
+            else dict(coerce_item(prof.worn_armor))
         ),
         "wielded_weapon": (
             prof.wielded_weapon
             if isinstance(prof.wielded_weapon, str) or prof.wielded_weapon is None
-            else {"key": prof.wielded_weapon.key, "meta": prof.wielded_weapon.meta}
+            else dict(coerce_item(prof.wielded_weapon))
         ),
         "tables_migrated": getattr(prof, "tables_migrated", True),
         **({"macros_name": prof.macros_name} if prof.macros_name else {}),
@@ -153,14 +147,9 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
 def profile_from_raw(data: dict) -> CharacterProfile:
     inv_raw = data.get("inventory", [])
     if isinstance(inv_raw, list):
-        inventory = [
-            ItemInstance(v.get("key", ""), v.get("meta", {}))
-            if isinstance(v, dict)
-            else str(v)
-            for v in inv_raw
-        ]
+        inventory = [coerce_item(v) for v in inv_raw]
     else:
-        inventory = [k for k, v in inv_raw.items() for _ in range(int(v))]
+        inventory = [coerce_item(k) for k, v in inv_raw.items() for _ in range(int(v))]
     return CharacterProfile(
         year=int(data.get("year", allowed_centuries()[0])),
         positions={
@@ -186,17 +175,10 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         ready_to_combat_id=data.get("ready_to_combat_id"),
         ready_to_combat_name=data.get("ready_to_combat_name"),
         worn_armor=(
-            ItemInstance(data["worn_armor"].get("key", ""), data["worn_armor"].get("meta", {}))
-            if isinstance(data.get("worn_armor"), dict)
-            else data.get("worn_armor")
+            coerce_item(data["worn_armor"]) if data.get("worn_armor") is not None else None
         ),
         wielded_weapon=(
-            ItemInstance(
-                data["wielded_weapon"].get("key", ""),
-                data["wielded_weapon"].get("meta", {}),
-            )
-            if isinstance(data.get("wielded_weapon"), dict)
-            else data.get("wielded_weapon")
+            coerce_item(data["wielded_weapon"]) if data.get("wielded_weapon") is not None else None
         ),
         macros_name=data.get("macros_name"),
         tables_migrated=bool(data.get("tables_migrated", False)),
