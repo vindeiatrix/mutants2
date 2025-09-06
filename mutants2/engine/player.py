@@ -156,6 +156,29 @@ class Player:
             names.append(items_mod.REGISTRY[key].name)
         return names
 
+    def inventory_display_names(self) -> list[str]:
+        names: list[str] = []
+        worn_key: str | None = None
+        if self.worn_armor:
+            worn_key = (
+                self.worn_armor["key"]
+                if isinstance(self.worn_armor, dict)
+                else self.worn_armor
+            )
+        skipped = False
+        for val in self.inventory:
+            inst = coerce_item(val)
+            key = inst["key"]
+            if worn_key and not skipped and key == worn_key:
+                skipped = True
+                continue
+            name = items_mod.REGISTRY[key].name
+            lvl = inst.get("meta", {}).get("enchant_level", 0)
+            if lvl:
+                name = f"+{lvl} {name}"
+            names.append(name)
+        return names
+
     def inventory_weight_lbs(self) -> int:
         total = 0
         worn_key: str | None = None
@@ -292,14 +315,16 @@ class Player:
         if inv_obj is None or inv_inst is None:
             return None
         ion_value = item.ion_value
-        if (
-            ion_value is not None
-            and item.key in {"bug_skin", "bug_skin_armour"}
-            and inv_inst.get("meta", {}).get("enchant_level") == 1
-        ):
-            ion_value = 22_100
+        lvl = inv_inst.get("meta", {}).get("enchant_level", 0)
+        if lvl > 0 and item.convert_value_ions is not None:
+            ion_value = item.convert_value_ions
         if ion_value is None:
             return None
         self.inventory.remove(inv_obj)
+        if self.worn_armor is inv_obj:
+            self.worn_armor = None
+            self.recompute_ac()
+        if self.wielded_weapon is inv_obj:
+            self.wielded_weapon = None
         self.ions += ion_value
         return replace(item, ion_value=ion_value)
