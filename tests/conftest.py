@@ -21,7 +21,7 @@ def cli_runner(tmp_path):
             cmd = [sys.executable, "-m", "mutants2"]
             env = os.environ.copy()
             env["HOME"] = str(tmp_path)
-            persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
+            persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
             save_path = persistence.SAVE_PATH
             if save_path.exists():
                 with open(save_path) as fh:
@@ -41,6 +41,7 @@ def cli_runner(tmp_path):
                         "riblets": data.get("riblets", 0),
                     }
                 data["last_class"] = "Warrior"
+                data["schema"] = persistence.SAVE_SCHEMA
                 with open(save_path, "w") as fh:
                     json.dump(data, fh)
             else:
@@ -51,7 +52,9 @@ def cli_runner(tmp_path):
                 save.last_class = "Warrior"
                 save.profiles["Warrior"] = {
                     "year": p.year,
-                    "positions": {str(y): {"x": x, "y": yy} for y, (x, yy) in p.positions.items()},
+                    "positions": {
+                        str(y): {"x": x, "y": yy} for y, (x, yy) in p.positions.items()
+                    },
                     "hp": p.hp,
                     "max_hp": p.max_hp,
                     "inventory": [],
@@ -60,7 +63,9 @@ def cli_runner(tmp_path):
                 }
                 persistence.save(p, w, save)
             inp = "\n".join(commands + ["exit"]) + "\n"
-            result = subprocess.run(cmd, input=inp, text=True, capture_output=True, env=env)
+            result = subprocess.run(
+                cmd, input=inp, text=True, capture_output=True, env=env
+            )
             return result.stdout
 
     return Runner()

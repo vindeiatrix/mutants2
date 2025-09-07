@@ -1,16 +1,20 @@
+import json
+
+import pytest
+
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
 from mutants2.engine import persistence
 
 
 def test_save_load(tmp_path, monkeypatch):
-    monkeypatch.setenv('HOME', str(tmp_path))
-    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
+    monkeypatch.setenv("HOME", str(tmp_path))
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
     w = World()
     p = Player()
-    assert p.move('east', w)
+    assert p.move("east", w)
     p.travel(w, 2100)
-    assert p.move('north', w)
+    assert p.move("north", w)
     save = persistence.Save()
     persistence.save(p, w, save)
     p2, ground, monsters, seeded, _ = persistence.load()
@@ -18,3 +22,13 @@ def test_save_load(tmp_path, monkeypatch):
     w2 = World(ground, seeded, monsters)
     p2.travel(w2, 2000)
     assert (p2.x, p2.y) == (0, 0)
+
+
+def test_old_schema_refused(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
+    persistence.SAVE_PATH.parent.mkdir(parents=True)
+    with open(persistence.SAVE_PATH, "w") as fh:
+        json.dump({"schema": 1}, fh)
+    with pytest.raises(RuntimeError):
+        persistence.load()

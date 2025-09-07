@@ -21,6 +21,8 @@ dev = [
   "ruff",
   "mypy",
   "pyright",
+  "pytest-cov",
+  "vulture",
 ]
 
 [tool.black]
@@ -30,4 +32,18 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+
+[tool.pyright]
+include = ["mutants2"]
+exclude = ["tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+
+[tool.coverage.run]
+branch = true
+source = ["mutants2"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
 

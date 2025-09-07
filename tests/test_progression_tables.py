@@ -35,10 +35,14 @@ def test_progression_to_level5(clazz):
     leveling.check_level_up(p)
     assert p.level == target
     base = BASE_LEVEL1[clazz]
-    hp_expected = base["hp"] + sum(table[l]["hp_plus"] for l in range(2, target + 1))
+    hp_expected = base["hp"] + sum(
+        table[lvl]["hp_plus"] for lvl in range(2, target + 1)
+    )
     assert p.max_hp == hp_expected
     for short, attr in ATTR_MAP.items():
-        expected = base[short] + sum(table[l][f"{short}_plus"] for l in range(2, target + 1))
+        expected = base[short] + sum(
+            table[lvl][f"{short}_plus"] for lvl in range(2, target + 1)
+        )
         assert getattr(p, attr) == expected
 
 
@@ -51,51 +55,24 @@ def test_levels_beyond_eleven():
     leveling.check_level_up(p)
     assert p.level == 13
     base = BASE_LEVEL1[clazz]
-    hp_expected = base["hp"] + sum(table[l]["hp_plus"] for l in range(2, 12)) + table[11]["hp_plus"] * 2
+    hp_expected = (
+        base["hp"]
+        + sum(table[lvl]["hp_plus"] for lvl in range(2, 12))
+        + table[11]["hp_plus"] * 2
+    )
     assert p.max_hp == hp_expected
     for short, attr in ATTR_MAP.items():
         base_val = base[short]
-        total = sum(table[l][f"{short}_plus"] for l in range(2, 12))
+        total = sum(table[lvl][f"{short}_plus"] for lvl in range(2, 12))
         total += table[11][f"{short}_plus"] * 2
         assert getattr(p, attr) == base_val + total
 
 
-def test_migration_recomputes_stats(tmp_path, monkeypatch):
+def test_old_saves_rejected(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
-    table = PROGRESSION["warrior"]
-    save_data = {
-        "profiles": {
-            "warrior": {
-                "year": 2000,
-                "positions": {"2000": {"x": 0, "y": 0}},
-                "inventory": [],
-                "hp": 9999,
-                "max_hp": 9999,
-                "ions": 0,
-                "level": 3,
-                "exp": table[3]["xp_to_reach"],
-                "strength": 0,
-                "intelligence": 0,
-                "wisdom": 0,
-                "dexterity": 0,
-                "constitution": 0,
-                "charisma": 0,
-                "ac": 0,
-            }
-        },
-        "last_class": "warrior",
-    }
     persistence.SAVE_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(persistence.SAVE_PATH, "w") as fh:
-        json.dump(save_data, fh)
-    player, _, _, _, save_meta = persistence.load()
-    base = BASE_LEVEL1["warrior"]
-    table = PROGRESSION["warrior"]
-    assert player.level == 3
-    hp_expected = base["hp"] + table[2]["hp_plus"] + table[3]["hp_plus"]
-    assert player.max_hp == hp_expected
-    assert player.hp == hp_expected
-    str_expected = base["str"] + table[2]["str_plus"] + table[3]["str_plus"]
-    assert player.strength == str_expected
-    assert save_meta.profiles["warrior"].tables_migrated is True
+        json.dump({"schema": 1}, fh)
+    with pytest.raises(RuntimeError):
+        persistence.load()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 import datetime
 import time
-from typing import Mapping, MutableMapping, cast
+from typing import Mapping, cast
 
 from ..engine import persistence, items, monsters, combat
 from ..engine.items_resolver import (
@@ -243,7 +243,6 @@ def make_context(p, w, save, *, dev: bool = False):
     macro_store.load_profile(class_key(p.clazz or "default"))
     last_move = None
 
-
     context = SimpleNamespace(
         macro_store=macro_store,
         running=True,
@@ -448,7 +447,9 @@ def make_context(p, w, save, *, dev: bool = False):
         if p.worn_armor:
             old_inst = coerce_item(p.worn_armor)
             old_def = get_item_def_by_key(old_inst["key"])
-            print(yellow(f"You remove the {display_item_name_plain(old_inst, old_def)}."))
+            print(
+                yellow(f"You remove the {display_item_name_plain(old_inst, old_def)}.")
+            )
         p.worn_armor = inst_match
         p.recompute_ac()
         print(yellow(f"You wear the {display_item_name_plain(inst_match, idef)}."))
@@ -508,9 +509,7 @@ def make_context(p, w, save, *, dev: bool = False):
         p.wielded_weapon = inst_match
         mon = w.monster_here(p.year, p.x, p.y)
         ready = (
-            p.ready_to_combat_id
-            and mon
-            and str(mon.get("id")) == p.ready_to_combat_id
+            p.ready_to_combat_id and mon and str(mon.get("id")) == p.ready_to_combat_id
         )
         if not ready:
             print(yellow("***"))
@@ -829,6 +828,8 @@ def make_context(p, w, save, *, dev: bool = False):
   debug today YYYY-MM-DD              Set synthetic 'today' (dev date).
   debug today clear                   Clear synthetic date.
   debug topup                         Run daily item top-up now.
+  debug reset                         Delete on-disk save data.
+  debug wipe                          Clear in-memory profiles and world.
   macro keys debug on|off             Toggle macro key debug (if available).
 """
                 )
@@ -847,7 +848,13 @@ def make_context(p, w, save, *, dev: bool = False):
             if not dev:
                 print("Debug commands are available only in dev mode.")
             else:
-                if args[:2] == ["item", "add"] and len(args) >= 3:
+                if args[:1] == ["reset"]:
+                    persistence.debug_reset()
+                    print("Save data removed.")
+                elif args[:1] == ["wipe"]:
+                    persistence.debug_wipe(p, w, save)
+                    print("In-memory state cleared.")
+                elif args[:2] == ["item", "add"] and len(args) >= 3:
                     name_or_key = args[2]
                     extra = args[3:]
                     count = 1
