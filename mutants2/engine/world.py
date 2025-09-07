@@ -16,15 +16,13 @@ from typing import (
 
 from .types import (
     Direction,
-    ItemList,
-    ItemListMut,
     MonsterList,
     MonsterRec,
 )
 from mutants2.types import TileKey, ItemInstance
 from .items_util import coerce_item
 from .items_resolver import get_item_def_by_key
-from ..ui.items_render import display_item_name
+from ..ui.items_render import display_item_name_plain
 from . import monsters as monsters_mod, items as items_mod, rng as rng_mod
 from .ai import set_aggro
 from ..data.room_headers import ROOM_HEADERS
@@ -241,7 +239,7 @@ class World:
         names: list[str] = []
         for v in vals:
             idef = get_item_def_by_key(v["key"])
-            names.append(display_item_name(v, idef, include_enchant=False))
+            names.append(display_item_name_plain(v, idef))
         return names
 
     def items_on_ground(self, year: int, x: int, y: int) -> list[items_mod.ItemDef]:
@@ -367,9 +365,7 @@ class World:
         mid = self._id_alloc.allocate()
         self._monsters.setdefault((year, x, y), []).append(monsters_mod.spawn(key, mid))
 
-    def damage_monster(
-        self, year: int, x: int, y: int, dmg: int, player=None
-    ) -> bool:
+    def damage_monster(self, year: int, x: int, y: int, dmg: int, player=None) -> bool:
         coord = (year, x, y)
         lst = self._monsters.get(coord)
         if not lst:
@@ -383,7 +379,9 @@ class World:
             self._id_alloc.release(mid)
             if not lst:
                 self._monsters.pop(coord, None)
-            if player is not None and getattr(player, "ready_to_combat_id", None) == str(mid):
+            if player is not None and getattr(
+                player, "ready_to_combat_id", None
+            ) == str(mid):
                 player.ready_to_combat_id = None
                 player.ready_to_combat_name = None
             return True
@@ -399,7 +397,9 @@ class World:
         self._id_alloc.release(mid)
         if not lst:
             self._monsters.pop(coord, None)
-        if player is not None and getattr(player, "ready_to_combat_id", None) == str(mid):
+        if player is not None and getattr(player, "ready_to_combat_id", None) == str(
+            mid
+        ):
             player.ready_to_combat_id = None
             player.ready_to_combat_name = None
         return True

@@ -1,11 +1,11 @@
-from typing import TypedDict, Tuple, Sequence, Mapping, Any, Required
+from typing import TypedDict, Tuple, Any, NotRequired, Required
 
 TileKey = Tuple[int, int, int]
 
 
 class ItemInstance(TypedDict, total=False):
     key: Required[str]
-    enchant: int | None
-    base_power: int | None
-    ac_bonus: int | None
-    meta: dict[str, Any]
+    enchant: NotRequired[int]
+    base_power: NotRequired[int]
+    ac_bonus: NotRequired[int]
+    meta: NotRequired[dict[str, Any]]

@@ -10,10 +10,10 @@ from mutants2.ui.theme import yellow
 
 @pytest.fixture
 def tile_with_item(tmp_path):
-    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
-    os.environ['HOME'] = str(tmp_path)
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
+    os.environ["HOME"] = str(tmp_path)
     p = Player()
-    w = World({(2000, 0, 0): ['nuclear_thong']}, {2000})
+    w = World({(2000, 0, 0): ["nuclear_thong"]}, {2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
     persistence.save(p, w, save)
@@ -22,10 +22,10 @@ def tile_with_item(tmp_path):
 
 @pytest.fixture
 def inventory_with_item(tmp_path):
-    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
-    os.environ['HOME'] = str(tmp_path)
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
+    os.environ["HOME"] = str(tmp_path)
     p = Player()
-    p.inventory.append('nuclear_thong')
+    p.inventory.append("nuclear_thong")
     w = World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
@@ -35,10 +35,10 @@ def inventory_with_item(tmp_path):
 
 @pytest.fixture
 def inventory_with_ion_items(tmp_path):
-    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
-    os.environ['HOME'] = str(tmp_path)
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
+    os.environ["HOME"] = str(tmp_path)
     p = Player()
-    p.inventory.extend(['ion_decay', 'ion_pack'])
+    p.inventory.extend(["ion_decay", "ion_pack"])
     w = World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
@@ -49,13 +49,13 @@ def inventory_with_ion_items(tmp_path):
 def test_get_does_not_render(cli_runner, tile_with_item):
     out = cli_runner.run_commands(["look", "get nuc"])
     assert out.count("***") >= 2
-    assert "You pick up Nuclear-thong." in out
+    assert "You pick up Nuclear-Thong." in out
 
 
 def test_drop_does_not_render(cli_runner, inventory_with_item):
     out = cli_runner.run_commands(["dro nuc"])
     assert out.count("***") == 1
-    assert "You drop Nuclear-thong." in out
+    assert "You drop Nuclear-Thong." in out
 
 
 def test_item_prefix_first_match_cli_runner(cli_runner, inventory_with_ion_items):
@@ -75,4 +75,3 @@ def test_travel_suppresses_render(cli_runner):
     out = cli_runner.run_commands(["tra 2100"])
     assert "ZAAAAPPPPP!!" in out
     assert out.count("Compass:") == 1
-

@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 import datetime
 import time
-from typing import Mapping, MutableMapping, cast
+from typing import Mapping, cast
 
 from ..engine import persistence, items, monsters, combat
 from ..engine.items_resolver import (
@@ -11,7 +11,10 @@ from ..engine.items_resolver import (
     get_item_def_by_key,
     resolve_key,
 )
-from ..ui.items_render import display_item_name
+from ..ui.items_render import (
+    display_item_name_plain,
+    display_item_name_with_plus,
+)
 from ..engine.items_util import coerce_item
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
@@ -240,7 +243,6 @@ def make_context(p, w, save, *, dev: bool = False):
     macro_store.load_profile(class_key(p.clazz or "default"))
     last_move = None
 
-
     context = SimpleNamespace(
         macro_store=macro_store,
         running=True,
@@ -370,7 +372,8 @@ def make_context(p, w, save, *, dev: bool = False):
         if overflow:
             print(yellow("***"))
             print(yellow(f"The {overflow} fell out of your sack!"))
-        print(f"You pick up {idef.name}.")
+        inst_tmp: ItemInstance = {"key": idef.key}
+        print(f"You pick up {display_item_name_plain(inst_tmp, idef)}.")
         return False
 
     def handle_drop(args: list[str]) -> bool:
@@ -393,7 +396,7 @@ def make_context(p, w, save, *, dev: bool = False):
             print(f'No item in inventory matching "{raw}".')
             return False
         idef = get_item_def_by_key(key)
-        name = display_item_name(inst_match, idef)
+        name = display_item_name_plain(inst_match, idef)
         ok, msg, sack_name, gift_name = p.drop_to_ground(idef.name if idef else key, w)
         print(f"You drop {name}." if ok else (msg or "You can’t drop that here."))
         if sack_name:
@@ -445,10 +448,12 @@ def make_context(p, w, save, *, dev: bool = False):
         if p.worn_armor:
             old_inst = coerce_item(p.worn_armor)
             old_def = get_item_def_by_key(old_inst["key"])
-            print(yellow(f"You remove the {display_item_name(old_inst, old_def, include_enchant=False)}."))
+            print(
+                yellow(f"You remove the {display_item_name_plain(old_inst, old_def)}.")
+            )
         p.worn_armor = inst_match
         p.recompute_ac()
-        print(yellow(f"You wear the {display_item_name(inst_match, idef, include_enchant=False)}."))
+        print(yellow(f"You wear the {display_item_name_plain(inst_match, idef)}."))
         context._needs_render = False
         context._suppress_room_render = True
         return False
@@ -466,7 +471,7 @@ def make_context(p, w, save, *, dev: bool = False):
             return False
         inst = coerce_item(p.worn_armor)
         idef = get_item_def_by_key(inst["key"])
-        name = display_item_name(inst, idef, include_enchant=False)
+        name = display_item_name_plain(inst, idef)
         p.worn_armor = None
         p.recompute_ac()
         print(yellow("***"))
@@ -505,9 +510,7 @@ def make_context(p, w, save, *, dev: bool = False):
         p.wielded_weapon = inst_match
         mon = w.monster_here(p.year, p.x, p.y)
         if not (
-            p.ready_to_combat_id
-            and mon
-            and str(mon.get("id")) == p.ready_to_combat_id
+            p.ready_to_combat_id and mon and str(mon.get("id")) == p.ready_to_combat_id
         ):
             print(yellow("***"))
             print(yellow("You're not ready to combat anyone."))
@@ -515,7 +518,7 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         print(yellow("***"))
-        print(yellow(f"You wield the {display_item_name(inst_match, idef, include_enchant=False)}."))
+        print(yellow(f"You wield the {display_item_name_plain(inst_match, idef)}."))
         key = inst_match["key"]
         dmg, killed, name_mon = combat.player_attack(p, w, key)
         print(yellow("***"))
@@ -604,12 +607,10 @@ def make_context(p, w, save, *, dev: bool = False):
         if inst_match:
             print(yellow("***"))
             idef = get_item_def_by_key(inst_match["key"])
-            lvl = inst_match.get("meta", {}).get("enchant_level")
-            if lvl is None:
-                lvl = inst_match.get("enchant") or 0
-            base_name = display_item_name(inst_match, idef, include_enchant=False)
+            lvl = inst_match.get("enchant") or 0
+            base_name = display_item_name_plain(inst_match, idef)
             if lvl > 0:
-                ench_name = display_item_name(inst_match, idef)
+                ench_name = display_item_name_with_plus(inst_match, idef)
                 print(
                     yellow(
                         f"The {base_name} possesses a magical aura. "
@@ -733,13 +734,13 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = True
         elif cmd == "class":
             macro_store.save_profile(class_key(p.clazz or "default"))
-            persistence.save(p, w, save)
             stop_realtime_tick(context.tick_handle)
             context.tick_handle = None
             context.in_game = False
             w.reset_all_aggro()
             p.ready_to_combat_id = None
             p.ready_to_combat_name = None
+            persistence.save(p, w, save)
             changed = class_menu(p, w, save, context, in_game=True)
             if changed:
                 macro_store.load_profile(class_key(p.clazz or "default"))
@@ -862,9 +863,9 @@ def make_context(p, w, save, *, dev: bool = False):
                         lvl = enchant
                         if lvl is None:
                             lvl = idef.default_enchant_level
-                        inst = {"key": key}
+                        inst: ItemInstance = {"key": key}
                         if lvl:
-                            inst["meta"] = {"enchant_level": lvl}
+                            inst["enchant"] = lvl
                         w.add_ground_item(p.year, p.x, p.y, inst)
                     print(f"OK: added {count} x {idef.name}.")
                 elif args[:2] == ["item", "clear"]:
@@ -1039,6 +1040,7 @@ def make_context(p, w, save, *, dev: bool = False):
             p.ready_to_combat_id = None
             p.ready_to_combat_name = None
             w.reset_all_aggro()
+            persistence.save(p, w, save)
             print("Goodbye.")
             context.running = False
         else:
