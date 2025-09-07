@@ -39,6 +39,7 @@ class Save:
     last_upkeep_tick: float = field(default_factory=lambda: time.monotonic())
     next_upkeep_tick: float | None = None  # monotonic deadline for next 10s tick
     max_catchup_ticks: int = 6
+    schema_version: int = 2
 
 
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
@@ -232,14 +233,33 @@ def load() -> tuple[
             profiles=profiles,
             last_upkeep_tick=time.monotonic() - max(0.0, now_wall - last_wall),
             max_catchup_ticks=int(data.get("max_catchup_ticks", 6)),
+            schema_version=int(data.get("schema_version", 1)),
         )
 
-        # coerce any legacy items to ItemInstance
-        player.inventory = [coerce_item(it) for it in player.inventory]
-        for k, items in ground.items():
-            ground[k] = [coerce_item(it) for it in items]
+        from .items_resolver import resolve_key
 
-        if not active_class and profiles:
+        def _migrate_list(lst):
+            out = []
+            for it in lst:
+                inst = coerce_item(it)
+                inst["key"] = resolve_key(inst["key"])
+                out.append(inst)
+            return out
+
+        player.inventory = _migrate_list(player.inventory)
+        if player.worn_armor is not None:
+            player.worn_armor = coerce_item(player.worn_armor)
+            player.worn_armor["key"] = resolve_key(player.worn_armor["key"])
+        for k, items in ground.items():
+            ground[k] = _migrate_list(items)
+
+        migrated = False
+        if save_meta.schema_version < 2:
+            save_meta.schema_version = 2
+            migrated = True
+
+        needs_save = migrated or (not active_class and profiles)
+        if needs_save:
             save(
                 player,
                 World(ground, seeded, monsters_data, global_seed=save_meta.global_seed),
@@ -332,6 +352,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "seeded_years": list(world.seeded_years),
             "global_seed": save_meta.global_seed,
             "last_topup_date": save_meta.last_topup_date,
+            "schema_version": save_meta.schema_version,
             # no senses data; cues are never persisted
         }
         json.dump(data, fh)

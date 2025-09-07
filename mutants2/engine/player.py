@@ -11,6 +11,8 @@ from .types import Direction
 from . import items as items_mod, rng as rng_mod
 from .world import ALLOWED_CENTURIES
 from ..ui.theme import red
+from .items_resolver import get_item_def_by_key, resolve_key
+from ..ui.items_render import display_item_name
 
 
 INVENTORY_LIMIT = 10
@@ -82,9 +84,9 @@ class Player:
                     if isinstance(self.worn_armor, dict)
                     else self.worn_armor
                 )
-                item = items_mod.REGISTRY.get(key)
-                if item:
-                    return item.ac_bonus
+                idef = get_item_def_by_key(key)
+                if idef:
+                    return idef.ac_bonus
             return 0
 
         self.ac_total = self.ac + self.natural_dex_ac + _armor_bonus()
@@ -134,68 +136,58 @@ class Player:
     def inventory_names_in_order(self) -> list[str]:
         """Return inventory item names preserving pickup order.
 
-        Any item currently worn as armour is excluded from the listing so that
-        it does not appear in inventory displays or prefix matching.
+        Names are returned without enchant levels for prefix matching. Any item
+        currently worn as armour is excluded from the listing so that it does
+        not appear in inventory displays or prefix matching.
         """
 
         names: list[str] = []
         worn_key: str | None = None
         if self.worn_armor:
-            worn_key = (
-                self.worn_armor["key"]
-                if isinstance(self.worn_armor, dict)
-                else self.worn_armor
-            )
+            worn_inst = coerce_item(self.worn_armor)
+            worn_key = resolve_key(worn_inst["key"])
         skipped = False
         for val in self.inventory:
             inst = coerce_item(val)
-            key = inst["key"]
+            key = resolve_key(inst["key"])
             if worn_key and not skipped and key == worn_key:
                 skipped = True
                 continue
-            names.append(items_mod.REGISTRY[key].name)
+            idef = get_item_def_by_key(key)
+            names.append(display_item_name(inst, idef, include_enchant=False))
         return names
 
     def inventory_display_names(self) -> list[str]:
         names: list[str] = []
         worn_key: str | None = None
         if self.worn_armor:
-            worn_key = (
-                self.worn_armor["key"]
-                if isinstance(self.worn_armor, dict)
-                else self.worn_armor
-            )
+            worn_inst = coerce_item(self.worn_armor)
+            worn_key = resolve_key(worn_inst["key"])
         skipped = False
         for val in self.inventory:
             inst = coerce_item(val)
-            key = inst["key"]
+            key = resolve_key(inst["key"])
             if worn_key and not skipped and key == worn_key:
                 skipped = True
                 continue
-            name = items_mod.REGISTRY[key].name
-            lvl = inst.get("meta", {}).get("enchant_level", 0)
-            if lvl:
-                name = f"+{lvl} {name}"
-            names.append(name)
+            idef = get_item_def_by_key(key)
+            names.append(display_item_name(inst, idef))
         return names
 
     def inventory_weight_lbs(self) -> int:
         total = 0
         worn_key: str | None = None
         if self.worn_armor:
-            worn_key = (
-                self.worn_armor["key"]
-                if isinstance(self.worn_armor, dict)
-                else self.worn_armor
-            )
+            worn_inst = coerce_item(self.worn_armor)
+            worn_key = resolve_key(worn_inst["key"])
         skipped = False
         for val in self.inventory:
             inst = coerce_item(val)
-            key = inst["key"]
+            key = resolve_key(inst["key"])
             if worn_key and not skipped and key == worn_key:
                 skipped = True
                 continue
-            item = items_mod.REGISTRY.get(key)
+            item = get_item_def_by_key(key)
             if item and item.weight_lbs:
                 total += item.weight_lbs
         return total
@@ -226,7 +218,9 @@ class Player:
                 except ValueError:
                     pass
                 world.add_ground_item(self.year, self.x, self.y, victim)
-                overflow_name = items_mod.REGISTRY[coerce_item(victim)["key"]].name
+                victim_inst = coerce_item(victim)
+                vdef = get_item_def_by_key(resolve_key(victim_inst["key"]))
+                overflow_name = vdef.name if vdef else victim_inst["key"]
         return overflow_name
 
     def drop_to_ground(
@@ -291,7 +285,9 @@ class Player:
                             world.add_ground_item(
                                 self.year, self.x, self.y, victim
                             )
-                            sack_name = items_mod.REGISTRY[coerce_item(victim)["key"]].name
+                            victim_inst = coerce_item(victim)
+                            vdef = get_item_def_by_key(resolve_key(victim_inst["key"]))
+                            sack_name = vdef.name if vdef else victim_inst["key"]
 
         return True, None, sack_name, gift_name
 

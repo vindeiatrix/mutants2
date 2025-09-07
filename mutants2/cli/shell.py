@@ -6,6 +6,13 @@ import time
 from typing import Mapping, MutableMapping, cast
 
 from ..engine import persistence, items, monsters, combat
+from ..engine.items_resolver import (
+    resolve_key_prefix,
+    get_item_def_by_key,
+    resolve_key,
+)
+from ..ui.items_render import display_item_name
+from ..engine.items_util import coerce_item
 from ..engine.render import render_room_view
 from ..engine import render as render_mod
 from ..engine.loop import (
@@ -352,28 +359,42 @@ def make_context(p, w, save, *, dev: bool = False):
         if not args:
             print(GET_WHAT)
             return False
-        ground = [it.name for it in w.items_on_ground(p.year, p.x, p.y)]
-        name = items.first_prefix_match(" ".join(args), ground)
-        if not name:
-            print(f'No item here matching "{" ".join(args)}".')
+        raw = " ".join(args)
+        ground_defs = {d.key: d for d in w.items_on_ground(p.year, p.x, p.y)}
+        key = resolve_key_prefix(raw, ground_defs.keys())
+        if not key:
+            print(f'No item here matching "{raw}".')
             return False
-        overflow = p.pick_up(name, w)
+        idef = ground_defs[key]
+        overflow = p.pick_up(idef.name, w)
         if overflow:
             print(yellow("***"))
             print(yellow(f"The {overflow} fell out of your sack!"))
-        print(f"You pick up {name}.")
+        print(f"You pick up {idef.name}.")
         return False
 
     def handle_drop(args: list[str]) -> bool:
         if not args:
             print(DROP_WHAT)
             return False
-        inv_names = p.inventory_names_in_order()
-        name = items.first_prefix_match(" ".join(args), inv_names)
-        if not name:
-            print(f'No item in inventory matching "{" ".join(args)}".')
+        raw = " ".join(args)
+        inv_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory]
+        key = resolve_key_prefix(raw, inv_keys)
+        if not key:
+            print(f'No item in inventory matching "{raw}".')
             return False
-        ok, msg, sack_name, gift_name = p.drop_to_ground(name, w)
+        inst_match: ItemInstance | None = None
+        for obj in p.inventory:
+            inst = coerce_item(obj)
+            if resolve_key(inst["key"]) == key:
+                inst_match = inst
+                break
+        if inst_match is None:
+            print(f'No item in inventory matching "{raw}".')
+            return False
+        idef = get_item_def_by_key(key)
+        name = display_item_name(inst_match, idef)
+        ok, msg, sack_name, gift_name = p.drop_to_ground(idef.name if idef else key, w)
         print(f"You drop {name}." if ok else (msg or "You can’t drop that here."))
         if sack_name:
             print(yellow("***"))
@@ -392,28 +413,29 @@ def make_context(p, w, save, *, dev: bool = False):
             render_usage("wear")
             context._suppress_room_render = True
             return False
-        inv_names = p.inventory_names_in_order()
-        name = items.first_prefix_match(" ".join(args), inv_names)
-        if not name:
+        raw = " ".join(args)
+        inv_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory]
+        key = resolve_key_prefix(raw, inv_keys)
+        if not key:
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {' '.join(args)}."))
+            print(yellow(f"You're not carrying a {raw}."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
         inst_match: ItemInstance | None = None
         for obj in p.inventory:
-            if items.display_name(obj["key"]) == name:
-                inst_match = obj
+            inst = coerce_item(obj)
+            if resolve_key(inst["key"]) == key:
+                inst_match = inst
                 break
         if inst_match is None:
             print(yellow("***"))
-            print(yellow("You can't wear that."))
+            print(yellow(f"You're not carrying a {raw}."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        key = inst_match["key"]
-        item = items.REGISTRY.get(key)
-        if not item or item.ac_bonus <= 0:
+        idef = get_item_def_by_key(key)
+        if not idef or idef.ac_bonus <= 0:
             print(yellow("***"))
             print(yellow("You can't wear that."))
             context._needs_render = False
@@ -421,16 +443,12 @@ def make_context(p, w, save, *, dev: bool = False):
             return False
         print(yellow("***"))
         if p.worn_armor:
-            old_key = (
-                p.worn_armor["key"]
-                if isinstance(p.worn_armor, dict)
-                else p.worn_armor
-            )
-            old_name = items.display_name(old_key)
-            print(yellow(f"You remove the {old_name}."))
+            old_inst = coerce_item(p.worn_armor)
+            old_def = get_item_def_by_key(old_inst["key"])
+            print(yellow(f"You remove the {display_item_name(old_inst, old_def, include_enchant=False)}."))
         p.worn_armor = inst_match
         p.recompute_ac()
-        print(yellow(f"You wear the {name}."))
+        print(yellow(f"You wear the {display_item_name(inst_match, idef, include_enchant=False)}."))
         context._needs_render = False
         context._suppress_room_render = True
         return False
@@ -446,8 +464,9 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        key = p.worn_armor["key"] if isinstance(p.worn_armor, dict) else p.worn_armor
-        name = items.display_name(key)
+        inst = coerce_item(p.worn_armor)
+        idef = get_item_def_by_key(inst["key"])
+        name = display_item_name(inst, idef, include_enchant=False)
         p.worn_armor = None
         p.recompute_ac()
         print(yellow("***"))
@@ -461,25 +480,28 @@ def make_context(p, w, save, *, dev: bool = False):
             render_usage("wield")
             context._suppress_room_render = True
             return False
-        inv_names = p.inventory_names_in_order()
-        name = items.first_prefix_match(" ".join(args), inv_names)
-        if not name:
+        raw = " ".join(args)
+        inv_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory]
+        key = resolve_key_prefix(raw, inv_keys)
+        if not key:
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {' '.join(args)}."))
+            print(yellow(f"You're not carrying a {raw}."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
         inst_match: ItemInstance | None = None
         for obj in p.inventory:
-            if items.display_name(obj["key"]) == name:
-                inst_match = obj
+            inst = coerce_item(obj)
+            if resolve_key(inst["key"]) == key:
+                inst_match = inst
                 break
         if inst_match is None:
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {' '.join(args)}."))
+            print(yellow(f"You're not carrying a {raw}."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
+        idef = get_item_def_by_key(key)
         p.wielded_weapon = inst_match
         mon = w.monster_here(p.year, p.x, p.y)
         if not (
@@ -493,7 +515,7 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         print(yellow("***"))
-        print(yellow(f"You wield the {name}."))
+        print(yellow(f"You wield the {display_item_name(inst_match, idef, include_enchant=False)}."))
         key = inst_match["key"]
         dmg, killed, name_mon = combat.player_attack(p, w, key)
         print(yellow("***"))
@@ -508,15 +530,19 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         raw = " ".join(args)
-        alias = items.ALIASES.get(items.norm_name(raw))
-        canon = items.canon_item_key(alias if alias else raw)
+        inv_keys = [resolve_key(coerce_item(inst)["key"]) for inst in p.inventory]
+        key = resolve_key_prefix(raw, inv_keys)
+        if not key:
+            print(yellow("***"))
+            print(yellow(f"You're not carrying a {raw}."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
         key_match = None
         for inst in p.inventory:
-            key = inst["key"]
-            if items.canon_item_key(key).startswith(canon) or items.canon_item_key(
-                items.display_name(key)
-            ).startswith(canon):
-                key_match = inst
+            ci = coerce_item(inst)
+            if resolve_key(ci["key"]) == key:
+                key_match = ci
                 break
         if key_match is None:
             print(yellow("***"))
@@ -524,8 +550,8 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        key_for_name = key_match["key"]
-        item = p.convert_item(items.display_name(key_for_name))
+        idef = get_item_def_by_key(key)
+        item = p.convert_item(idef.name if idef else key)
         if not item:
             render_help_hint()
             return False
@@ -557,39 +583,45 @@ def make_context(p, w, save, *, dev: bool = False):
             print(f"It's a {mname}.")
             return True
 
-        inv_names = p.inventory_names_in_order()
         ground_objs = w.ground.get((p.year, p.x, p.y), [])
-        ground_names = [items.display_name(obj["key"]) for obj in ground_objs]
-        name = items.resolve_prefix(q, ground_names, inv_names)
-        if name:
-            print(yellow("***"))
-            inst_match: ItemInstance | None = None
-            if name in inv_names:
-                for obj in p.inventory:
-                    if items.display_name(obj["key"]) == name:
-                        inst_match = obj
-                        break
-            else:
+        cand_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory] + [
+            resolve_key(coerce_item(obj)["key"]) for obj in ground_objs
+        ]
+        key = resolve_key_prefix(raw, cand_keys)
+        inst_match: ItemInstance | None = None
+        if key:
+            for obj in p.inventory:
+                inst = coerce_item(obj)
+                if resolve_key(inst["key"]) == key:
+                    inst_match = inst
+                    break
+            if inst_match is None:
                 for obj in ground_objs:
-                    if items.display_name(obj["key"]) == name:
-                        inst_match = obj
+                    inst = coerce_item(obj)
+                    if resolve_key(inst["key"]) == key:
+                        inst_match = inst
                         break
-            if inst_match and inst_match.get("meta", {}).get("enchant_level", 0) > 0:
-                lvl = inst_match.get("meta", {}).get("enchant_level", 0)
-                item_name = items.display_name(inst_match["key"])
+        if inst_match:
+            print(yellow("***"))
+            idef = get_item_def_by_key(inst_match["key"])
+            lvl = inst_match.get("meta", {}).get("enchant_level")
+            if lvl is None:
+                lvl = inst_match.get("enchant") or 0
+            base_name = display_item_name(inst_match, idef, include_enchant=False)
+            if lvl > 0:
+                ench_name = display_item_name(inst_match, idef)
                 print(
                     yellow(
-                        f"The {item_name} possesses a magical aura. "
-                        f"Concentrating stronger, you realize this is a +{lvl} {item_name}!"
+                        f"The {base_name} possesses a magical aura. "
+                        f"Concentrating stronger, you realize this is a {ench_name}!"
                     )
                 )
                 return True
-            if inst_match:
-                desc = items.describe_instance(inst_match)
-                if desc:
-                    print(desc)
-                    return True
-            print(yellow(f"It looks like a lovely {name}!"))
+            desc = items.describe_instance(inst_match)
+            if desc:
+                print(desc)
+                return True
+            print(yellow(f"It looks like a lovely {base_name}!"))
             return True
 
         d = parse_dir_any_prefix(q)
@@ -675,7 +707,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 f"You are carrying the following items:  (Total Weight: {total} LB's)"
             )
         )
-        names = p.inventory_names_in_order()
+        names = p.inventory_display_names()
         if names:
             labels = enumerate_duplicates(names)
             wrapped = wrap_list_ansi(labels)
@@ -818,19 +850,23 @@ def make_context(p, w, save, *, dev: bool = False):
                         extra = extra[1:]
                     if extra and extra[0].startswith("+") and extra[0][1:].isdigit():
                         enchant = int(extra[0][1:])
-                    key = items.resolve_key_prefix(name_or_key)
+                    key = resolve_key_prefix(name_or_key)
                     if not key:
+                        print("Unknown item.")
+                        return False
+                    idef = get_item_def_by_key(key)
+                    if not idef:
                         print("Unknown item.")
                         return False
                     for _ in range(count):
                         lvl = enchant
                         if lvl is None:
-                            lvl = items.REGISTRY[key].default_enchant_level
+                            lvl = idef.default_enchant_level
                         inst = {"key": key}
                         if lvl:
                             inst["meta"] = {"enchant_level": lvl}
                         w.add_ground_item(p.year, p.x, p.y, inst)
-                    print(f"OK: added {count} x {items.display_name(key)}.")
+                    print(f"OK: added {count} x {idef.name}.")
                 elif args[:2] == ["item", "clear"]:
                     w.ground.pop((p.year, p.x, p.y), None)
                     print("OK: cleared ground.")
