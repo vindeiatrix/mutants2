@@ -56,16 +56,16 @@ def print_yell(mon) -> str:
 def render_status(p) -> list[str]:
     from ..engine.player import CLASS_DISPLAY, class_key  # local import to avoid cycle
     from ..engine import items as items_mod
+    from ..engine.items_resolver import get_item_def_by_key
+    from ..engine.items_util import coerce_item
+    from .items_render import display_item_name
 
     disp = CLASS_DISPLAY.get(class_key(p.clazz or ""), p.clazz or "")
     armor_name = "Nothing."
     if getattr(p, "worn_armor", None):
-        key = (
-            p.worn_armor["key"]
-            if isinstance(p.worn_armor, dict)
-            else p.worn_armor
-        )
-        armor_name = items_mod.display_name(key)
+        inst = coerce_item(p.worn_armor)
+        idef = get_item_def_by_key(inst["key"])
+        armor_name = display_item_name(inst, idef)
     lines = [
         yellow(f"Name: Vindeiatrix / Mutant {disp}"),
         yellow("Exhaustion   : 0"),
