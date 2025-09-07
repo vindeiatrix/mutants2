@@ -81,7 +81,7 @@ def staged_arrival_now_into_room_with_another_monster(world):
 
 @pytest.fixture
 def seeded_world():
-    w = world_mod.World()
+    w = world_mod.World(seed_monsters=True)
     w.year(2000)
     return w
 

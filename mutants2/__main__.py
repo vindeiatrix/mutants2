@@ -39,7 +39,9 @@ def main() -> None:
     p, ground, monsters, seeded, save = persistence.load()
     ground_map: dict[TileKey, list[ItemInstance]] = ground
     monsters_map: dict[TileKey, list[MonsterRec]] = monsters
-    w = world_mod.World(ground_map, seeded, monsters_map, global_seed=save.global_seed)
+    w = world_mod.World(
+        ground_map, seeded, monsters_map, seed_monsters=True, global_seed=save.global_seed
+    )
 
     if p.clazz is None:
         w.reset_all_aggro()

@@ -58,7 +58,7 @@ def spawn(key: str, mid: int) -> dict:
         "name": name,
         "aggro": False,
         "seen": False,
-        "has_yelled_this_aggro": False,
+        "yelled_once": False,
         "id": mid,
         "hp": REGISTRY[key].base_hp,
         "loot_ions": 0,
