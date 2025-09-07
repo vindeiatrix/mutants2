@@ -12,7 +12,7 @@ from . import items as items_mod, rng as rng_mod
 from .world import ALLOWED_CENTURIES
 from ..ui.theme import red
 from .items_resolver import get_item_def_by_key, resolve_key
-from ..ui.items_render import display_item_name
+from ..ui.items_render import display_item_name_plain
 
 
 INVENTORY_LIMIT = 10
@@ -154,7 +154,7 @@ class Player:
                 skipped = True
                 continue
             idef = get_item_def_by_key(key)
-            names.append(display_item_name(inst, idef, include_enchant=False))
+            names.append(display_item_name_plain(inst, idef))
         return names
 
     def inventory_display_names(self) -> list[str]:
@@ -171,7 +171,7 @@ class Player:
                 skipped = True
                 continue
             idef = get_item_def_by_key(key)
-            names.append(display_item_name(inst, idef))
+            names.append(display_item_name_plain(inst, idef))
         return names
 
     def inventory_weight_lbs(self) -> int:
@@ -282,9 +282,7 @@ class Player:
                         if inv_candidates:
                             victim = rng.choice(inv_candidates)
                             self.inventory.remove(victim)
-                            world.add_ground_item(
-                                self.year, self.x, self.y, victim
-                            )
+                            world.add_ground_item(self.year, self.x, self.y, victim)
                             victim_inst = coerce_item(victim)
                             vdef = get_item_def_by_key(resolve_key(victim_inst["key"]))
                             sack_name = vdef.name if vdef else victim_inst["key"]
@@ -311,7 +309,7 @@ class Player:
         if inv_obj is None or inv_inst is None:
             return None
         ion_value = item.ion_value
-        lvl = inv_inst.get("meta", {}).get("enchant_level", 0)
+        lvl = inv_inst.get("enchant", 0)
         if lvl > 0 and item.convert_value_ions is not None:
             ion_value = item.convert_value_ions
         if ion_value is None:

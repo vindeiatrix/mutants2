@@ -1,19 +1,18 @@
-from mutants2.types import ItemInstance
 from mutants2.engine.items import ItemDef
+from mutants2.types import ItemInstance
 
 
-def display_item_name(it: ItemInstance, idef: ItemDef | None, include_enchant: bool = True) -> str:
-    if idef:
-        base = idef.name
-    else:
-        base = (
-            it.get("key", "").replace("_", " ").replace("-", " ").title().replace(" ", "-")
-        )
-    n = (
-        it.get("meta", {}).get("enchant_level")
-        or it.get("enchant")
-        or 0
+def display_item_name_plain(it: ItemInstance, idef: ItemDef | None) -> str:
+    base = (
+        (idef.name if idef else it.get("key", ""))
+        .replace("-", " ")
+        .title()
+        .replace(" ", "-")
     )
-    if include_enchant and n > 0:
-        return f"+{n} {base}"
     return base
+
+
+def display_item_name_with_plus(it: ItemInstance, idef: ItemDef | None) -> str:
+    name = display_item_name_plain(it, idef)
+    n = it.get("enchant") or 0
+    return f"+{n} {name}" if n > 0 else name
