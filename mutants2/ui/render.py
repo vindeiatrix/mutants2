@@ -58,14 +58,14 @@ def render_status(p) -> list[str]:
     from ..engine import items as items_mod
     from ..engine.items_resolver import get_item_def_by_key
     from ..engine.items_util import coerce_item
-    from .items_render import display_item_name
+    from .items_render import display_item_name_plain
 
     disp = CLASS_DISPLAY.get(class_key(p.clazz or ""), p.clazz or "")
     armor_name = "Nothing."
     if getattr(p, "worn_armor", None):
         inst = coerce_item(p.worn_armor)
         idef = get_item_def_by_key(inst["key"])
-        armor_name = display_item_name(inst, idef)
+        armor_name = display_item_name_plain(inst, idef)
     lines = [
         yellow(f"Name: Vindeiatrix / Mutant {disp}"),
         yellow("Exhaustion   : 0"),

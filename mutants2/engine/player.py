@@ -12,7 +12,7 @@ from . import items as items_mod, rng as rng_mod
 from .world import ALLOWED_CENTURIES
 from ..ui.theme import red
 from .items_resolver import get_item_def_by_key, resolve_key
-from ..ui.items_render import display_item_name
+from ..ui.items_render import display_item_name_plain
 
 
 INVENTORY_LIMIT = 10
@@ -154,7 +154,7 @@ class Player:
                 skipped = True
                 continue
             idef = get_item_def_by_key(key)
-            names.append(display_item_name(inst, idef, include_enchant=False))
+            names.append(display_item_name_plain(inst, idef))
         return names
 
     def inventory_display_names(self) -> list[str]:
@@ -171,7 +171,7 @@ class Player:
                 skipped = True
                 continue
             idef = get_item_def_by_key(key)
-            names.append(display_item_name(inst, idef))
+            names.append(display_item_name_plain(inst, idef))
         return names
 
     def inventory_weight_lbs(self) -> int:
