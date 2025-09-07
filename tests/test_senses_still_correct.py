@@ -71,4 +71,3 @@ def test_arrival_after_chase(tmp_path, monkeypatch, staged_world_aggro_east):
     assert "has just arrived from the east" in out2.lower()
     # Presence lines are suppressed on the same tick as an arrival
     assert "is here" not in out2.lower().split("has just arrived")[-1]
-

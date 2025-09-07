@@ -54,5 +54,3 @@ def test_look_item_and_monster(cli, world):
     world.place_monster(2000, 1, 0, "mutant")
     out = cli.run(["look mut"])
     assert "not carrying a mut" in out.lower()
-
-

@@ -11,4 +11,3 @@ def test_drop_without_arg_prompts(cli_runner):
     assert "What do you want to drop?" in out
     after = out.split("What do you want to drop?", 1)[1]
     assert "***" not in after and "Inventory:" not in after
-

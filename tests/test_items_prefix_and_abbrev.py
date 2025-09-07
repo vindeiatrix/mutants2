@@ -10,10 +10,10 @@ from mutants2.ui.theme import yellow
 
 @pytest.fixture
 def tile_with_item(tmp_path):
-    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
-    os.environ['HOME'] = str(tmp_path)
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
+    os.environ["HOME"] = str(tmp_path)
     p = Player()
-    w = World({(2000, 0, 0): ['nuclear_thong']}, {2000})
+    w = World({(2000, 0, 0): ["nuclear_thong"]}, {2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
     persistence.save(p, w, save)
@@ -22,10 +22,10 @@ def tile_with_item(tmp_path):
 
 @pytest.fixture
 def inventory_with_item(tmp_path):
-    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
-    os.environ['HOME'] = str(tmp_path)
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
+    os.environ["HOME"] = str(tmp_path)
     p = Player()
-    p.inventory.append('nuclear_thong')
+    p.inventory.append("nuclear_thong")
     w = World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
@@ -35,10 +35,10 @@ def inventory_with_item(tmp_path):
 
 @pytest.fixture
 def inventory_with_ion_items(tmp_path):
-    persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
-    os.environ['HOME'] = str(tmp_path)
+    persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
+    os.environ["HOME"] = str(tmp_path)
     p = Player()
-    p.inventory.extend(['ion_decay', 'ion_pack'])
+    p.inventory.extend(["ion_decay", "ion_pack"])
     w = World(seeded_years={2000})
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
@@ -75,4 +75,3 @@ def test_travel_suppresses_render(cli_runner):
     out = cli_runner.run_commands(["tra 2100"])
     assert "ZAAAAPPPPP!!" in out
     assert out.count("Compass:") == 1
-

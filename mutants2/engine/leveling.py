@@ -1,4 +1,5 @@
 """Level computation and application of per-level gains."""
+
 from __future__ import annotations
 
 from ..data.class_tables import PROGRESSION, BASE_LEVEL1

@@ -25,7 +25,15 @@ dev = [
 
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+target-version = ["py311", "py310", "py39"]
+include = "\\.pyi?$"
+extend-exclude = '''
+(?x)(
+  ^\.venv/|
+  ^build/|
+  ^dist/
+)
+'''
 
 [tool.ruff]
 line-length = 88

@@ -6,7 +6,6 @@ import re
 
 from mutants2.engine.world import World
 from mutants2.engine.player import Player
-from pathlib import Path
 
 
 @pytest.fixture
@@ -31,8 +30,6 @@ def empty_start_world(tmp_path):
     save = persistence.Save()
     persistence.save(p, w, save)
     return None
-
-
 
 
 def test_cannot_rest_in_danger(world_with_mutant_on_start, cli_runner):

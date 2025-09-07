@@ -52,4 +52,3 @@ def test_topup_deterministic_same_day():
     daily_topup_year(w1, p.year, save.global_seed, today)
     daily_topup_year(w2, p.year, save.global_seed, today)
     assert w1.ground == w2.ground
-

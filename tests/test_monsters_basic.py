@@ -63,7 +63,7 @@ def cli_runner_dev(tmp_path):
             env = os.environ.copy()
             env["HOME"] = str(tmp_path)
             env["MUTANTS2_DEV"] = "1"
-            persistence.SAVE_PATH = tmp_path / '.mutants2' / 'save.json'
+            persistence.SAVE_PATH = tmp_path / ".mutants2" / "save.json"
             save_path = persistence.SAVE_PATH
             if save_path.exists():
                 with open(save_path) as fh:
@@ -92,7 +92,9 @@ def cli_runner_dev(tmp_path):
                 save.last_class = "Warrior"
                 save.profiles["Warrior"] = {
                     "year": p.year,
-                    "positions": {str(y): {"x": x, "y": yy} for y, (x, yy) in p.positions.items()},
+                    "positions": {
+                        str(y): {"x": x, "y": yy} for y, (x, yy) in p.positions.items()
+                    },
                     "hp": p.hp,
                     "max_hp": p.max_hp,
                     "inventory": [],
@@ -100,8 +102,11 @@ def cli_runner_dev(tmp_path):
                 }
                 persistence.save(p, w, save)
             inp = "\n".join(commands + ["exit"]) + "\n"
-            result = subprocess.run(cmd, input=inp, text=True, capture_output=True, env=env)
+            result = subprocess.run(
+                cmd, input=inp, text=True, capture_output=True, env=env
+            )
             return result.stdout
+
     return Runner()
 
 

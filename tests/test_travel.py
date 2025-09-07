@@ -24,4 +24,3 @@ def test_travel_and_positions():
 
     p.travel(w, 2100)
     assert (p.year, p.x, p.y) == (2100, 0, 0)
-

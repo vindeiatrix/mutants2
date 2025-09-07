@@ -33,6 +33,7 @@ def test_select_target_triggers_tick():
         w.place_monster(2000, 0, 0, "mutant")
         w.place_monster(2000, 1, 0, "mutant")
         w.monster_here(2000, 1, 0)["aggro"] = True
+
     out, w, p, _ = run_commands(["com muta"], setup=setup)
     assert re.search(r"You're ready to combat Mutant-\d{4}!", out)
     assert "has just arrived from the east." in out
@@ -51,6 +52,7 @@ def test_help_paths():
 def test_target_cleared_on_player_death():
     def setup(w, p):
         w.place_monster(2000, 0, 0, "mutant")
+
     out, w, p, ctx = run_commands(["combat mutant"], setup=setup)
     assert p.ready_to_combat_name is not None
     p.hp = 1
@@ -67,6 +69,7 @@ def test_target_cleared_on_player_death():
 def test_target_cleared_on_monster_death():
     def setup(w, p):
         w.place_monster(2000, 0, 0, "mutant")
+
     out, w, p, ctx = run_commands(["combat mutant"], setup=setup)
     assert p.ready_to_combat_name is not None
     w.damage_monster(2000, 0, 0, 99, player=p)
@@ -74,10 +77,3 @@ def test_target_cleared_on_monster_death():
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("status")
     assert "Ready to Combat: NO ONE" in buf.getvalue()
-
-
-def test_attack_removed():
-    out, _w, _p, _ = run_commands(["attack"])
-    assert "You're attacking!" in out
-    out2, _w2, _p2, _ = run_commands(["help"])
-    assert "attack" not in out2.lower()

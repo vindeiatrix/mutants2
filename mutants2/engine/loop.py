@@ -71,7 +71,9 @@ def process_upkeep_and_starvation(player, world, save, context=None) -> bool:
     return died
 
 
-def maybe_process_upkeep(player, world, save, context=None, *, now: float | None = None) -> None:
+def maybe_process_upkeep(
+    player, world, save, context=None, *, now: float | None = None
+) -> None:
     """Process at most one upkeep/starvation tick on command edges."""
 
     if context is not None and getattr(context, "tick_handle", None):
@@ -87,7 +89,15 @@ def maybe_process_upkeep(player, world, save, context=None, *, now: float | None
         save.next_upkeep_tick = current + TICK_SECONDS
 
 
-def ion_upkeep(player, world, save, context=None, *, now: float | None = None, max_ticks: int | None = None) -> None:
+def ion_upkeep(
+    player,
+    world,
+    save,
+    context=None,
+    *,
+    now: float | None = None,
+    max_ticks: int | None = None,
+) -> None:
     """Catch up on ion upkeep immediately (used for tests/offline processing)."""
 
     current = time.monotonic() if now is None else now

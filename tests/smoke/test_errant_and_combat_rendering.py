@@ -66,4 +66,3 @@ def test_gibberish_with_spaces():
         lines = out.strip().splitlines()
         assert lines == [cmd, "***", "Type ? if you need assistance."]
         assert w.turn == 1
-
