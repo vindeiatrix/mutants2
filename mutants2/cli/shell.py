@@ -505,6 +505,12 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
+        if p.worn_armor is inst_match:
+            print(yellow("***"))
+            print(yellow("You cannot wield something you are wearing."))
+            context._needs_render = False
+            context._suppress_room_render = True
+            return False
         idef = get_item_def_by_key(key)
         p.wielded_weapon = inst_match
         mon = w.monster_here(p.year, p.x, p.y)
@@ -716,8 +722,6 @@ def make_context(p, w, save, *, dev: bool = False):
             labels = enumerate_duplicates(names)
             wrapped = wrap_list_ansi(labels)
             lines.extend(white(ln) for ln in wrapped.splitlines())
-        else:
-            lines.append("(empty)")
         for ln in lines:
             print(ln)
 
@@ -769,8 +773,6 @@ def make_context(p, w, save, *, dev: bool = False):
                 wrapped = wrap_list_ansi(labels)
                 for ln in wrapped.splitlines():
                     print(white(ln))
-            else:
-                print("(empty)")
             context._needs_render = False
             context._suppress_room_render = True
         elif cmd == "get":

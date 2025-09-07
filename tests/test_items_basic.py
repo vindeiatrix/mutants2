@@ -97,7 +97,7 @@ def test_pickup_and_drop_roundtrip(tmp_path):
     assert "You drop Ion-Decay." in out
     after = out.split("You drop Ion-Decay.")[-1]
     assert "On the ground lies:" in after and "Ion-Decay" in after
-    assert "(empty)" in after
+    assert "(empty)" not in after
 
 
 def test_inventory_rendering(tmp_path):

@@ -94,3 +94,26 @@ def test_wield_attack_damage():
     assert re.search(pattern, out)
     assert "Ready to Combat: NO ONE" in out
     assert w.monster_here(2000, 0, 0) is None
+
+
+def test_cannot_wield_worn_item():
+    def setup(w, p):
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+
+    out, _, _ = run_commands(["get bug", "wear bug", "wield bug"], setup=setup)
+    assert "You cannot wield something you are wearing." in out
+    assert "You're not ready to combat anyone." not in out
+
+
+def test_wield_armor_when_not_worn():
+    def setup(w, p):
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+        w.place_monster(2000, 0, 0, "mutant")
+
+    out, w, p = run_commands(
+        ["get bug", "combat mutant", "wield bug", "status"], setup=setup
+    )
+    assert "You wield the Bug-Skin." in out
+    expected = items.REGISTRY["bug-skin"].base_power + p.strength // 10
+    pattern = rf"You hit Mutant-\d{{4}} for {expected} damage\.  \(temp\)"
+    assert re.search(pattern, out)
