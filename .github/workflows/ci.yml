@@ -17,7 +17,11 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: pip install -e '.[dev]'
-      - run: pytest -q tests/smoke
+      - run: black --check .
+      - run: ruff .
+      - run: pyright mutants2 --level error
+      - run: vulture mutants2
+      - run: pytest -q tests/smoke --cov=mutants2 --cov-report=term
 
   full:
     if: github.event_name != 'pull_request'
@@ -29,5 +33,8 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: pip install -e '.[dev]'
-      - run: pytest -q
-      - run: pyright mutants2 --level warning
+      - run: black --check .
+      - run: ruff .
+      - run: pyright mutants2 --level error
+      - run: vulture mutants2
+      - run: pytest -q --cov=mutants2 --cov-report=term --cov-fail-under=85

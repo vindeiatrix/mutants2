@@ -3,6 +3,11 @@
 A tiny text adventure with a deterministic 30x30 map. The game currently only
 supports the year 2000 and a single player wandering a maze.
 
+> **Breaking change**: existing saves from earlier versions are no longer
+> compatible.  The engine now enforces a strict save schema and will refuse to
+> load unknown versions.  Use `debug reset` to remove the on-disk save file or
+> `debug wipe` while in a session to clear in-memory state.
+
 ## Running
 
 ```bash
