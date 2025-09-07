@@ -10,8 +10,7 @@ from typing import Dict, Set, Tuple, Any
 from .player import Player, class_key
 from .world import World
 from . import monsters as monsters_mod
-from .types import ItemListMut, MonsterRec, TileKey
-from mutants2.types import ItemInstance
+from .types import ItemInstance, ItemListMut, MonsterRec, TileKey
 from .state import (
     CharacterProfile,
     apply_profile,
@@ -23,7 +22,8 @@ from .items_util import coerce_item
 from .macros import MacroStore
 
 from . import gen
-from ..data.class_tables import BASE_LEVEL1, PROGRESSION
+
+SAVE_SCHEMA = 3
 
 
 @dataclass
@@ -39,20 +39,10 @@ class Save:
     last_upkeep_tick: float = field(default_factory=lambda: time.monotonic())
     next_upkeep_tick: float | None = None  # monotonic deadline for next 10s tick
     max_catchup_ticks: int = 6
-    schema_version: int = 2
+    schema: int = SAVE_SCHEMA
 
 
 SAVE_PATH = Path(os.path.expanduser("~/.mutants2/save.json"))
-
-
-_ATTR_MAP = {
-    "str": "strength",
-    "int": "intelligence",
-    "wis": "wisdom",
-    "dex": "dexterity",
-    "con": "constitution",
-    "cha": "charisma",
-}
 
 
 def _serialize_item(val: ItemInstance | str) -> dict[str, Any]:
@@ -62,26 +52,6 @@ def _serialize_item(val: ItemInstance | str) -> dict[str, Any]:
 
 def _deserialize_item(val: Any) -> ItemInstance:
     return coerce_item(val)
-
-
-def _migrate_profile(clazz: str, prof: CharacterProfile) -> None:
-    if getattr(prof, "tables_migrated", False):
-        return
-    base = BASE_LEVEL1[clazz]
-    for key, attr in _ATTR_MAP.items():
-        setattr(prof, attr, base[key])
-    prof.max_hp = base["hp"]
-    prof.ac = base["ac"]
-    for lvl in range(2, prof.level + 1):
-        row = PROGRESSION[clazz].get(lvl, PROGRESSION[clazz][11])
-        prof.max_hp += row.get("hp_plus", 0)
-        for short, attr in _ATTR_MAP.items():
-            setattr(prof, attr, getattr(prof, attr) + row.get(f"{short}_plus", 0))
-    if prof.hp > prof.max_hp:
-        prof.hp = prof.max_hp
-    prof.natural_dex_ac = prof.dexterity // 10
-    prof.ac_total = prof.ac + prof.natural_dex_ac
-    prof.tables_migrated = True
 
 
 def load() -> tuple[
@@ -96,13 +66,19 @@ def load() -> tuple[
             data = json.load(fh)
         data.pop("walls", None)
         data.pop("blocked", None)
+        if data.get("schema") != SAVE_SCHEMA:
+            print("Save schema mismatch; starting with a fresh world.")
+            try:
+                SAVE_PATH.unlink()
+            except FileNotFoundError:
+                pass
+            raise FileNotFoundError
 
         profiles: Dict[str, CharacterProfile] = {}
         profiles_raw = data.get("profiles", {})
         if isinstance(profiles_raw, dict):
             for k, v in profiles_raw.items():
                 prof = profile_from_raw(v)
-                _migrate_profile(class_key(k), prof)
                 profiles[class_key(k)] = prof
 
         last_class_raw = data.get("last_class")
@@ -120,7 +96,6 @@ def load() -> tuple[
 
         if active_class:
             prof = profiles[active_class]
-            _migrate_profile(active_class, prof)
             player = Player(year=prof.year, clazz=active_class)
             apply_profile(player, prof)
         else:
@@ -155,7 +130,6 @@ def load() -> tuple[
             player.ready_to_combat_id = data.get("ready_to_combat_id")
             player.ready_to_combat_name = data.get("ready_to_combat_name")
             prof = profile_from_player(player)
-            _migrate_profile(clazz, prof)
             apply_profile(player, prof)
             profiles[clazz] = prof
             last_class = clazz
@@ -197,7 +171,9 @@ def load() -> tuple[
                 name = entry.get("name")
                 aggro = entry.get("aggro", False)
                 seen = entry.get("seen", False)
-                has_yelled = entry.get("yelled_once") or entry.get("has_yelled_this_aggro", False)
+                has_yelled = entry.get("yelled_once") or entry.get(
+                    "has_yelled_this_aggro", False
+                )
                 mid = entry.get("id")
                 loot_i = entry.get("loot_ions", 0)
                 loot_r = entry.get("loot_riblets", 0)
@@ -233,7 +209,7 @@ def load() -> tuple[
             profiles=profiles,
             last_upkeep_tick=time.monotonic() - max(0.0, now_wall - last_wall),
             max_catchup_ticks=int(data.get("max_catchup_ticks", 6)),
-            schema_version=int(data.get("schema_version", 1)),
+            schema=int(data.get("schema", 1)),
         )
 
         from .items_resolver import resolve_key
@@ -253,21 +229,6 @@ def load() -> tuple[
         for k, items in ground.items():
             ground[k] = _migrate_list(items)
 
-        migrated = False
-        if save_meta.schema_version < 2:
-            save_meta.schema_version = 2
-            migrated = True
-
-        needs_save = migrated or (not active_class and profiles)
-        if needs_save:
-            save(
-                player,
-                World(
-                    ground, seeded, monsters_data, seed_monsters=False, global_seed=save_meta.global_seed
-                ),
-                save_meta,
-            )
-
         return player, ground, monsters_data, seeded, save_meta
     except FileNotFoundError:
         player = Player()
@@ -278,7 +239,11 @@ def load() -> tuple[
         save(
             player,
             World(
-                ground, seeded, monsters_data, seed_monsters=False, global_seed=save_meta.global_seed
+                ground,
+                seeded,
+                monsters_data,
+                seed_monsters=False,
+                global_seed=save_meta.global_seed,
             ),
             save_meta,
         )
@@ -354,7 +319,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "seeded_years": list(world.seeded_years),
             "global_seed": save_meta.global_seed,
             "last_topup_date": save_meta.last_topup_date,
-            "schema_version": save_meta.schema_version,
+            "schema": save_meta.schema,
             # no senses data; cues are never persisted
         }
         json.dump(data, fh)

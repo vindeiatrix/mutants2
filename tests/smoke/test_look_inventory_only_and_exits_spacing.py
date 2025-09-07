@@ -9,9 +9,9 @@ from mutants2.ui.theme import yellow, cyan
 
 
 def _ctx(tmp_path):
-    persistence.SAVE_PATH = tmp_path / 'save.json'
-    w = world_mod.World({(2000, 0, 0): ['nuclear_rock']}, {2000})
-    p = Player(year=2000, clazz='Warrior')
+    persistence.SAVE_PATH = tmp_path / "save.json"
+    w = world_mod.World({(2000, 0, 0): ["nuclear_rock"]}, {2000})
+    p = Player(year=2000, clazz="Warrior")
     save = persistence.Save()
     save.last_topup_date = datetime.date.today().isoformat()
     ctx = make_context(p, w, save)
@@ -22,16 +22,16 @@ def test_look_inventory_only(tmp_path):
     ctx, w = _ctx(tmp_path)
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        ctx.dispatch_line('look nuclear')
+        ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow('It looks like a lovely Nuclear-Rock!') in out
+    assert yellow("It looks like a lovely Nuclear-Rock!") in out
     assert w.turn == 1
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        ctx.dispatch_line('get nuclear-rock')
-        ctx.dispatch_line('look nuclear')
+        ctx.dispatch_line("get nuclear-rock")
+        ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow('It looks like a lovely Nuclear-Rock!') in out
+    assert yellow("It looks like a lovely Nuclear-Rock!") in out
     assert w.turn == 3
 
 
@@ -39,9 +39,9 @@ def test_exit_spacing(tmp_path):
     ctx, _ = _ctx(tmp_path)
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        ctx.dispatch_line('look')
+        ctx.dispatch_line("look")
     out = buf.getvalue()
-    assert cyan('north – area continues.') in out
-    assert cyan('south – area continues.') in out
-    assert cyan('east  – area continues.') in out
-    assert cyan('west  – area continues.') in out
+    assert cyan("north – area continues.") in out
+    assert cyan("south – area continues.") in out
+    assert cyan("east  – area continues.") in out
+    assert cyan("west  – area continues.") in out

@@ -43,8 +43,6 @@ def test_no_shadow_two_away():
     assert "shadows to" not in out.lower()
 
 
-
-
 def test_density_tripled():
     w = world_mod.World(global_seed=123, seed_monsters=True)
     w.year(2000)

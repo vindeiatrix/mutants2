@@ -57,13 +57,17 @@ def test_base_powers_and_armor():
 def test_wear_and_remove_updates_ac():
     def setup(w, p):
         w.add_ground_item(2000, 0, 0, "bug-skin")
-    out, w, p = run_commands([
-        "get bug",
-        "wear bug",
-        "status",
-        "remove",
-        "status",
-    ], setup=setup)
+
+    out, w, p = run_commands(
+        [
+            "get bug",
+            "wear bug",
+            "status",
+            "remove",
+            "status",
+        ],
+        setup=setup,
+    )
     assert "You wear the Bug-Skin." in out
     assert "You remove the Bug-Skin." in out
     matches = re.findall(r"Wearing Armor: .*  Armour Class: (\d+)", out)
@@ -74,12 +78,16 @@ def test_wield_attack_damage():
     def setup(w, p):
         w.add_ground_item(2000, 0, 0, "nuclear_rock")
         w.place_monster(2000, 0, 0, "mutant")
-    out, w, p = run_commands([
-        "get nuclear-rock",
-        "combat mutant",
-        "wield nuc",
-        "status",
-    ], setup=setup)
+
+    out, w, p = run_commands(
+        [
+            "get nuclear-rock",
+            "combat mutant",
+            "wield nuc",
+            "status",
+        ],
+        setup=setup,
+    )
     assert "You wield the Nuclear-Rock." in out
     expected = items.REGISTRY["nuclear_rock"].base_power + p.strength // 10
     pattern = rf"You hit Mutant-\d{{4}} for {expected} damage\.  \(temp\)"

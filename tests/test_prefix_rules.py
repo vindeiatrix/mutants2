@@ -84,6 +84,7 @@ def test_look_monster_precedence(cli, world_with_monster_and_item_N_on_tile):
     out = cli.run(["loo n"])
     assert "It's a Night-Stalker." in out
 
+
 def test_look_direction_fallback(cli):
     out = cli.run(["loo e"])
     assert "can't look that way" not in out.lower()

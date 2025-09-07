@@ -1,17 +1,16 @@
-from typing import Union
+from typing import Union, cast
 
-from mutants2.types import ItemInstance
 from . import items as items_mod
+from .types import ItemInstance
 
 
 def coerce_item(x: Union[ItemInstance, str]) -> ItemInstance:
     if isinstance(x, dict):
-        inst = x
+        inst = cast(ItemInstance, x)
     else:
-        inst = {"key": x, "enchant": None, "base_power": None, "ac_bonus": None, "meta": {}}
-    meta = inst.setdefault("meta", {})
-    if "enchant_level" not in meta:
+        inst: ItemInstance = {"key": x}
+    if "enchant" not in inst:
         item = items_mod.REGISTRY.get(inst["key"])
         if item and item.default_enchant_level:
-            meta["enchant_level"] = item.default_enchant_level
+            inst["enchant"] = item.default_enchant_level
     return inst

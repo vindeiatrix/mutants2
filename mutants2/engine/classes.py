@@ -1,4 +1,5 @@
 """Class defaults loaded from data tables."""
+
 from __future__ import annotations
 
 from ..data.class_tables import BASE_LEVEL1

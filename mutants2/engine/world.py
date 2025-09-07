@@ -16,12 +16,10 @@ from typing import (
 
 from .types import (
     Direction,
-    ItemList,
-    ItemListMut,
     MonsterList,
     MonsterRec,
 )
-from mutants2.types import TileKey, ItemInstance
+from .types import ItemInstance, TileKey
 from .items_util import coerce_item
 from .items_resolver import get_item_def_by_key
 from ..ui.items_render import display_item_name_plain
@@ -172,9 +170,8 @@ class World:
                     hp_int = int(cast(int, hp_val)) if hp_val is not None else None
                     aggro = entry.get("aggro", False)
                     seen = entry.get("seen", False)
-                    has_yelled = (
-                        entry.get("yelled_once")
-                        or entry.get("has_yelled_this_aggro", False)
+                    has_yelled = entry.get("yelled_once") or entry.get(
+                        "has_yelled_this_aggro", False
                     )
                     mid_val = entry.get("id")
                     mid = int(cast(int, mid_val)) if mid_val is not None else None
@@ -372,9 +369,7 @@ class World:
         mid = self._id_alloc.allocate()
         self._monsters.setdefault((year, x, y), []).append(monsters_mod.spawn(key, mid))
 
-    def damage_monster(
-        self, year: int, x: int, y: int, dmg: int, player=None
-    ) -> bool:
+    def damage_monster(self, year: int, x: int, y: int, dmg: int, player=None) -> bool:
         coord = (year, x, y)
         lst = self._monsters.get(coord)
         if not lst:
@@ -388,7 +383,9 @@ class World:
             self._id_alloc.release(mid)
             if not lst:
                 self._monsters.pop(coord, None)
-            if player is not None and getattr(player, "ready_to_combat_id", None) == str(mid):
+            if player is not None and getattr(
+                player, "ready_to_combat_id", None
+            ) == str(mid):
                 player.ready_to_combat_id = None
                 player.ready_to_combat_name = None
             return True
@@ -404,7 +401,9 @@ class World:
         self._id_alloc.release(mid)
         if not lst:
             self._monsters.pop(coord, None)
-        if player is not None and getattr(player, "ready_to_combat_id", None) == str(mid):
+        if player is not None and getattr(player, "ready_to_combat_id", None) == str(
+            mid
+        ):
             player.ready_to_combat_id = None
             player.ready_to_combat_name = None
         return True

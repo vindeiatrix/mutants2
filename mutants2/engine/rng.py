@@ -8,7 +8,7 @@ so that imports remain stable and behaviour deterministic in tests.
 from __future__ import annotations
 
 import random
-from typing import Iterable, Sequence, TypeVar, List
+from typing import Sequence, TypeVar, List
 
 T = TypeVar("T")
 

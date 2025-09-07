@@ -2,7 +2,7 @@ import random
 import datetime
 from typing import Tuple
 
-from .world import Grid, World, GRID_MIN, GRID_MAX
+from .world import Grid, World, GRID_MIN, GRID_MAX, ALLOWED_CENTURIES
 from .items import SPAWNABLE_KEYS
 from .monsters import SPAWN_KEYS
 
@@ -150,6 +150,14 @@ def debug_monster_topup(
             break
     after = world.monster_count(year)
     return before, after, target
+
+
+def seed_for_cli(world: World) -> None:
+    was = world._seed_monsters
+    world._seed_monsters = True
+    for year in ALLOWED_CENTURIES:
+        world.year(year)
+    world._seed_monsters = was
 
 
 # Daily top-up ----------------------------------------------------------------

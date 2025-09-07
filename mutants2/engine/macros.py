@@ -36,7 +36,6 @@ class MacroStore:
     def clear(self) -> None:
         self._macros.clear()
 
-
     # profile IO -------------------------------------------------------
     def save_profile(self, profile: str) -> None:
         self.MACRO_DIR.mkdir(parents=True, exist_ok=True)
@@ -146,7 +145,9 @@ class MacroStore:
         return result
 
     # execution --------------------------------------------------------
-    def run(self, script: str, args: List[str], dispatch: Callable[[str], bool]) -> None:
+    def run(
+        self, script: str, args: List[str], dispatch: Callable[[str], bool]
+    ) -> None:
         try:
             cmds = self.expand(script, args)
         except MacroError as e:
@@ -174,10 +175,14 @@ class MacroStore:
         finally:
             self._call_depth -= 1
 
-    def expand_and_run_script(self, script: str, dispatch: Callable[[str], bool]) -> None:
+    def expand_and_run_script(
+        self, script: str, dispatch: Callable[[str], bool]
+    ) -> None:
         self.run(script, [], dispatch)
 
-    def run_named(self, name: str, args: List[str], dispatch: Callable[[str], bool]) -> None:
+    def run_named(
+        self, name: str, args: List[str], dispatch: Callable[[str], bool]
+    ) -> None:
         script = self._macros.get(name)
         if script is None:
             print("No such macro")

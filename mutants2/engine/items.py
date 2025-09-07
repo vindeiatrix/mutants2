@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Callable
 import collections
 
-from mutants2.types import ItemInstance
+from .types import ItemInstance
 from ..ui.theme import yellow
 from ..ui.wrap import wrap_paragraph_ansi
 from .util.names import norm_name
@@ -179,7 +179,7 @@ _add(
 
 
 def describe_skull(inst: ItemInstance) -> str:
-    monster_type = inst.get("meta", {}).get("monster_type", "Unknown")
+    monster_type = inst.get("monster_type", "Unknown")
     text = (
         "A shiver is sent down your spine as you realize this is the skull "
         "of a victim that has lost in a bloody battle. Looking closer, you realize "
@@ -232,22 +232,6 @@ def canon_item_key(s: str) -> str:
     return s.strip().lower().replace(" ", "_").replace("-", "_")
 
 
-# Alias map for item lookup
-ALIASES = {
-    norm_name(alias): "bug-skin"
-    for alias in [
-        "bug-skin-armour",
-        "bug-skin-armor",
-        "bug skin armour",
-        "bug skin armor",
-        "bug skin",
-        "bugskin",
-        "bug_skin_armour",
-        "bug_skin_armor",
-    ]
-}
-
-
 def first_prefix_match(prefix: str, names_in_order: list[str]) -> str | None:
     """Return the first candidate whose name starts with ``prefix``.
 
@@ -287,11 +271,6 @@ def resolve_item_prefix(
 def resolve_prefix(
     query: str, ground_names: list[str], inv_names: list[str]
 ) -> Optional[str]:
-    alias = ALIASES.get(norm_name(query))
-    if alias:
-        disp = REGISTRY[alias].name
-        if disp in ground_names + inv_names:
-            return disp
     name, amb = resolve_item_prefix(query, ground_names + inv_names)
     if name and not amb:
         return name
@@ -349,9 +328,6 @@ def resolve_key_prefix(query: str) -> Optional[str]:
     q = norm_name(query)
     if not q:
         return None
-    alias = ALIASES.get(q)
-    if alias:
-        return alias
     matches = []
     for key, item in REGISTRY.items():
         if norm_name(key).startswith(q) or norm_name(item.name).startswith(q):
@@ -370,6 +346,7 @@ def describe_instance(inst: ItemInstance) -> str | None:
     if item and item.description_fn:
         return item.description_fn(inst)
     return None
+
 
 SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if v.spawnable]
 

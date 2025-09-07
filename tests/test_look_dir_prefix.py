@@ -1,10 +1,8 @@
 import pytest
 
 import contextlib
-import contextlib
 from io import StringIO
 
-import pytest
 
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player

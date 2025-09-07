@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Tuple, TYPE_CHECKING, Any
+from typing import Dict, Tuple, TYPE_CHECKING
 
-from mutants2.types import ItemInstance
+from .types import ItemInstance
 from .items_util import coerce_item
 
 
@@ -175,10 +175,14 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         ready_to_combat_id=data.get("ready_to_combat_id"),
         ready_to_combat_name=data.get("ready_to_combat_name"),
         worn_armor=(
-            coerce_item(data["worn_armor"]) if data.get("worn_armor") is not None else None
+            coerce_item(data["worn_armor"])
+            if data.get("worn_armor") is not None
+            else None
         ),
         wielded_weapon=(
-            coerce_item(data["wielded_weapon"]) if data.get("wielded_weapon") is not None else None
+            coerce_item(data["wielded_weapon"])
+            if data.get("wielded_weapon") is not None
+            else None
         ),
         macros_name=data.get("macros_name"),
         tables_migrated=bool(data.get("tables_migrated", False)),

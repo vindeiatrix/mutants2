@@ -112,18 +112,14 @@ def test_heal_already_max():
 
 
 def test_heal_cost_thief_level10():
-    out, p = run_heal(
-        "heal", hp=10, max_hp=40, ions=5000, level=10, clazz="Thief"
-    )
+    out, p = run_heal("heal", hp=10, max_hp=40, ions=5000, level=10, clazz="Thief")
     assert "Your body glows as it heals 15 points!" in out
     assert p.hp == 25
     assert p.ions == 3000
 
 
 def test_heal_cost_mage_level12():
-    out, p = run_heal(
-        "heal", hp=10, max_hp=50, ions=20000, level=12, clazz="Mage"
-    )
+    out, p = run_heal("heal", hp=10, max_hp=50, ions=20000, level=12, clazz="Mage")
     assert "Your body glows as it heals 17 points!" in out
     assert p.hp == 27
     assert p.ions == 5600

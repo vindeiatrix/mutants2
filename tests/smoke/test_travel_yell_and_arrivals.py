@@ -1,7 +1,6 @@
 import contextlib
 from io import StringIO
 
-import pytest
 
 from mutants2.cli.shell import make_context
 from mutants2.engine import persistence, world as world_mod
@@ -48,14 +47,16 @@ def test_same_century_travel_teleports(tmp_path, monkeypatch):
         w.year(yr)
         for (x, y), _ in list(w.monsters_in_year(yr).items()):
             w.remove_monster(yr, x, y)
-    out = run_cli(w, ["travel 2100", "east", "travel 2100", "look"], tmp_path, monkeypatch)
+    out = run_cli(
+        w, ["travel 2100", "east", "travel 2100", "look"], tmp_path, monkeypatch
+    )
     lines = out.splitlines()
     idxs = [i for i, ln in enumerate(lines) if ln == "travel 2100"]
     second = idxs[1]
     assert "You're already in the 21st Century!" in lines[second + 1]
     look_idx = lines.index("look", second + 1)
-    assert not any("Compass" in ln for ln in lines[second + 1:look_idx])
-    assert any("Compass: (0E : 0N)" in ln for ln in lines[look_idx + 1:])
+    assert not any("Compass" in ln for ln in lines[second + 1 : look_idx])
+    assert any("Compass: (0E : 0N)" in ln for ln in lines[look_idx + 1 :])
 
 
 def test_travel_triggers_arrival(tmp_path, monkeypatch):

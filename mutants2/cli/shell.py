@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 import datetime
 import time
-from typing import Mapping, MutableMapping, cast
+from typing import Mapping, cast
 
 from ..engine import persistence, items, monsters, combat
 from ..engine.items_resolver import (
@@ -36,7 +36,7 @@ from ..engine.state import (
     apply_profile,
     profile_from_raw,
 )
-from mutants2.types import ItemInstance
+from ..engine.types import ItemInstance
 from ..engine.gen import (
     daily_topup_if_needed,
     debug_item_topup,
@@ -243,7 +243,6 @@ def make_context(p, w, save, *, dev: bool = False):
     macro_store.load_profile(class_key(p.clazz or "default"))
     last_move = None
 
-
     context = SimpleNamespace(
         macro_store=macro_store,
         running=True,
@@ -448,7 +447,9 @@ def make_context(p, w, save, *, dev: bool = False):
         if p.worn_armor:
             old_inst = coerce_item(p.worn_armor)
             old_def = get_item_def_by_key(old_inst["key"])
-            print(yellow(f"You remove the {display_item_name_plain(old_inst, old_def)}."))
+            print(
+                yellow(f"You remove the {display_item_name_plain(old_inst, old_def)}.")
+            )
         p.worn_armor = inst_match
         p.recompute_ac()
         print(yellow(f"You wear the {display_item_name_plain(inst_match, idef)}."))
@@ -508,9 +509,7 @@ def make_context(p, w, save, *, dev: bool = False):
         p.wielded_weapon = inst_match
         mon = w.monster_here(p.year, p.x, p.y)
         ready = (
-            p.ready_to_combat_id
-            and mon
-            and str(mon.get("id")) == p.ready_to_combat_id
+            p.ready_to_combat_id and mon and str(mon.get("id")) == p.ready_to_combat_id
         )
         if not ready:
             print(yellow("***"))
@@ -608,9 +607,7 @@ def make_context(p, w, save, *, dev: bool = False):
         if inst_match:
             print(yellow("***"))
             idef = get_item_def_by_key(inst_match["key"])
-            lvl = inst_match.get("meta", {}).get("enchant_level")
-            if lvl is None:
-                lvl = inst_match.get("enchant") or 0
+            lvl = inst_match.get("enchant", 0)
             base_name = display_item_name_plain(inst_match, idef)
             if lvl > 0:
                 ench_name = display_item_name_with_plus(inst_match, idef)
@@ -829,6 +826,8 @@ def make_context(p, w, save, *, dev: bool = False):
   debug today YYYY-MM-DD              Set synthetic 'today' (dev date).
   debug today clear                   Clear synthetic date.
   debug topup                         Run daily item top-up now.
+  debug reset                         Delete save file.
+  debug wipe                          Clear world and profiles in memory.
   macro keys debug on|off             Toggle macro key debug (if available).
 """
                 )
@@ -847,7 +846,19 @@ def make_context(p, w, save, *, dev: bool = False):
             if not dev:
                 print("Debug commands are available only in dev mode.")
             else:
-                if args[:2] == ["item", "add"] and len(args) >= 3:
+                if args and args[0] == "reset":
+                    try:
+                        persistence.SAVE_PATH.unlink()
+                        print("OK: save reset.")
+                    except FileNotFoundError:
+                        print("Save file not found.")
+                elif args and args[0] == "wipe":
+                    w.ground.clear()
+                    w.seeded_years.clear()
+                    w._monsters.clear()
+                    save.profiles.clear()
+                    print("OK: world wiped.")
+                elif args[:2] == ["item", "add"] and len(args) >= 3:
                     name_or_key = args[2]
                     extra = args[3:]
                     count = 1
@@ -869,9 +880,9 @@ def make_context(p, w, save, *, dev: bool = False):
                         lvl = enchant
                         if lvl is None:
                             lvl = idef.default_enchant_level
-                        inst = {"key": key}
+                        inst: ItemInstance = {"key": key}
                         if lvl:
-                            inst["meta"] = {"enchant_level": lvl}
+                            inst["enchant"] = lvl
                         w.add_ground_item(p.year, p.x, p.y, inst)
                     print(f"OK: added {count} x {idef.name}.")
                 elif args[:2] == ["item", "clear"]:

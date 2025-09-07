@@ -55,7 +55,6 @@ def print_yell(mon) -> str:
 
 def render_status(p) -> list[str]:
     from ..engine.player import CLASS_DISPLAY, class_key  # local import to avoid cycle
-    from ..engine import items as items_mod
     from ..engine.items_resolver import get_item_def_by_key
     from ..engine.items_util import coerce_item
     from .items_render import display_item_name_plain
@@ -76,16 +75,14 @@ def render_status(p) -> list[str]:
             f"Dex: {fmt(p.dexterity):<2}   Con: {fmt(p.constitution):<2}   Cha: {fmt(p.charisma):<2}"
         ),
         yellow(f"Hit Points   : {fmt(p.hp)} / {fmt(p.max_hp)}"),
-        yellow(
-            f"Exp. Points  : {fmt(p.exp)}           Level: {fmt(p.level)}"
-        ),
+        yellow(f"Exp. Points  : {fmt(p.exp)}           Level: {fmt(p.level)}"),
         yellow(f"Riblets      : {fmt(getattr(p, 'riblets', 0))}"),
         yellow(f"Ions         : {fmt(p.ions)}"),
+        yellow(f"Wearing Armor: {armor_name}  Armour Class: {fmt(p.ac_total)}"),
         yellow(
-            f"Wearing Armor: {armor_name}  Armour Class: {fmt(p.ac_total)}"
-        ),
-        yellow(
-            f"Ready to Combat: {p.ready_to_combat_name}" if p.ready_to_combat_name else "Ready to Combat: NO ONE"
+            f"Ready to Combat: {p.ready_to_combat_name}"
+            if p.ready_to_combat_name
+            else "Ready to Combat: NO ONE"
         ),
         yellow("Readied Spell : No spell memorized."),
         yellow(f"Year A.D.     : {fmt(p.year)}"),
@@ -98,5 +95,9 @@ def render_kill_block(name: str, xp: int, riblets: int, ions: int) -> None:
     """Render the red kill message block for monster deaths."""
     print(red(f"You have slain {name}!"))
     print(red(f"Your experience points are increased by {fmt(xp)}!"))
-    print(red(f"You collect {fmt(riblets)} Riblets and {fmt(ions)} ions from the slain body."))
+    print(
+        red(
+            f"You collect {fmt(riblets)} Riblets and {fmt(ions)} ions from the slain body."
+        )
+    )
     print("***")

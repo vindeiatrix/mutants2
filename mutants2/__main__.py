@@ -31,17 +31,22 @@ def main() -> None:
     from mutants2.cli.shell import make_context, class_menu
     from mutants2.engine import persistence, world as world_mod
     from mutants2.engine.types import MonsterRec
-    from mutants2.types import TileKey, ItemInstance
+    from mutants2.engine.types import ItemInstance, TileKey
     from mutants2.engine.render import render_room_view
-    from mutants2.engine.gen import daily_topup_if_needed
+    from mutants2.engine.gen import daily_topup_if_needed, seed_for_cli
     from mutants2.engine import loop
 
     p, ground, monsters, seeded, save = persistence.load()
     ground_map: dict[TileKey, list[ItemInstance]] = ground
     monsters_map: dict[TileKey, list[MonsterRec]] = monsters
     w = world_mod.World(
-        ground_map, seeded, monsters_map, seed_monsters=True, global_seed=save.global_seed
+        ground_map,
+        seeded,
+        monsters_map,
+        seed_monsters=False,
+        global_seed=save.global_seed,
     )
+    seed_for_cli(w)
 
     if p.clazz is None:
         w.reset_all_aggro()

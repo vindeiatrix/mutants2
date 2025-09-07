@@ -107,10 +107,15 @@ def test_multi_monster_presence_line(cli, world_with_two_monsters_here):
     assert "are here with you." in out and "," in out and "and" in out
 
 
-def test_arrival_suppresses_presence(cli, staged_arrival_now_into_room_with_another_monster):
+def test_arrival_suppresses_presence(
+    cli, staged_arrival_now_into_room_with_another_monster
+):
     out = cli.run(["look"])
     assert "has just arrived" in out
-    assert "is here with you" not in out and "is here." not in out.split("has just arrived")[-1]
+    assert (
+        "is here with you" not in out
+        and "is here." not in out.split("has just arrived")[-1]
+    )
 
 
 def test_spawn_scaling(cli_seeded):

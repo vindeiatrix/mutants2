@@ -10,7 +10,13 @@ from mutants2.engine.player import Player
 from mutants2.ui.theme import yellow
 
 
-def run(commands: list[str], *, ions: int = 0, start_year: int = 2000, start_pos: tuple[int, int] = (0, 0)):
+def run(
+    commands: list[str],
+    *,
+    ions: int = 0,
+    start_year: int = 2000,
+    start_pos: tuple[int, int] = (0, 0),
+):
     w = World()
     w.year(start_year)
     p = Player(year=start_year, ions=ions)
@@ -49,4 +55,3 @@ def test_same_century_travel_free_and_resets_position():
     assert yellow("You're already in the 27th Century!") in out
     assert p.ions == 5_000
     assert p.positions[2700] == (0, 0)
-
