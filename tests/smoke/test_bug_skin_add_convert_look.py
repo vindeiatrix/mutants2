@@ -68,8 +68,8 @@ def test_convert_worn_bug_skin(tmp_path):
 
 def test_inventory_stacks_enchanted_variants(tmp_path):
     def setup(w, p):
-        p.inventory.append({"key": "bug-skin", "meta": {"enchant_level": 1}})
-        p.inventory.append({"key": "bug-skin", "meta": {"enchant_level": 2}})
+        p.inventory.append({"key": "bug-skin", "enchant": 1})
+        p.inventory.append({"key": "bug-skin", "enchant": 2})
 
     out, _, _ = run_commands(["inventory"], tmp_path / "stack", setup=setup)
     inv_out = out.split("inventory")[-1].replace("\u00a0", " ")

@@ -198,6 +198,7 @@ class World:
                     lst.append(m)
                 if lst:
                     self._monsters[coord] = lst
+        monsters_mod.seed_monsters(self)
         self._recent_monster_moves: list[tuple[int, int, int, int, int]] = []
         self.turn = turn
         self._room_headers: Dict[Tuple[int, int, int], str] = {}
@@ -379,6 +380,16 @@ class World:
         hp_val = int(cast(int, m["hp"]))
         m["hp"] = max(0, hp_val - max(0, dmg))
         if int(cast(int, m["hp"])) <= 0:
+            weapon = m.get("wielded_weapon")
+            armor = m.get("worn_armor")
+            if weapon:
+                self.add_ground_item(
+                    year, x, y, coerce_item(cast(ItemInstance | str, weapon))
+                )
+            if armor:
+                self.add_ground_item(
+                    year, x, y, coerce_item(cast(ItemInstance | str, armor))
+                )
             lst.pop(0)
             self._id_alloc.release(mid)
             if not lst:
@@ -584,10 +595,7 @@ class World:
                 raise ValueError("start tile (0,0) must be open")
             self.years[value] = Year(value, grid)
             gen.seed_items(self, value, grid)
-            had_start = self.has_monster(value, 0, 0)
-            gen.seed_monsters_for_year(self, value, self.global_seed)
-            # Ensure starting tile is clear unless a monster was explicitly placed
-            if not had_start:
-                while self.remove_monster(value, 0, 0):
-                    pass
+            # Ensure starting tile is clear
+            while self.remove_monster(value, 0, 0):
+                pass
         return self.years[value]

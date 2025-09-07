@@ -67,7 +67,7 @@ def test_kill_rewards():
 
 def test_convert_bug_skin_plus_one_and_look():
     def setup(w, p):
-        p.inventory.append({"key": "bug-skin", "meta": {"enchant_level": 1}})
+        p.inventory.append({"key": "bug-skin", "enchant": 1})
     out, _, p = run_commands(["look bug", "convert bug", "status"], setup=setup)
     assert "possesses a magical aura" in out
     assert "+1 Bug-Skin" in out

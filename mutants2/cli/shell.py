@@ -583,7 +583,13 @@ def make_context(p, w, save, *, dev: bool = False):
         ]
         mname = monsters.first_mon_prefix(q, here_monsters)
         if mname:
+            level = 0
+            for m in w.monsters_here(p.year, p.x, p.y):
+                if monsters.REGISTRY[m["key"]].name == mname:
+                    level = int(cast(int, m.get("level", 0)))
+                    break
             print(f"It's a {mname}.")
+            print(yellow(f"It appears to be level {level}."))
             return True
 
         ground_objs = w.ground.get((p.year, p.x, p.y), [])
@@ -607,9 +613,7 @@ def make_context(p, w, save, *, dev: bool = False):
         if inst_match:
             print(yellow("***"))
             idef = get_item_def_by_key(inst_match["key"])
-            lvl = inst_match.get("meta", {}).get("enchant_level")
-            if lvl is None:
-                lvl = inst_match.get("enchant") or 0
+            lvl = inst_match.get("enchant") or 0
             base_name = display_item_name_plain(inst_match, idef)
             if lvl > 0:
                 ench_name = display_item_name_with_plus(inst_match, idef)
@@ -865,9 +869,9 @@ def make_context(p, w, save, *, dev: bool = False):
                         lvl = enchant
                         if lvl is None:
                             lvl = idef.default_enchant_level
-                        inst = {"key": key}
+                        inst: ItemInstance = {"key": key}
                         if lvl:
-                            inst["meta"] = {"enchant_level": lvl}
+                            inst["enchant"] = lvl
                         w.add_ground_item(p.year, p.x, p.y, inst)
                     print(f"OK: added {count} x {idef.name}.")
                 elif args[:2] == ["item", "clear"]:

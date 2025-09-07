@@ -198,6 +198,88 @@ _add(
     base_power=4,
 )
 
+# Monster gear ---------------------------------------------------------------
+_add(
+    "iron-sabre",
+    "Iron-Sabre",
+    8,
+    convert_value_ions=15000,
+    base_power=8,
+    default_enchant_level=1,
+)
+_add(
+    "plate-jacket",
+    "Plate-Jacket",
+    12,
+    convert_value_ions=23000,
+    ac_bonus=10,
+    default_enchant_level=1,
+)
+_add(
+    "plasma-knife",
+    "Plasma-Knife",
+    5,
+    convert_value_ions=17000,
+    base_power=9,
+    default_enchant_level=1,
+)
+_add(
+    "woven-plasmacoat",
+    "Woven-Plasmacoat",
+    9,
+    convert_value_ions=24000,
+    ac_bonus=11,
+    default_enchant_level=1,
+)
+_add(
+    "time-rod",
+    "Time-Rod",
+    6,
+    convert_value_ions=18000,
+    base_power=8,
+    default_enchant_level=1,
+)
+_add(
+    "chrono-robes",
+    "Chrono-Robes",
+    7,
+    convert_value_ions=25000,
+    ac_bonus=10,
+    default_enchant_level=1,
+)
+_add(
+    "ion-talons",
+    "Ion-Talons",
+    5,
+    convert_value_ions=19000,
+    base_power=10,
+    default_enchant_level=1,
+)
+_add(
+    "phase-carapace",
+    "Phase-Carapace",
+    10,
+    convert_value_ions=26000,
+    ac_bonus=12,
+    default_enchant_level=1,
+)
+_add(
+    "gravity-hammer",
+    "Gravity-Hammer",
+    12,
+    convert_value_ions=21000,
+    base_power=12,
+    default_enchant_level=1,
+)
+_add(
+    "mass-plate",
+    "Mass-Plate",
+    11,
+    convert_value_ions=28000,
+    ac_bonus=13,
+    default_enchant_level=1,
+)
+
 SPAWNABLE_KEYS = [k for k, v in REGISTRY.items() if v.spawnable]
 
 __all__ = [
