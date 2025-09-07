@@ -37,7 +37,7 @@ def test_three_letter_abbrevs(cli_runner):
 
 def test_inventory_aliases(cli_runner):
     out = cli_runner.run_commands(["inv"])
-    assert "(empty)" in out or "Inventory" in out
+    assert "(empty)" not in out
     out = cli_runner.run_commands(["i"])
     assert yellow("You're iing!") in out
 

@@ -32,5 +32,5 @@ def test_skull_look_and_convert(tmp_path):
         ctx.dispatch_line("status")
     out = strip_ansi(buf.getvalue())
     assert "You convert the Skull into 25000 ions." in out
-    assert "(empty)" in out
+    assert "(empty)" not in out
     assert "Ions         : 25000" in out

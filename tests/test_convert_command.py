@@ -27,5 +27,5 @@ def test_convert_bottle_cap(cli_runner, inventory_with_cap):
     assert out.count("***") == 2
     assert yellow("The Bottle-Cap vanishes with a flash!") in out
     assert yellow("You convert the Bottle-Cap into 22000 ions.") in out
-    assert "(empty)" in out
+    assert "(empty)" not in out
     assert "Ions         : 22000" in out
