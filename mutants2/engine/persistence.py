@@ -197,7 +197,7 @@ def load() -> tuple[
                 name = entry.get("name")
                 aggro = entry.get("aggro", False)
                 seen = entry.get("seen", False)
-                has_yelled = entry.get("has_yelled_this_aggro", False)
+                has_yelled = entry.get("yelled_once") or entry.get("has_yelled_this_aggro", False)
                 mid = entry.get("id")
                 loot_i = entry.get("loot_ions", 0)
                 loot_r = entry.get("loot_riblets", 0)
@@ -208,7 +208,7 @@ def load() -> tuple[
                     "name": name or monsters_mod.REGISTRY[m_key].name,
                     "aggro": bool(aggro),
                     "seen": bool(seen),
-                    "has_yelled_this_aggro": bool(has_yelled),
+                    "yelled_once": bool(has_yelled),
                     "loot_ions": int(loot_i),
                     "loot_riblets": int(loot_r),
                 }
@@ -217,7 +217,7 @@ def load() -> tuple[
                 if m.get("aggro") and not m.get("seen"):
                     m["aggro"] = False
                 if not m.get("aggro"):
-                    m["has_yelled_this_aggro"] = False
+                    m["yelled_once"] = False
                 lst.append(m)
             if lst:
                 monsters_data[coord] = lst
@@ -262,7 +262,9 @@ def load() -> tuple[
         if needs_save:
             save(
                 player,
-                World(ground, seeded, monsters_data, global_seed=save_meta.global_seed),
+                World(
+                    ground, seeded, monsters_data, seed_monsters=False, global_seed=save_meta.global_seed
+                ),
                 save_meta,
             )
 
@@ -275,7 +277,9 @@ def load() -> tuple[
         save_meta = Save()
         save(
             player,
-            World(ground, seeded, monsters_data, global_seed=save_meta.global_seed),
+            World(
+                ground, seeded, monsters_data, seed_monsters=False, global_seed=save_meta.global_seed
+            ),
             save_meta,
         )
         return player, ground, monsters_data, seeded, save_meta
@@ -338,9 +342,7 @@ def save(player: Player, world: World, save_meta: Save) -> None:
                             "name": m.get("name"),
                             "aggro": m.get("aggro", False),
                             "seen": m.get("seen", False),
-                            "has_yelled_this_aggro": m.get(
-                                "has_yelled_this_aggro", False
-                            ),
+                            "yelled_once": m.get("yelled_once", False),
                             "id": m.get("id"),
                             "loot_ions": m.get("loot_ions", 0),
                             "loot_riblets": m.get("loot_riblets", 0),

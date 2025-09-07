@@ -507,16 +507,17 @@ def make_context(p, w, save, *, dev: bool = False):
         idef = get_item_def_by_key(key)
         p.wielded_weapon = inst_match
         mon = w.monster_here(p.year, p.x, p.y)
-        if not (
+        ready = (
             p.ready_to_combat_id
             and mon
             and str(mon.get("id")) == p.ready_to_combat_id
-        ):
+        )
+        if not ready:
             print(yellow("***"))
             print(yellow("You're not ready to combat anyone."))
             context._needs_render = False
             context._suppress_room_render = True
-            return False
+            return True
         print(yellow("***"))
         print(yellow(f"You wield the {display_item_name_plain(inst_match, idef)}."))
         key = inst_match["key"]
@@ -525,7 +526,7 @@ def make_context(p, w, save, *, dev: bool = False):
         print(yellow(f"You hit {name_mon} for {dmg} damage.  (temp)"))
         context._needs_render = False
         context._suppress_room_render = True
-        return False
+        return True
 
     def handle_convert(args: list[str]) -> bool:
         if not args:
@@ -654,21 +655,24 @@ def make_context(p, w, save, *, dev: bool = False):
             render_usage("combat")
             context._suppress_room_render = True
             return False
-        raw = " ".join(args).strip()
+        raw = " ".join(args).strip().lower()
         here = w.monsters_here(p.year, p.x, p.y)
-        names = [cast(str, m.get("name")) for m in here]
-        match = monsters.first_mon_prefix(raw.lower(), names)
-        if not match:
+        target = None
+        for m in here:
+            key = cast(str, m.get("key"))
+            base = monsters.REGISTRY[key].name.lower()
+            if base.startswith(raw):
+                target = m
+                break
+        if target is None:
             print(yellow("***"))
             print(yellow("No such monster here."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        for m in here:
-            if cast(str, m.get("name")) == match:
-                p.ready_to_combat_id = str(m.get("id"))
-                p.ready_to_combat_name = match
-                break
+        match = cast(str, target.get("name"))
+        p.ready_to_combat_id = str(target.get("id"))
+        p.ready_to_combat_name = match
         print(yellow("***"))
         print(yellow(f"You're ready to combat {match}!"))
         context._needs_render = False

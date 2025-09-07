@@ -11,10 +11,8 @@ def set_aggro(mon: MutableMapping[str, object]) -> Optional[str]:
     if not mon.get("aggro", False):
         mon["aggro"] = True
         mon["seen"] = True
-        mon["has_yelled_this_aggro"] = False
-
-    if not mon.get("has_yelled_this_aggro", False):
-        mon["has_yelled_this_aggro"] = True
-        return print_yell(mon)
-
+        if not mon.get("yelled_once", False):
+            mon["yelled_once"] = True
+            return print_yell(mon)
+        return None
     return None

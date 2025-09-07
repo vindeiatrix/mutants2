@@ -317,10 +317,12 @@ class Player:
         if ion_value is None:
             return None
         self.inventory.remove(inv_obj)
-        if self.worn_armor is inv_obj:
+        worn_inst = coerce_item(self.worn_armor) if self.worn_armor else None
+        wield_inst = coerce_item(self.wielded_weapon) if self.wielded_weapon else None
+        if self.worn_armor is inv_obj or (worn_inst is not None and worn_inst == inv_inst):
             self.worn_armor = None
             self.recompute_ac()
-        if self.wielded_weapon is inv_obj:
+        if self.wielded_weapon is inv_obj or (wield_inst is not None and wield_inst == inv_inst):
             self.wielded_weapon = None
         self.ions += ion_value
         return replace(item, ion_value=ion_value)

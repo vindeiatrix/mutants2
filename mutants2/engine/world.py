@@ -140,6 +140,7 @@ class World:
         seeded_years: Optional[Set[int]] = None,
         monsters: Mapping[TileKey, MonsterList] | None = None,
         *,
+        seed_monsters: bool = False,
         global_seed: int | None = None,
         turn: int = 0,
     ):
@@ -158,6 +159,7 @@ class World:
             rng_mod.hrand(self.global_seed, "mon_ids_v1")
         )
         self._monsters: MutableMapping[TileKey, list[MonsterRec]] = {}
+        self._seed_monsters = seed_monsters
         if monsters:
             for coord, data in monsters.items():
                 lst: list[MonsterRec] = []
@@ -170,7 +172,10 @@ class World:
                     hp_int = int(cast(int, hp_val)) if hp_val is not None else None
                     aggro = entry.get("aggro", False)
                     seen = entry.get("seen", False)
-                    has_yelled = entry.get("has_yelled_this_aggro", False)
+                    has_yelled = (
+                        entry.get("yelled_once")
+                        or entry.get("has_yelled_this_aggro", False)
+                    )
                     mid_val = entry.get("id")
                     mid = int(cast(int, mid_val)) if mid_val is not None else None
                     loot_i = entry.get("loot_ions", 0)
@@ -187,14 +192,14 @@ class World:
                         "name": name,
                         "aggro": bool(aggro),
                         "seen": bool(seen),
-                        "has_yelled_this_aggro": bool(has_yelled),
+                        "yelled_once": bool(has_yelled),
                         "id": int(mid),
                         "loot_ions": int(cast(int, loot_i)),
                         "loot_riblets": int(cast(int, loot_r)),
                     }
                     if m.get("aggro") and not m.get("seen"):
                         m["aggro"] = False
-                        m["has_yelled_this_aggro"] = False
+                        m["yelled_once"] = False
                     lst.append(m)
                 if lst:
                     self._monsters[coord] = lst
@@ -349,13 +354,13 @@ class World:
             for m in lst:
                 mm = cast(MutableMapping[str, object], m)
                 mm["aggro"] = False
-                mm["has_yelled_this_aggro"] = False
+                mm["yelled_once"] = False
 
     def reset_aggro_in_year(self, year: int) -> None:
         for _, _, m in self.monster_positions(year):
             mm = cast(MutableMapping[str, object], m)
             mm["aggro"] = False
-            mm["has_yelled_this_aggro"] = False
+            mm["yelled_once"] = False
 
     def place_monster(self, year: int, x: int, y: int, key: str) -> bool:
         coord = (year, x, y)
@@ -585,7 +590,8 @@ class World:
             self.years[value] = Year(value, grid)
             gen.seed_items(self, value, grid)
             had_start = self.has_monster(value, 0, 0)
-            gen.seed_monsters_for_year(self, value, self.global_seed)
+            if self._seed_monsters:
+                gen.seed_monsters_for_year(self, value, self.global_seed)
             # Ensure starting tile is clear unless a monster was explicitly placed
             if not had_start:
                 while self.remove_monster(value, 0, 0):
