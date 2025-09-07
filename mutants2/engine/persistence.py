@@ -23,7 +23,7 @@ from .macros import MacroStore
 
 from . import gen
 
-SAVE_SCHEMA = 3
+SAVE_SCHEMA = 4
 
 
 @dataclass
@@ -67,7 +67,7 @@ def load() -> tuple[
         data.pop("walls", None)
         data.pop("blocked", None)
         if data.get("schema") != SAVE_SCHEMA:
-            print("Save schema mismatch; starting with a fresh world.")
+            print("Save schema mismatch; deleting old save and starting fresh.")
             try:
                 SAVE_PATH.unlink()
             except FileNotFoundError:
