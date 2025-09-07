@@ -24,7 +24,7 @@ from .types import (
 from mutants2.types import TileKey, ItemInstance
 from .items_util import coerce_item
 from .items_resolver import get_item_def_by_key
-from ..ui.items_render import display_item_name
+from ..ui.items_render import display_item_name_plain
 from . import monsters as monsters_mod, items as items_mod, rng as rng_mod
 from .ai import set_aggro
 from ..data.room_headers import ROOM_HEADERS
@@ -241,7 +241,7 @@ class World:
         names: list[str] = []
         for v in vals:
             idef = get_item_def_by_key(v["key"])
-            names.append(display_item_name(v, idef, include_enchant=False))
+            names.append(display_item_name_plain(v, idef))
         return names
 
     def items_on_ground(self, year: int, x: int, y: int) -> list[items_mod.ItemDef]:
