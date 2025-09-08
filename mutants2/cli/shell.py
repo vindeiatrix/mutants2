@@ -49,9 +49,18 @@ from ..engine.macros import MacroStore
 from ..engine.types import Direction
 from ..engine.world import ALLOWED_CENTURIES, LOWEST_CENTURY, HIGHEST_CENTURY
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
-from ..ui.strings import GET_WHAT, DROP_WHAT, not_carrying, CANT_SEE
+from ..ui.strings import (
+    GET_WHAT,
+    DROP_WHAT,
+    not_carrying,
+    CANT_SEE,
+    help_text,
+    generic_fb,
+    convert_fb,
+    arrival_line,
+)
 from ..ui.articles import article_for
-from ..ui.theme import red, SEP, yellow, white
+from ..ui.theme import SEP, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import (
     render_help_hint,
@@ -219,7 +228,7 @@ def class_menu(p, w, save, context=None, *, in_game: bool) -> bool:
         elif s in CLASS_BY_NAME:
             picked = CLASS_BY_NAME[s]
         else:
-            print("Invalid selection.")
+            print(generic_fb("Invalid selection."))
             continue
         k = class_key(picked)
         prof = save.profiles.get(k)
@@ -274,7 +283,7 @@ def make_context(p, w, save, *, dev: bool = False):
 
     def render_usage(cmd: str) -> None:
         for line in USAGE.get(cmd, []):
-            print(line)
+            print(help_text(line))
 
     def handle_macro(rest: str) -> None:
         if rest.startswith("add "):
@@ -283,7 +292,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 name_part, script = after.split("=", 1)
                 macro_store.add(name_part.strip(), script.strip())
             else:
-                print("Usage: macro add <name> = <script>")
+                print(help_text("Usage: macro add <name> = <script>"))
         elif rest.startswith("run "):
             parts = rest[4:].split()
             if parts:
@@ -298,7 +307,7 @@ def make_context(p, w, save, *, dev: bool = False):
             if name in macro_store.list():
                 print(macro_store.get(name))
             else:
-                print("No such macro")
+                print(generic_fb("No such macro"))
         elif rest.startswith("rm "):
             macro_store.remove(rest[3:].strip())
         elif rest == "clear":
@@ -316,12 +325,12 @@ def make_context(p, w, save, *, dev: bool = False):
             try:
                 macro_store.load_profile(profile)
             except FileNotFoundError:
-                print("No such profile")
+                print(generic_fb("No such profile"))
         elif rest == "profiles":
             for n in macro_store.list_profiles():
                 print(n)
         else:
-            print("Invalid macro command.")
+            print(generic_fb("Invalid macro command."))
 
     def handle_travel(args: list[str]) -> bool:
         if not args:
@@ -331,11 +340,13 @@ def make_context(p, w, save, *, dev: bool = False):
         try:
             year_input = int(args[0])
         except ValueError:
-            print("Invalid year.")
+            print(generic_fb("Invalid year."))
             context._suppress_room_render = True
             return False
         if year_input < LOWEST_CENTURY or year_input > HIGHEST_CENTURY:
-            print(yellow(f"You can only travel from year 2000 to {HIGHEST_CENTURY}!"))
+            print(
+                generic_fb(f"You can only travel from year 2000 to {HIGHEST_CENTURY}!")
+            )
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -343,13 +354,13 @@ def make_context(p, w, save, *, dev: bool = False):
         steps = abs(target - p.year) // 100
         cost = ION_TRAVEL_COST * steps
         if p.ions < cost:
-            print(yellow("***"))
-            print(yellow("You don't have enough ions to create a portal."))
+            print(generic_fb("***"))
+            print(generic_fb("You don't have enough ions to create a portal."))
             context._suppress_room_render = True
             return False
         p.ions -= cost
         p.travel(w, target)
-        print(yellow(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
+        print(generic_fb(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         context._suppress_room_render = True
         context._suppress_entry_aggro = True
         context._skip_movement_tick = False
@@ -369,8 +380,8 @@ def make_context(p, w, save, *, dev: bool = False):
         idef = ground_defs[key]
         overflow = p.pick_up(idef.name, w)
         if overflow:
-            print(yellow("***"))
-            print(yellow(f"The {overflow} fell out of your sack!"))
+            print(generic_fb("***"))
+            print(generic_fb(f"The {overflow} fell out of your sack!"))
         print(f"You pick up {article_for(idef.name)} {idef.name}.")
         return False
 
@@ -396,12 +407,12 @@ def make_context(p, w, save, *, dev: bool = False):
             else (msg or "You can’t drop that here.")
         )
         if sack_name:
-            print(yellow("***"))
-            print(yellow(f"The {sack_name} fell out of your sack!"))
+            print(generic_fb("***"))
+            print(generic_fb(f"The {sack_name} fell out of your sack!"))
         if gift_name:
-            print(yellow("***"))
+            print(generic_fb("***"))
             print(
-                yellow(
+                generic_fb(
                     f"{article_for(gift_name)} {gift_name} has magically appeared in your hand!"
                 )
             )
@@ -422,23 +433,25 @@ def make_context(p, w, save, *, dev: bool = False):
         inst = coerce_item(obj)
         idef = get_item_def_by_key(resolve_key(inst["key"]))
         if not idef or idef.ac_bonus <= 0:
-            print(yellow("***"))
-            print(yellow("You can't wear that."))
+            print(generic_fb("***"))
+            print(generic_fb("You can't wear that."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        print(yellow("***"))
+        print(generic_fb("***"))
         if p.worn_armor:
             old_inst = coerce_item(p.worn_armor)
             old_def = get_item_def_by_key(old_inst["key"])
             print(
-                yellow(f"You remove the {display_item_name_plain(old_inst, old_def)}.")
+                generic_fb(
+                    f"You remove the {display_item_name_plain(old_inst, old_def)}."
+                )
             )
             p.inventory.append(old_inst)
         p.inventory.remove(obj)
         p.worn_armor = inst
         p.recompute_ac()
-        print(yellow(f"You wear the {display_item_name_plain(inst, idef)}."))
+        print(generic_fb(f"You wear the {display_item_name_plain(inst, idef)}."))
         context._needs_render = False
         context._suppress_room_render = True
         return False
@@ -449,16 +462,16 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         if not p.worn_armor:
-            print(yellow("***"))
-            print(yellow("You're not wearing any armor."))
+            print(generic_fb("***"))
+            print(generic_fb("You're not wearing any armor."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
         if args:
             raw = " ".join(args)
             if resolve_item(raw, "worn", p, w) is None:
-                print(yellow("***"))
-                print(yellow("You're not wearing that."))
+                print(generic_fb("***"))
+                print(generic_fb("You're not wearing that."))
                 context._needs_render = False
                 context._suppress_room_render = True
                 return False
@@ -468,8 +481,8 @@ def make_context(p, w, save, *, dev: bool = False):
         p.worn_armor = None
         p.inventory.append(inst)
         p.recompute_ac()
-        print(yellow("***"))
-        print(yellow(f"You remove the {name}."))
+        print(generic_fb("***"))
+        print(generic_fb(f"You remove the {name}."))
         context._needs_render = False
         context._suppress_room_render = True
         return False
@@ -495,17 +508,17 @@ def make_context(p, w, save, *, dev: bool = False):
             p.ready_to_combat_id and mon and str(mon.get("id")) == p.ready_to_combat_id
         )
         if not ready:
-            print(yellow("***"))
-            print(yellow("You're not ready to combat anyone."))
+            print(generic_fb("***"))
+            print(generic_fb("You're not ready to combat anyone."))
             context._needs_render = False
             context._suppress_room_render = True
             return True
-        print(yellow("***"))
-        print(yellow(f"You wield the {display_item_name_plain(inst, idef)}."))
+        print(generic_fb("***"))
+        print(generic_fb(f"You wield the {display_item_name_plain(inst, idef)}."))
         key = inst["key"]
         dmg, killed, name_mon = combat.player_attack(p, w, key)
-        print(yellow("***"))
-        print(yellow(f"You hit {name_mon} for {dmg} damage.  (temp)"))
+        print(generic_fb("***"))
+        print(generic_fb(f"You hit {name_mon} for {dmg} damage.  (temp)"))
         context._needs_render = False
         context._suppress_room_render = True
         return True
@@ -530,8 +543,10 @@ def make_context(p, w, save, *, dev: bool = False):
             render_help_hint()
             return False
         print(SEP)
-        print(yellow(f"The {item.name} vanishes with a flash!"))
-        print(yellow(f"You convert the {item.name} into {fmt(item.ion_value)} ions."))
+        print(convert_fb(f"The {item.name} vanishes with a flash!"))
+        print(
+            convert_fb(f"You convert the {item.name} into {fmt(item.ion_value)} ions.")
+        )
         context._needs_render = False
         context._suppress_room_render = True
         return True
@@ -581,14 +596,14 @@ def make_context(p, w, save, *, dev: bool = False):
                     break
 
         if inst_match:
-            print(yellow("***"))
+            print(generic_fb("***"))
             idef = get_item_def_by_key(inst_match["key"])
             lvl = inst_match.get("enchant", 0)
             base_name = display_item_name_plain(inst_match, idef)
             if lvl > 0:
                 ench_name = display_item_name_with_plus(inst_match, idef)
                 print(
-                    yellow(
+                    generic_fb(
                         f"The {base_name} possesses a magical aura. "
                         f"Concentrating stronger, you realize this is a {ench_name}!"
                     )
@@ -598,7 +613,7 @@ def make_context(p, w, save, *, dev: bool = False):
             if desc:
                 print(desc)
                 return True
-            print(yellow(f"It looks like a lovely {base_name}!"))
+            print(generic_fb(f"It looks like a lovely {base_name}!"))
             return True
 
         ground_objs = w.ground.get((p.year, p.x, p.y), [])
@@ -624,8 +639,8 @@ def make_context(p, w, save, *, dev: bool = False):
             print(text)
             return True
 
-        print(yellow("***"))
-        print(yellow(CANT_SEE.format(raw)))
+        print(generic_fb("***"))
+        print(generic_fb(CANT_SEE.format(raw)))
         context._needs_render = False
         context._suppress_room_render = True
         return found_elsewhere
@@ -645,16 +660,16 @@ def make_context(p, w, save, *, dev: bool = False):
                 target = m
                 break
         if target is None:
-            print(yellow("***"))
-            print(yellow("No such monster here."))
+            print(generic_fb("***"))
+            print(generic_fb("No such monster here."))
             context._needs_render = False
             context._suppress_room_render = True
             return False
         match = cast(str, target.get("name"))
         p.ready_to_combat_id = str(target.get("id"))
         p.ready_to_combat_name = match
-        print(yellow("***"))
-        print(yellow(f"You're ready to combat {match}!"))
+        print(generic_fb("***"))
+        print(generic_fb(f"You're ready to combat {match}!"))
         context._needs_render = False
         context._suppress_room_render = True
         return True
@@ -671,26 +686,26 @@ def make_context(p, w, save, *, dev: bool = False):
         heal_amount = p.level + 5
         cost = k * p.level
         if p.ions < cost:
-            print(yellow("***"))
-            print(yellow("You don't have enough ions to heal!"))
+            print(generic_fb("***"))
+            print(generic_fb("You don't have enough ions to heal!"))
             return
         if p.hp >= p.max_hp:
-            print(yellow("***"))
-            print(yellow("Nothing happens!"))
+            print(generic_fb("***"))
+            print(generic_fb("Nothing happens!"))
             return
         p.ions -= cost
         p.hp = min(p.max_hp, p.hp + heal_amount)
-        print(yellow("***"))
-        print(yellow(f"Your body glows as it heals {heal_amount} points!"))
+        print(generic_fb("***"))
+        print(generic_fb(f"Your body glows as it heals {heal_amount} points!"))
         if p.hp >= p.max_hp:
-            print(yellow("***"))
-            print(yellow("You're healed to the maximum!"))
+            print(generic_fb("***"))
+            print(generic_fb("You're healed to the maximum!"))
 
     def handle_status() -> None:
         lines = render_status(p)
         total = fmt(p.inventory_weight_lbs())
         lines.append(
-            yellow(
+            generic_fb(
                 f"You are carrying the following items:  (Total Weight: {total} LB's)"
             )
         )
@@ -738,7 +753,7 @@ def make_context(p, w, save, *, dev: bool = False):
         elif cmd == "inventory":
             total = fmt(p.inventory_weight_lbs())
             print(
-                yellow(
+                generic_fb(
                     f"You are carrying the following items: (Total Weight: {total} LB's)"
                 )
             )
@@ -944,7 +959,7 @@ def make_context(p, w, save, *, dev: bool = False):
                         p.senses.add_shadow(cast(Direction, direction))
                         print("OK.")
                     else:
-                        print("Invalid direction.")
+                        print(generic_fb("Invalid direction."))
                 elif args and args[0] == "footsteps" and len(args) == 2:
                     try:
                         p.senses.set_footsteps(int(args[1]))
@@ -972,10 +987,10 @@ def make_context(p, w, save, *, dev: bool = False):
                     try:
                         val = max(0, int(args[2]))
                     except ValueError:
-                        print("Invalid ion value.")
+                        print(generic_fb("Invalid ion value."))
                     else:
                         p.ions = val
-                        print(yellow(f"Ions set to {val}."))
+                        print(generic_fb(f"Ions set to {val}."))
                 elif (
                     args[:2] in (["set", "riblet"], ["set", "riblets"])
                     and len(args) >= 3
@@ -983,10 +998,10 @@ def make_context(p, w, save, *, dev: bool = False):
                     try:
                         val = max(0, int(args[2]))
                     except ValueError:
-                        print("Invalid riblet value.")
+                        print(generic_fb("Invalid riblet value."))
                     else:
                         p.riblets = val
-                        print(yellow(f"Riblets set to {val}."))
+                        print(generic_fb(f"Riblets set to {val}."))
                 elif args[:2] == ["ion", "set"] and len(args) >= 3:
                     global _ION_SET_DEPRECATED_SHOWN
                     if not _ION_SET_DEPRECATED_SHOWN:
@@ -995,29 +1010,29 @@ def make_context(p, w, save, *, dev: bool = False):
                     try:
                         val = max(0, int(args[2]))
                     except ValueError:
-                        print("Invalid ion value.")
+                        print(generic_fb("Invalid ion value."))
                     else:
                         p.ions = val
-                        print(yellow(f"Ions set to {val}."))
+                        print(generic_fb(f"Ions set to {val}."))
                 elif args[:2] == ["set", "exp"] and len(args) >= 3:
                     try:
                         val = max(0, int(args[2]))
                     except ValueError:
-                        print("Invalid EXP value.")
+                        print(generic_fb("Invalid EXP value."))
                     else:
                         p.exp = val
                         recompute_from_exp(p)
-                        print(yellow(f"EXP set to {val}. Level is now {p.level}."))
+                        print(generic_fb(f"EXP set to {val}. Level is now {p.level}."))
                 elif args[:2] == ["set", "hp"] and len(args) >= 3:
                     try:
                         val = int(args[2])
                     except ValueError:
-                        print("Invalid HP value.")
+                        print(generic_fb("Invalid HP value."))
                     else:
                         p.hp = max(0, min(val, p.max_hp))
-                        print(yellow(f"HP set to {p.hp}/{p.max_hp}."))
+                        print(generic_fb(f"HP set to {p.hp}/{p.max_hp}."))
                 else:
-                    print("Invalid debug command.")
+                    print(generic_fb("Invalid debug command."))
         elif cmd in {"north", "south", "east", "west"}:
             moved = p.move(cmd, w)
             if moved:
@@ -1072,7 +1087,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 render_help_hint()
             else:
                 print(SEP)
-                print(yellow(f"You're {gerundize(head)}!"))
+                print(generic_fb(f"You're {gerundize(head)}!"))
                 print()
             context._last_turn_consumed = True
             return False
@@ -1128,7 +1143,7 @@ def make_context(p, w, save, *, dev: bool = False):
         if arrivals:
             print(SEP)
             for i, msg in enumerate(arrivals):
-                print(red(msg))
+                print(arrival_line(msg))
                 if i < len(arrivals) - 1:
                     print(SEP)
         for msg in render_mod.footsteps_lines(context):

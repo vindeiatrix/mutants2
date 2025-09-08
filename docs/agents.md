@@ -9,6 +9,16 @@ This document defines the contracts our agents (and humans) must follow.
 - **Determinism:** The world is deterministically seeded **only in the CLI entrypoint**; tests must use a **temporary SAVE_PATH** and opt-in seeding.
 - **Worn ≠ inventory:** Worn items are not in inventory scope; use helpers like `resolve_item(prefix, scope="inventory"|"worn")`.
 
+## Color palette & usage
+- **green** — Compass line (e.g., `Compass: (0E : 0N)`).
+- **cyan** — Cardinal direction token on exit lines (`north`, `south`, `east`, `west`).
+- **blue** — Exit description segment after the en-dash (e.g., `area continues.`).  If an exit copy variant is used, the whole post-dash portion is blue.
+- **yellow** — Generic feedback & help; prompts; “lovely” look-for-item line; inventory-scope failures (`You can't see <raw_subject>.`, `You're not carrying <raw_subject>.`); shadows header; ground header (`On the ground lies:`).
+- **white** — Class selection menu; inventory list body; monster names shown in room renders (from look or `look <dir>`); monster taunts/native attacks (e.g., `Critter-750 bites you!`).
+- **red** — Room header/description; ion conversion feedback; kill & loot/rewards; monster arrival/leave; “crumbling to dust” after loot; weapon/armor crack; ranged “blinding flash”; monster spell preamble; spell damage descriptions.
+
+Numbers are always plain (no commas).
+
 ## Core world & movement
 - Each century is a **30×30** grid; edges block; center is **(0E : 0N)**.
 - **Centuries enabled:** **2000–3000** inclusive, in 100-year steps.
@@ -25,19 +35,19 @@ This document defines the contracts our agents (and humans) must follow.
 ## Look semantics
 - `look` (no args): on-tile peek that can trigger aggro checks.
 - `look <item>` searches **inventory only**.  
-  – If found and spawnable: print yellow **“It looks like a lovely <Title-Case Item-Name>!”**.  
-  – If not in inventory (on ground or worn): print yellow using the raw token: **“You can't see `<raw_subject>`.”**  
+  – If found and spawnable: print **“It looks like a lovely <Title-Case Item-Name>!”**.
+  – If not in inventory (on ground or worn): print using the raw token: **“You can't see `<raw_subject>`.”**
 - `look <dir>` peeks without shadows.
 
 ## Aggro, footsteps, arrivals
 - Monsters spawn **passive**; on room entry or `look` (no args) on a shared tile: **50/50** to aggro; on success, yell once: **“<Name> yells at you!”**.
 - Only **aggro** monsters move one step after the player turn; if none aggro in-year, **skip** the movement tick.  
 - **Footsteps:** loud at **2**, faint at **3–6**, none at **<1**; supports intermediate directions (e.g., “south-west”).  
-- In an arrival tick, render **arrivals (red) last** and **suppress** the generic presence line.
+- In an arrival tick, render arrivals last and **suppress** the generic presence line.
 
 ## Monsters, targeting, and rewards
 - Multiple monsters can share a tile; names include a **unique 4-digit suffix** (e.g., `Mutant-1846`).
-- **`combat <monster>`** selects a target (consumes a turn) and prints yellow **“You’re ready to combat <Name>!”**; legacy `attack` is removed.
+- **`combat <monster>`** selects a target (consumes a turn) and prints **“You’re ready to combat <Name>!”**; legacy `attack` is removed.
 - Wielding hits only if **ready to combat** someone.  
 - On kill: award **20000 riblets** and **20000 ions**.
 
@@ -52,7 +62,7 @@ This document defines the contracts our agents (and humans) must follow.
 ## Ions: upkeep, heal, starvation
 - **Per-class ion consumption** (per 10s) starts at **level 2** and is **additive** per the approved table (level 1 = 0).
 - **Heal** uses the implemented class/level ion-cost formula; prints “Nothing Happens!” if already at max HP.
-- **Starvation:** at 0 ions, every **10s** lose **1 HP per level** and print yellow **“You’re starving for IONS!”**; ends when ions > 0 or on death.
+- **Starvation:** at 0 ions, every **10s** lose **1 HP per level** and print **“You’re starving for IONS!”**; ends when ions > 0 or on death.
 
 ## Profiles & saves
 - Class menu order: **Thief, Priest, Wizard, Warrior, Mage**; **independent profiles** (year, coords, inventory, ions).

@@ -5,7 +5,7 @@ import io
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
 from mutants2.cli.shell import make_context
-from mutants2.ui.theme import yellow, cyan
+from mutants2.ui.theme import yellow, cyan, blue
 
 
 def _ctx(tmp_path):
@@ -45,7 +45,11 @@ def test_exit_spacing(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look")
     out = buf.getvalue()
-    assert cyan("north – area continues.") in out
-    assert cyan("south – area continues.") in out
-    assert cyan("east  – area continues.") in out
-    assert cyan("west  – area continues.") in out
+    north_line = f"{cyan('north')} – {blue('area continues.')}"
+    south_line = f"{cyan('south')} – {blue('area continues.')}"
+    east_line = f"{cyan('east')}  – {blue('area continues.')}"
+    west_line = f"{cyan('west')}  – {blue('area continues.')}"
+    assert north_line in out
+    assert south_line in out
+    assert east_line in out
+    assert west_line in out
