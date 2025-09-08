@@ -43,7 +43,7 @@ def test_skull_drop_and_order():
     collect = red("You collect 20000 Riblets and 20000 ions from the slain body.")
     assert collect in out
     drop_match = re.search(
-        r"\x1b\[31mA Skull is falling from Mutant-\d{4}'s body!\x1b\[0m",
+        r"\x1b\[37mA Skull is falling from Mutant-\d{4}'s body!\x1b\[0m",
         out,
     )
     assert drop_match

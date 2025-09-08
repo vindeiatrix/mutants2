@@ -23,6 +23,7 @@ def white(s: str) -> str:
 
 COLOR_HEADER = yellow
 COLOR_ITEM = cyan
+COLOR_DROP_ITEM = white
 
 # ``blue`` previously represented a lighter variant used for exit descriptions.
 # It is now an alias of ``COLOR_ITEM`` to remove that tone from the palette
