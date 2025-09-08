@@ -14,8 +14,9 @@ from ..engine.items_resolver import get_item_def_by_key
 from ..ui.articles import article_for
 from ..data.config import AC_DIVISOR
 from ..ui.render import render_kill_block
-from ..ui.theme import SEP
+from ..ui.theme import SEP, COLOR_DROP_ITEM
 from ..ui.strings import kill_reward
+from .player import GROUND_LIMIT
 
 MONSTER_XP = 20_000
 
@@ -41,20 +42,35 @@ def handle_monster_death(ctx: SimpleNamespace, mon) -> None:
     riblets = 20_000
     p.ions += ions
     p.riblets += riblets
-    award_kill(p)
+    xp = award_kill(p)
+    name = str(mon.get("name", ""))
+
+    print(kill_reward(f"You have slain {name}!"))
+    print(kill_reward(f"Your experience points are increased by {xp}!"))
     render_kill_block(riblets, ions)
 
     drops = [coerce_item(d) for d in mon.get("gear", [])]
     mdef = monsters_mod.REGISTRY.get(mon.get("key"))
     mtype = mdef.name if mdef else "Unknown"
     drops.append({"key": "skull", "monster_type": mtype})
-    name = str(mon.get("name", ""))
-    for inst in drops:
+    worn = mon.get("worn_armor")
+    if worn:
+        drops.append(coerce_item(worn))
+
+    have = len(w.items_on_ground(p.year, p.x, p.y))
+    free = max(0, GROUND_LIMIT - have)
+    drops = drops[:free]
+
+    if drops:
+        print(SEP)
+    for i, inst in enumerate(drops):
         w.add_ground_item(p.year, p.x, p.y, inst)
         idef = get_item_def_by_key(inst["key"])
         iname = display_item_name_plain(inst, idef)
         art = article_for(iname)
-        print(kill_reward(f"{art} {iname} is falling from {name}'s body!"))
+        print(COLOR_DROP_ITEM(f"{art} {iname} is falling from {name}'s body!"))
+        if i < len(drops) - 1:
+            print(SEP)
 
     print(SEP)
     print(kill_reward(f"{name} is crumbling to dust!"))
