@@ -35,6 +35,7 @@ from ..engine.state import (
     CharacterProfile,
     apply_profile,
     profile_from_raw,
+    ensure_first_time_ion_grant,
 )
 from ..engine.types import ItemInstance
 from ..engine.gen import (
@@ -46,7 +47,7 @@ from ..engine.macros import MacroStore
 from ..engine.types import Direction
 from ..engine.world import ALLOWED_CENTURIES, LOWEST_CENTURY, HIGHEST_CENTURY
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
-from ..ui.strings import GET_WHAT, DROP_WHAT
+from ..ui.strings import GET_WHAT, DROP_WHAT, NOT_CARRYING
 from ..ui.theme import red, SEP, yellow, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import (
@@ -232,6 +233,7 @@ def class_menu(p, w, save, context=None, *, in_game: bool) -> bool:
             classes_mod.apply_class_defaults(p, k)
         w.year(p.year)
         p.clazz = k
+        ensure_first_time_ion_grant(p, save)
         persistence.save(p, w, save)
         if context is not None:
             context.in_game = True
@@ -420,7 +422,7 @@ def make_context(p, w, save, *, dev: bool = False):
         key = resolve_key_prefix(raw, inv_keys)
         if not key:
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {raw}."))
+            print(yellow(NOT_CARRYING.format(raw)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -432,7 +434,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 break
         if inst_match is None:
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {raw}."))
+            print(yellow(NOT_CARRYING.format(raw)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -485,32 +487,57 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         raw = " ".join(args)
-        inv_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory]
+
+        worn_key = None
+        worn_inst = None
+        if p.worn_armor:
+            worn_inst = coerce_item(p.worn_armor)
+            worn_key = resolve_key(worn_inst["key"])
+
+        inv_keys: list[str] = []
+        skipped = False
+        for obj in p.inventory:
+            inst = coerce_item(obj)
+            k = resolve_key(inst["key"])
+            if worn_key and not skipped and k == worn_key:
+                skipped = True
+                continue
+            inv_keys.append(k)
+
         key = resolve_key_prefix(raw, inv_keys)
         if not key:
+            name = raw
+            if worn_key and resolve_key_prefix(raw, [worn_key]) == worn_key and worn_inst:
+                idef_w = get_item_def_by_key(worn_key)
+                name = display_item_name_plain(worn_inst, idef_w)
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {raw}."))
+            print(yellow(NOT_CARRYING.format(name)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
+
         inst_match: ItemInstance | None = None
+        skipped = False
         for obj in p.inventory:
             inst = coerce_item(obj)
-            if resolve_key(inst["key"]) == key:
+            k = resolve_key(inst["key"])
+            if worn_key and not skipped and k == worn_key:
+                skipped = True
+                continue
+            if k == key:
                 inst_match = inst
                 break
         if inst_match is None:
+            name = raw
+            if worn_key and resolve_key_prefix(raw, [worn_key]) == worn_key and worn_inst:
+                idef_w = get_item_def_by_key(worn_key)
+                name = display_item_name_plain(worn_inst, idef_w)
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {raw}."))
+            print(yellow(NOT_CARRYING.format(name)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        if p.worn_armor is inst_match:
-            print(yellow("***"))
-            print(yellow("You cannot wield something you are wearing."))
-            context._needs_render = False
-            context._suppress_room_render = True
-            return False
+
         idef = get_item_def_by_key(key)
         p.wielded_weapon = inst_match
         mon = w.monster_here(p.year, p.x, p.y)
@@ -543,7 +570,7 @@ def make_context(p, w, save, *, dev: bool = False):
         key = resolve_key_prefix(raw, inv_keys)
         if not key:
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {raw}."))
+            print(yellow(NOT_CARRYING.format(raw)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -555,7 +582,7 @@ def make_context(p, w, save, *, dev: bool = False):
                 break
         if key_match is None:
             print(yellow("***"))
-            print(yellow(f"You're not carrying a {raw}."))
+            print(yellow(NOT_CARRYING.format(raw)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -648,7 +675,7 @@ def make_context(p, w, save, *, dev: bool = False):
             return True
 
         print(yellow("***"))
-        print(yellow(f"You're not carrying a {raw}."))
+        print(yellow(NOT_CARRYING.format(raw)))
         context._needs_render = False
         context._suppress_room_render = True
         return False

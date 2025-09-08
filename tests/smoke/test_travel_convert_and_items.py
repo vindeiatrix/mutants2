@@ -24,7 +24,7 @@ def test_monster_bait_conversion(cli_runner, tmp_path):
     assert yellow("The Monster-Bait vanishes with a flash!") in out
     assert yellow("You convert the Monster-Bait into 10000 ions.") in out
     assert "(empty)" not in out
-    assert "Ions         : 10000" in out
+    assert "Ions         : 40000" in out
 
 
 def test_convert_gibberish(cli_runner):

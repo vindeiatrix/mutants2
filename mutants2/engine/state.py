@@ -45,6 +45,7 @@ class CharacterProfile:
     wielded_weapon: ItemInstance | str | None = None
     macros_name: str | None = None
     tables_migrated: bool = True
+    first_ion_grant_done: bool = False
 
 
 def profile_from_player(p: "Player") -> CharacterProfile:
@@ -73,6 +74,7 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         ready_to_combat_name=getattr(p, "ready_to_combat_name", None),
         worn_armor=getattr(p, "worn_armor", None),
         wielded_weapon=getattr(p, "wielded_weapon", None),
+        first_ion_grant_done=getattr(p, "first_ion_grant_done", False),
         tables_migrated=True,
     )
 
@@ -102,6 +104,7 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.ready_to_combat_name = getattr(prof, "ready_to_combat_name", None)
     p.worn_armor = getattr(prof, "worn_armor", None)
     p.wielded_weapon = getattr(prof, "wielded_weapon", None)
+    p.first_ion_grant_done = getattr(prof, "first_ion_grant_done", False)
     p.recompute_ac()
 
 
@@ -140,6 +143,7 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
             else dict(coerce_item(prof.wielded_weapon))
         ),
         "tables_migrated": getattr(prof, "tables_migrated", True),
+        "first_ion_grant_done": getattr(prof, "first_ion_grant_done", False),
         **({"macros_name": prof.macros_name} if prof.macros_name else {}),
     }
 
@@ -186,4 +190,28 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         ),
         macros_name=data.get("macros_name"),
         tables_migrated=bool(data.get("tables_migrated", False)),
+        first_ion_grant_done=bool(data.get("first_ion_grant_done", False)),
     )
+
+
+def ensure_first_time_ion_grant(p: "Player", save) -> bool:
+    """Grant 30k ions once per class profile.
+
+    Returns ``True`` if a grant was applied and the save/profile updated.
+    """
+    if not p.clazz:
+        return False
+    if getattr(p, "first_ion_grant_done", False):
+        return False
+    from .player import class_key  # local import to avoid cycle
+
+    k = class_key(p.clazz)
+    prof = save.profiles.get(k)
+    if isinstance(prof, CharacterProfile):
+        if prof.first_ion_grant_done:
+            p.first_ion_grant_done = True
+            return False
+        prof.first_ion_grant_done = True
+    p.ions += 30_000
+    p.first_ion_grant_done = True
+    return True

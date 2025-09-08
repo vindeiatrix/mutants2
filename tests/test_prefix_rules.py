@@ -43,6 +43,7 @@ def cli(world, player, tmp_path, monkeypatch):
 
 @pytest.fixture
 def world_with_items(world):
+    world.set_ground_item(2000, 0, 0, None)
     world.place_item(2000, 0, 0, "nuclear_thong")
     world.place_item(2000, 0, 0, "nuclear_rock")
     return world
