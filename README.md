@@ -19,8 +19,7 @@ pytest
 
 - Save schema bumped to `6`. Older saves are discarded on load and a fresh
   world is seeded automatically.
-- Natural armour from Dexterity is now `1 + (DEX // 10)` and stacks with worn
-  armour.
+- Natural armour from Dexterity is `DEX // 10` and stacks with worn armour.
 - Worn items are no longer counted in inventory; only `remove` operates on worn
   armour.
 - `look <item>` only works for items in your inventory. Looking for an item on

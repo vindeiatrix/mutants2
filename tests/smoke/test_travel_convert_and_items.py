@@ -29,8 +29,7 @@ def test_monster_bait_conversion(cli_runner, tmp_path):
 
 def test_convert_gibberish(cli_runner):
     out = cli_runner.run_commands(["con asd"])
-    assert yellow("***") in out
-    assert yellow("You're not carrying a asd.") in out
+    assert yellow("You're not carrying asd.") in out
 
 
 def test_travel_rounding_and_stats(cli_runner):

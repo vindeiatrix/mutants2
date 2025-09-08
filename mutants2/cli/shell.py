@@ -49,7 +49,7 @@ from ..engine.macros import MacroStore
 from ..engine.types import Direction
 from ..engine.world import ALLOWED_CENTURIES, LOWEST_CENTURY, HIGHEST_CENTURY
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
-from ..ui.strings import GET_WHAT, DROP_WHAT, NOT_CARRYING, CANT_SEE
+from ..ui.strings import GET_WHAT, DROP_WHAT, not_carrying, CANT_SEE
 from ..ui.theme import red, SEP, yellow, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import (
@@ -386,14 +386,7 @@ def make_context(p, w, save, *, dev: bool = False):
         raw = " ".join(args)
         obj = resolve_item(raw, "inventory", p, w)
         if obj is None:
-            name = raw
-            worn_inst = resolve_item(raw, "worn", p, w)
-            if worn_inst is not None:
-                inst_w = coerce_item(worn_inst)
-                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
-                name = display_item_name_plain(inst_w, idef_w)
-            print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(name)))
+            print(not_carrying(raw))
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -423,14 +416,7 @@ def make_context(p, w, save, *, dev: bool = False):
         raw = " ".join(args)
         obj = resolve_item(raw, "inventory", p, w)
         if obj is None:
-            name = raw
-            worn_inst = resolve_item(raw, "worn", p, w)
-            if worn_inst is not None:
-                inst_w = coerce_item(worn_inst)
-                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
-                name = display_item_name_plain(inst_w, idef_w)
-            print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(name)))
+            print(not_carrying(raw))
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -497,14 +483,7 @@ def make_context(p, w, save, *, dev: bool = False):
         raw = " ".join(args)
         obj = resolve_item(raw, "inventory", p, w)
         if obj is None:
-            name = raw
-            worn_inst = resolve_item(raw, "worn", p, w)
-            if worn_inst is not None:
-                inst_w = coerce_item(worn_inst)
-                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
-                name = display_item_name_plain(inst_w, idef_w)
-            print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(name)))
+            print(not_carrying(raw))
             context._needs_render = False
             context._suppress_room_render = True
             return False
@@ -540,14 +519,7 @@ def make_context(p, w, save, *, dev: bool = False):
         raw = " ".join(args)
         obj = resolve_item(raw, "inventory", p, w)
         if obj is None:
-            name = raw
-            worn_inst = resolve_item(raw, "worn", p, w)
-            if worn_inst is not None:
-                inst_w = coerce_item(worn_inst)
-                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
-                name = display_item_name_plain(inst_w, idef_w)
-            print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(name)))
+            print(not_carrying(raw))
             context._needs_render = False
             context._suppress_room_render = True
             return False
