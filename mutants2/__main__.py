@@ -30,6 +30,7 @@ def main() -> None:
 
     from mutants2.cli.shell import make_context, class_menu
     from mutants2.engine import persistence, world as world_mod
+    from mutants2.engine.state import ensure_first_time_ion_grant
     from mutants2.engine.types import MonsterRec
     from mutants2.engine.types import ItemInstance, TileKey
     from mutants2.engine.render import render_room_view
@@ -51,6 +52,9 @@ def main() -> None:
     if p.clazz is None:
         w.reset_all_aggro()
         class_menu(p, w, save, None, in_game=False)
+
+    if ensure_first_time_ion_grant(p, save):
+        persistence.save(p, w, save)
 
     placed = daily_topup_if_needed(w, p, save)
     if dev and placed:

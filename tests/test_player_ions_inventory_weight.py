@@ -26,4 +26,4 @@ def test_inventory_weight_and_stats(cli_runner, tmp_path):
     assert white("Ion-Decay, Ion-Decay\u00a0(1), Gold-Chunk.") in out
 
     # Stats page ions
-    assert "Ions         : 0" in out
+    assert "Ions         : 30000" in out

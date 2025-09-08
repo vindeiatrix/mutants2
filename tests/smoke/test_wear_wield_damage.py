@@ -101,8 +101,25 @@ def test_cannot_wield_worn_item():
         w.add_ground_item(2000, 0, 0, "bug-skin")
 
     out, _, _ = run_commands(["get bug", "wear bug", "wield bug"], setup=setup)
-    assert "You cannot wield something you are wearing." in out
+    assert "You're not carrying a Bug-Skin." in out
+    assert "You cannot wield" not in out
     assert "You're not ready to combat anyone." not in out
+
+
+def test_wield_prefers_inventory_copy():
+    def setup(w, p):
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+        w.place_monster(2000, 0, 0, "mutant")
+
+    out, w, p = run_commands(
+        ["get bug", "get bug", "wear bug", "combat mutant", "wield bug"],
+        setup=setup,
+    )
+    assert "You wield the Bug-Skin." in out
+    assert "You're not carrying" not in out
+    assert "You cannot wield" not in out
+    assert p.wielded_weapon is not p.worn_armor
 
 
 def test_wield_armor_when_not_worn():

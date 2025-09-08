@@ -64,6 +64,7 @@ class Player:
     ready_to_combat_name: str | None = None
     worn_armor: ItemInstance | str | None = None
     wielded_weapon: ItemInstance | str | None = None
+    first_ion_grant_done: bool = False
     _last_move_struck_back: bool = field(default=False, repr=False)
 
     def __post_init__(self) -> None:
