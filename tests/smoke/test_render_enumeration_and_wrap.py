@@ -5,7 +5,7 @@ import io
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
 from mutants2.cli.shell import make_context
-from mutants2.ui.theme import yellow, white, cyan
+from mutants2.ui.theme import COLOR_HEADER, COLOR_ITEM, white
 
 
 def _ctx(tmp_path):
@@ -26,8 +26,8 @@ def test_enumeration_and_wrap(tmp_path):
         ctx.dispatch_line("debug item add cheese 2")
         ctx.dispatch_line("look")
     out = buf.getvalue()
-    assert yellow("On the ground lies:") in out
-    assert cyan("A Cheese, A Cheese\u00a0(1).") in out
+    assert COLOR_HEADER("On the ground lies:") in out
+    assert COLOR_ITEM("A Cheese, A Cheese\u00a0(1).") in out
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):

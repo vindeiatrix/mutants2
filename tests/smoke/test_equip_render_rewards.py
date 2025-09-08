@@ -70,7 +70,9 @@ def test_kill_rewards():
     out, _, p = run_commands(
         ["get light", "combat mutant", "wield light", "status"], setup=setup
     )
-    assert "You gain 20000 riblets and 20000 ions." in out
+    assert "You collect 20000 Riblets and 20000 ions from the slain body." in out
+    assert re.search(r"\*\*\*\nMutant-\d{4} is crumbling to dust!", out)
+    assert "You gain" not in out
     assert p.riblets == 20000 and p.ions == 20000
 
 

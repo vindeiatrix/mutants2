@@ -5,7 +5,7 @@ import io
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
 from mutants2.cli.shell import make_context
-from mutants2.ui.theme import yellow, white
+from mutants2.ui.theme import COLOR_ITEM, COLOR_HEADER, white
 
 
 def test_stats_page(tmp_path):
@@ -20,11 +20,12 @@ def test_stats_page(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("status")
     out = buf.getvalue()
-    assert yellow("Name: Vindeiatrix / Mutant Warrior") in out
-    assert yellow("Hit Points   : 40 / 40") in out
-    assert yellow("Ions         : 0") in out
-    assert yellow("Year A.D.     : 2000") in out
+    assert f"{COLOR_ITEM('Name:')} Vindeiatrix / Mutant Warrior" in out
+    assert f"{COLOR_ITEM('Hit Points   :')} 40 / 40" in out
+    assert f"{COLOR_ITEM('Ions         :')} 0" in out
+    assert f"{COLOR_ITEM('Year A.D.     :')} 2000" in out
     assert (
-        yellow("You are carrying the following items:  (Total Weight: 45 LB's)") in out
+        COLOR_HEADER("You are carrying the following items:  (Total Weight: 45 LB's)")
+        in out
     )
     assert white("Ion-Decay, Ion-Decay\u00a0(1), Gold-Chunk.") in out
