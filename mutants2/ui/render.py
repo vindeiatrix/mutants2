@@ -1,4 +1,11 @@
-from .theme import yellow, red, SEP
+from .theme import SEP
+from .strings import (
+    help_text,
+    generic_fb,
+    kill_reward,
+    exits_dir,
+    exits_desc,
+)
 import re
 
 NBSP = "\u00a0"  # non-breaking space
@@ -41,10 +48,15 @@ def wrap_ansi(text: str, width: int = 80) -> str:
     return "\n".join(" ".join(line) for line in lines if line)
 
 
+def render_single_exit(direction: str, desc: str) -> str:
+    pad = max(0, 5 - len(direction))
+    return f"{exits_dir(direction)}{' ' * pad} – {exits_desc(desc)}"
+
+
 def render_help_hint() -> None:
-    """Print the standard help hint in yellow."""
+    """Print the standard help hint."""
     print(SEP)
-    print(yellow("Type ? if you need assistance."))
+    print(help_text("Type ? if you need assistance."))
 
 
 def print_yell(mon) -> str:
@@ -66,38 +78,38 @@ def render_status(p) -> list[str]:
         idef = get_item_def_by_key(inst["key"])
         armor_name = display_item_name_plain(inst, idef)
     lines = [
-        yellow(f"Name: Vindeiatrix / Mutant {disp}"),
-        yellow("Exhaustion   : 0"),
-        yellow(
+        generic_fb(f"Name: Vindeiatrix / Mutant {disp}"),
+        generic_fb("Exhaustion   : 0"),
+        generic_fb(
             f"Str: {fmt(p.strength):<2}   Int: {fmt(p.intelligence):<2}   Wis: {fmt(p.wisdom):<2}"
         ),
-        yellow(
+        generic_fb(
             f"Dex: {fmt(p.dexterity):<2}   Con: {fmt(p.constitution):<2}   Cha: {fmt(p.charisma):<2}"
         ),
-        yellow(f"Hit Points   : {fmt(p.hp)} / {fmt(p.max_hp)}"),
-        yellow(f"Exp. Points  : {fmt(p.exp)}           Level: {fmt(p.level)}"),
-        yellow(f"Riblets      : {fmt(getattr(p, 'riblets', 0))}"),
-        yellow(f"Ions         : {fmt(p.ions)}"),
-        yellow(f"Wearing Armor: {armor_name}  Armour Class: {fmt(p.ac_total)}"),
-        yellow(
+        generic_fb(f"Hit Points   : {fmt(p.hp)} / {fmt(p.max_hp)}"),
+        generic_fb(f"Exp. Points  : {fmt(p.exp)}           Level: {fmt(p.level)}"),
+        generic_fb(f"Riblets      : {fmt(getattr(p, 'riblets', 0))}"),
+        generic_fb(f"Ions         : {fmt(p.ions)}"),
+        generic_fb(f"Wearing Armor: {armor_name}  Armour Class: {fmt(p.ac_total)}"),
+        generic_fb(
             f"Ready to Combat: {p.ready_to_combat_name}"
             if p.ready_to_combat_name
             else "Ready to Combat: NO ONE"
         ),
-        yellow("Readied Spell : No spell memorized."),
-        yellow(f"Year A.D.     : {fmt(p.year)}"),
+        generic_fb("Readied Spell : No spell memorized."),
+        generic_fb(f"Year A.D.     : {fmt(p.year)}"),
         "",
     ]
     return lines
 
 
 def render_kill_block(name: str, xp: int, riblets: int, ions: int) -> None:
-    """Render the red kill message block for monster deaths."""
-    print(red(f"You have slain {name}!"))
-    print(red(f"Your experience points are increased by {fmt(xp)}!"))
+    """Render the kill message block for monster deaths."""
+    print(kill_reward(f"You have slain {name}!"))
+    print(kill_reward(f"Your experience points are increased by {fmt(xp)}!"))
     print(
-        red(
+        kill_reward(
             f"You collect {fmt(riblets)} Riblets and {fmt(ions)} ions from the slain body."
         )
     )
-    print("***")
+    print(SEP)

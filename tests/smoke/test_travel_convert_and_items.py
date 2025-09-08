@@ -5,7 +5,7 @@ import datetime
 from mutants2.engine import persistence, items
 from mutants2.engine.player import Player
 from mutants2.engine.world import World
-from mutants2.ui.theme import yellow
+from mutants2.ui.theme import yellow, red
 
 
 def test_monster_bait_conversion(cli_runner, tmp_path):
@@ -21,8 +21,8 @@ def test_monster_bait_conversion(cli_runner, tmp_path):
     item = items.REGISTRY["monster_bait"]
     assert item.weight_lbs == 10
     assert item.ion_value == 10000
-    assert yellow("The Monster-Bait vanishes with a flash!") in out
-    assert yellow("You convert the Monster-Bait into 10000 ions.") in out
+    assert red("The Monster-Bait vanishes with a flash!") in out
+    assert red("You convert the Monster-Bait into 10000 ions.") in out
     assert "(empty)" not in out
     assert "Ions         : 40000" in out
 

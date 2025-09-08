@@ -12,6 +12,12 @@ dependencies = []
 
 [tool.pytest.ini_options]
 addopts = "-q"
+markers = [
+  "ui",
+  "smoke",
+  "items",
+  "combat",
+]
 
 [project.optional-dependencies]
 dev = [

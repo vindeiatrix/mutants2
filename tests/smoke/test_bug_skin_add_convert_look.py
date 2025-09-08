@@ -6,7 +6,7 @@ from pathlib import Path
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
 from mutants2.cli.shell import make_context
-from mutants2.ui.theme import yellow
+from mutants2.ui.theme import yellow, red
 
 
 def run_commands(cmds, path, setup=None):
@@ -59,8 +59,8 @@ def test_look_and_convert_inventory(tmp_path):
         tmp_path / "inv",
     )
     assert "possesses a magical aura" in out
-    assert yellow("The Bug-Skin vanishes with a flash!") in out
-    assert yellow("You convert the Bug-Skin into 22100 ions.") in out
+    assert red("The Bug-Skin vanishes with a flash!") in out
+    assert red("You convert the Bug-Skin into 22100 ions.") in out
     assert "Bug-Skin" not in out.split("inventory")[-1]
     assert p.ions == 22100
 

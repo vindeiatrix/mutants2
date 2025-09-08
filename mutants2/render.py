@@ -1,7 +1,16 @@
 from __future__ import annotations
 
-from .ui.theme import red, green, cyan, yellow, white, SEP
-from .ui.render import enumerate_duplicates, wrap_ansi
+from .ui.theme import SEP
+from .ui.render import enumerate_duplicates, wrap_ansi, render_single_exit
+from .ui.strings import (
+    room_header,
+    compass_line,
+    ground_header,
+    ground_list,
+    presence_line,
+    shadows_line,
+    arrival_line,
+)
 from .ui.wrap import wrap_list_ansi
 from .ui.articles import article_for
 
@@ -37,18 +46,18 @@ def render_room_at(
     out: list[str] = []
 
     # (a) room description
-    out.append(red(_room_desc(world, year, x, y)))
+    out.append(room_header(_room_desc(world, year, x, y)))
 
     # (b) compass line
     cx = f"{x}E"
     cy = f"{y}N"
-    out.append(green(f"Compass: ({cx} : {cy})"))
+    out.append(compass_line(f"Compass: ({cx} : {cy})"))
 
     # (c) exits
     for d in ("north", "south", "east", "west"):
         if world.is_open(year, x, y, d):
             # Pad direction labels to align the separator across lines.
-            out.append(cyan(f"{d:<5} – area continues."))
+            out.append(render_single_exit(d, "area continues."))
 
     # (d/e) ground items followed by a single separator
     ground_names = []
@@ -56,10 +65,10 @@ def render_room_at(
         name = "-".join(p[:1].upper() + p[1:] for p in it.name.split("-"))
         ground_names.append(f"{article_for(name)} {name}")
     if ground_names:
-        out.append(yellow("On the ground lies:"))
+        out.append(ground_header("On the ground lies:"))
         items = enumerate_duplicates(ground_names)
         wrapped = wrap_list_ansi(items)
-        out.extend(cyan(ln) for ln in wrapped.splitlines())
+        out.extend(ground_list(ln) for ln in wrapped.splitlines())
     # Always end the header section with one separator
     out.append(SEP)
 
@@ -68,7 +77,7 @@ def render_room_at(
         if context is not None:
             pre = getattr(context, "_pre_shadow_lines", []) or []
             if pre:
-                shadow_lines = [yellow(s) for s in pre]
+                shadow_lines = [shadows_line(s) for s in pre]
             context._pre_shadow_lines = []
         if not shadow_lines:
             dirs = set(shadow_dirs_extra)
@@ -79,7 +88,7 @@ def render_room_at(
                         dirs.add(d)
             if dirs:
                 shadow_lines = [
-                    yellow(f"You see shadows to the {', '.join(sorted(dirs))}.")
+                    shadows_line(f"You see shadows to the {', '.join(sorted(dirs))}.")
                 ]
 
     arrivals_all: list[tuple[int, str, str]] = []
@@ -106,7 +115,7 @@ def render_room_at(
             line = f"{names[0]}, and {names[1]} are here with you."
         else:
             line = f"{', '.join(names[:-1])}, and {names[-1]} are here with you."
-        out.extend(wrap_ansi(white(line)).splitlines())
+        out.extend(wrap_ansi(presence_line(line)).splitlines())
         if shadow_lines or arrivals_for_render:
             out.append(SEP)
 
@@ -118,7 +127,7 @@ def render_room_at(
     if arrivals_for_render:
         arr_sorted = sorted(arrivals_for_render)
         for i, (aid, name, d) in enumerate(arr_sorted):
-            out.append(red(f"{name} has just arrived from the {d}."))
+            out.append(arrival_line(f"{name} has just arrived from the {d}."))
             if i < len(arr_sorted) - 1:
                 out.append(SEP)
 
