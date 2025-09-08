@@ -25,7 +25,7 @@ from . import gen
 
 # Bump this when the save format changes in a breaking way. Older saves are
 # discarded rather than migrated.
-SAVE_SCHEMA = 5
+SAVE_SCHEMA = 6
 
 
 @dataclass
@@ -128,7 +128,6 @@ def load() -> tuple[
             player.dexterity = int(data.get("dexterity", 0))
             player.constitution = int(data.get("constitution", 0))
             player.charisma = int(data.get("charisma", 0))
-            player.ac = int(data.get("ac", 0))
             player.ready_to_combat_id = data.get("ready_to_combat_id")
             player.ready_to_combat_name = data.get("ready_to_combat_name")
             prof = profile_from_player(player)
@@ -280,7 +279,6 @@ def save(player: Player, world: World, save_meta: Save) -> None:
             "dexterity": player.dexterity,
             "constitution": player.constitution,
             "charisma": player.charisma,
-            "ac": player.ac,
             "ready_to_combat_id": player.ready_to_combat_id,
             "ready_to_combat_name": player.ready_to_combat_name,
             "profiles": {

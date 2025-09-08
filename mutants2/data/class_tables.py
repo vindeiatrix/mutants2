@@ -10,7 +10,6 @@ BASE_LEVEL1 = {
         "con": 15,
         "cha": 16,
         "hp": 18,
-        "ac": 1,
     },
     "priest": {
         "str": 20,
@@ -20,7 +19,6 @@ BASE_LEVEL1 = {
         "con": 17,
         "cha": 14,
         "hp": 30,
-        "ac": 1,
     },
     "wizard": {
         "str": 14,
@@ -30,7 +28,6 @@ BASE_LEVEL1 = {
         "con": 14,
         "cha": 15,
         "hp": 23,
-        "ac": 1,
     },
     "warrior": {
         "str": 23,
@@ -40,7 +37,6 @@ BASE_LEVEL1 = {
         "con": 19,
         "cha": 9,
         "hp": 40,
-        "ac": 2,
     },
     "mage": {
         "str": 18,
@@ -50,7 +46,6 @@ BASE_LEVEL1 = {
         "con": 15,
         "cha": 20,
         "hp": 28,
-        "ac": 1,
     },
 }
 

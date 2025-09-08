@@ -10,6 +10,7 @@ from ..engine.items_resolver import (
     resolve_key_prefix,
     get_item_def_by_key,
     resolve_key,
+    resolve_item,
 )
 from ..ui.items_render import (
     display_item_name_plain,
@@ -383,22 +384,23 @@ def make_context(p, w, save, *, dev: bool = False):
             print(DROP_WHAT)
             return False
         raw = " ".join(args)
-        inv_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory]
-        key = resolve_key_prefix(raw, inv_keys)
-        if not key:
-            print(f'No item in inventory matching "{raw}".')
+        obj = resolve_item(raw, "inventory", p, w)
+        if obj is None:
+            name = raw
+            worn_inst = resolve_item(raw, "worn", p, w)
+            if worn_inst is not None:
+                inst_w = coerce_item(worn_inst)
+                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
+                name = display_item_name_plain(inst_w, idef_w)
+            print(yellow("***"))
+            print(yellow(NOT_CARRYING.format(name)))
+            context._needs_render = False
+            context._suppress_room_render = True
             return False
-        inst_match: ItemInstance | None = None
-        for obj in p.inventory:
-            inst = coerce_item(obj)
-            if resolve_key(inst["key"]) == key:
-                inst_match = inst
-                break
-        if inst_match is None:
-            print(f'No item in inventory matching "{raw}".')
-            return False
+        inst = coerce_item(obj)
+        key = resolve_key(inst["key"])
         idef = get_item_def_by_key(key)
-        name = display_item_name_plain(inst_match, idef)
+        name = display_item_name_plain(inst, idef)
         ok, msg, sack_name, gift_name = p.drop_to_ground(idef.name if idef else key, w)
         print(f"You drop {name}." if ok else (msg or "You can’t drop that here."))
         if sack_name:
@@ -419,27 +421,21 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         raw = " ".join(args)
-        inv_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory]
-        key = resolve_key_prefix(raw, inv_keys)
-        if not key:
+        obj = resolve_item(raw, "inventory", p, w)
+        if obj is None:
+            name = raw
+            worn_inst = resolve_item(raw, "worn", p, w)
+            if worn_inst is not None:
+                inst_w = coerce_item(worn_inst)
+                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
+                name = display_item_name_plain(inst_w, idef_w)
             print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(raw)))
+            print(yellow(NOT_CARRYING.format(name)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        inst_match: ItemInstance | None = None
-        for obj in p.inventory:
-            inst = coerce_item(obj)
-            if resolve_key(inst["key"]) == key:
-                inst_match = inst
-                break
-        if inst_match is None:
-            print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(raw)))
-            context._needs_render = False
-            context._suppress_room_render = True
-            return False
-        idef = get_item_def_by_key(key)
+        inst = coerce_item(obj)
+        idef = get_item_def_by_key(resolve_key(inst["key"]))
         if not idef or idef.ac_bonus <= 0:
             print(yellow("***"))
             print(yellow("You can't wear that."))
@@ -453,9 +449,11 @@ def make_context(p, w, save, *, dev: bool = False):
             print(
                 yellow(f"You remove the {display_item_name_plain(old_inst, old_def)}.")
             )
-        p.worn_armor = inst_match
+            p.inventory.append(old_inst)
+        p.inventory.remove(obj)
+        p.worn_armor = inst
         p.recompute_ac()
-        print(yellow(f"You wear the {display_item_name_plain(inst_match, idef)}."))
+        print(yellow(f"You wear the {display_item_name_plain(inst, idef)}."))
         context._needs_render = False
         context._suppress_room_render = True
         return False
@@ -471,10 +469,19 @@ def make_context(p, w, save, *, dev: bool = False):
             context._needs_render = False
             context._suppress_room_render = True
             return False
+        if args:
+            raw = " ".join(args)
+            if resolve_item(raw, "worn", p, w) is None:
+                print(yellow("***"))
+                print(yellow("You're not wearing that."))
+                context._needs_render = False
+                context._suppress_room_render = True
+                return False
         inst = coerce_item(p.worn_armor)
         idef = get_item_def_by_key(inst["key"])
         name = display_item_name_plain(inst, idef)
         p.worn_armor = None
+        p.inventory.append(inst)
         p.recompute_ac()
         print(yellow("***"))
         print(yellow(f"You remove the {name}."))
@@ -488,67 +495,23 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         raw = " ".join(args)
-
-        worn_key = None
-        worn_inst = None
-        if p.worn_armor:
-            worn_inst = coerce_item(p.worn_armor)
-            worn_key = resolve_key(worn_inst["key"])
-
-        inv_keys: list[str] = []
-        skipped = False
-        for obj in p.inventory:
-            inst = coerce_item(obj)
-            k = resolve_key(inst["key"])
-            if worn_key and not skipped and k == worn_key:
-                skipped = True
-                continue
-            inv_keys.append(k)
-
-        key = resolve_key_prefix(raw, inv_keys)
-        if not key:
+        obj = resolve_item(raw, "inventory", p, w)
+        if obj is None:
             name = raw
-            if (
-                worn_key
-                and resolve_key_prefix(raw, [worn_key]) == worn_key
-                and worn_inst
-            ):
-                idef_w = get_item_def_by_key(worn_key)
-                name = display_item_name_plain(worn_inst, idef_w)
+            worn_inst = resolve_item(raw, "worn", p, w)
+            if worn_inst is not None:
+                inst_w = coerce_item(worn_inst)
+                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
+                name = display_item_name_plain(inst_w, idef_w)
             print(yellow("***"))
             print(yellow(NOT_CARRYING.format(name)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-
-        inst_match: ItemInstance | None = None
-        skipped = False
-        for obj in p.inventory:
-            inst = coerce_item(obj)
-            k = resolve_key(inst["key"])
-            if worn_key and not skipped and k == worn_key:
-                skipped = True
-                continue
-            if k == key:
-                inst_match = inst
-                break
-        if inst_match is None:
-            name = raw
-            if (
-                worn_key
-                and resolve_key_prefix(raw, [worn_key]) == worn_key
-                and worn_inst
-            ):
-                idef_w = get_item_def_by_key(worn_key)
-                name = display_item_name_plain(worn_inst, idef_w)
-            print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(name)))
-            context._needs_render = False
-            context._suppress_room_render = True
-            return False
-
+        inst = coerce_item(obj)
+        key = resolve_key(inst["key"])
         idef = get_item_def_by_key(key)
-        p.wielded_weapon = inst_match
+        p.wielded_weapon = inst
         mon = w.monster_here(p.year, p.x, p.y)
         ready = (
             p.ready_to_combat_id and mon and str(mon.get("id")) == p.ready_to_combat_id
@@ -560,8 +523,8 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return True
         print(yellow("***"))
-        print(yellow(f"You wield the {display_item_name_plain(inst_match, idef)}."))
-        key = inst_match["key"]
+        print(yellow(f"You wield the {display_item_name_plain(inst, idef)}."))
+        key = inst["key"]
         dmg, killed, name_mon = combat.player_attack(p, w, key)
         print(yellow("***"))
         print(yellow(f"You hit {name_mon} for {dmg} damage.  (temp)"))
@@ -575,26 +538,21 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         raw = " ".join(args)
-        inv_keys = [resolve_key(coerce_item(inst)["key"]) for inst in p.inventory]
-        key = resolve_key_prefix(raw, inv_keys)
-        if not key:
+        obj = resolve_item(raw, "inventory", p, w)
+        if obj is None:
+            name = raw
+            worn_inst = resolve_item(raw, "worn", p, w)
+            if worn_inst is not None:
+                inst_w = coerce_item(worn_inst)
+                idef_w = get_item_def_by_key(resolve_key(inst_w["key"]))
+                name = display_item_name_plain(inst_w, idef_w)
             print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(raw)))
+            print(yellow(NOT_CARRYING.format(name)))
             context._needs_render = False
             context._suppress_room_render = True
             return False
-        key_match = None
-        for inst in p.inventory:
-            ci = coerce_item(inst)
-            if resolve_key(ci["key"]) == key:
-                key_match = ci
-                break
-        if key_match is None:
-            print(yellow("***"))
-            print(yellow(NOT_CARRYING.format(raw)))
-            context._needs_render = False
-            context._suppress_room_render = True
-            return False
+        inst = coerce_item(obj)
+        key = resolve_key(inst["key"])
         idef = get_item_def_by_key(key)
         item = p.convert_item(idef.name if idef else key)
         if not item:

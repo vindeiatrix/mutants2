@@ -9,6 +9,7 @@ from mutants2.engine.world import World
 from mutants2.engine.player import Player
 from mutants2.cli.shell import make_context
 from mutants2.engine import items
+from mutants2.engine.items_util import coerce_item
 
 
 BASE_POWERS = {
@@ -120,6 +121,54 @@ def test_wield_prefers_inventory_copy():
     assert "You're not carrying" not in out
     assert "You cannot wield" not in out
     assert p.wielded_weapon is not p.worn_armor
+
+
+def test_inventory_commands_ignore_worn():
+    def setup(w, p):
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+
+    out, w, p = run_commands(
+        ["get bug", "wear bug", "drop bug", "convert bug", "wield bug"],
+        setup=setup,
+    )
+    assert out.count("You're not carrying a Bug-Skin.") == 3
+    assert "You are here." not in out and "Compass:" not in out
+    assert p.worn_armor is not None
+
+
+def test_remove_returns_worn_to_inventory():
+    def setup(w, p):
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+
+    out, w, p = run_commands(
+        ["get bug", "wear bug", "remove bug", "inventory"], setup=setup
+    )
+    assert "You remove the Bug-Skin." in out
+    assert p.worn_armor is None
+    assert any(coerce_item(i)["key"] == "bug-skin" for i in p.inventory)
+
+
+def test_drop_and_convert_prefer_inventory_copy():
+    def setup(w, p):
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+        w.add_ground_item(2000, 0, 0, "bug-skin")
+
+    out, w, p = run_commands(
+        ["get bug", "get bug", "wear bug", "drop bug"], setup=setup
+    )
+    assert "You drop Bug-Skin." in out
+    assert "You're not carrying" not in out
+    assert p.worn_armor is not None
+    assert len(p.inventory) == 0
+    assert sum(1 for it in w.ground[(2000, 0, 0)] if it["key"] == "bug-skin") == 1
+
+    out, w, p = run_commands(
+        ["get bug", "get bug", "wear bug", "convert bug"], setup=setup
+    )
+    assert "You convert the Bug-Skin into 22100 ions." in out
+    assert "You're not carrying" not in out
+    assert p.worn_armor is not None
+    assert p.ions == 22100
 
 
 def test_wield_armor_when_not_worn():

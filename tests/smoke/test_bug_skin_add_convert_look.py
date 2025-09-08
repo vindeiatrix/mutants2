@@ -77,10 +77,10 @@ def test_convert_worn_bug_skin(tmp_path):
         ],
         tmp_path / "worn",
     )
-    assert yellow("The Bug-Skin vanishes with a flash!") in out
-    assert yellow("You convert the Bug-Skin into 22100 ions.") in out
-    assert "Bug-Skin" not in out.split("inventory")[-1]
-    assert p.ions == 22100
+    assert yellow("You're not carrying a Bug-Skin.") in out
+    assert "vanishes with a flash" not in out
+    assert p.ions == 0
+    assert p.worn_armor is not None
 
 
 def test_inventory_stacks_enchanted_variants(tmp_path):

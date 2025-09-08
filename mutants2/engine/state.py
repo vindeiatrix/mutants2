@@ -36,7 +36,6 @@ class CharacterProfile:
     dexterity: int = 0
     constitution: int = 0
     charisma: int = 0
-    ac: int = 0
     natural_dex_ac: int = 0
     ac_total: int = 0
     ready_to_combat_id: str | None = None
@@ -67,9 +66,8 @@ def profile_from_player(p: "Player") -> CharacterProfile:
         dexterity=getattr(p, "dexterity", 0),
         constitution=getattr(p, "constitution", 0),
         charisma=getattr(p, "charisma", 0),
-        ac=getattr(p, "ac", 0),
         natural_dex_ac=getattr(p, "natural_dex_ac", 0),
-        ac_total=getattr(p, "ac_total", getattr(p, "ac", 0)),
+        ac_total=getattr(p, "ac_total", getattr(p, "natural_dex_ac", 0)),
         ready_to_combat_id=getattr(p, "ready_to_combat_id", None),
         ready_to_combat_name=getattr(p, "ready_to_combat_name", None),
         worn_armor=getattr(p, "worn_armor", None),
@@ -97,9 +95,8 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.dexterity = getattr(prof, "dexterity", 0)
     p.constitution = getattr(prof, "constitution", 0)
     p.charisma = getattr(prof, "charisma", 0)
-    p.ac = getattr(prof, "ac", 0)
-    p.natural_dex_ac = getattr(prof, "natural_dex_ac", p.dexterity // 10)
-    p.ac_total = getattr(prof, "ac_total", p.ac + p.natural_dex_ac)
+    p.natural_dex_ac = getattr(prof, "natural_dex_ac", 1 + p.dexterity // 10)
+    p.ac_total = getattr(prof, "ac_total", p.natural_dex_ac)
     p.ready_to_combat_id = getattr(prof, "ready_to_combat_id", None)
     p.ready_to_combat_name = getattr(prof, "ready_to_combat_name", None)
     p.worn_armor = getattr(prof, "worn_armor", None)
@@ -127,9 +124,8 @@ def profile_to_raw(prof: CharacterProfile) -> dict:
         "dexterity": getattr(prof, "dexterity", 0),
         "constitution": getattr(prof, "constitution", 0),
         "charisma": getattr(prof, "charisma", 0),
-        "ac": getattr(prof, "ac", 0),
         "natural_dex_ac": getattr(prof, "natural_dex_ac", 0),
-        "ac_total": getattr(prof, "ac_total", getattr(prof, "ac", 0)),
+        "ac_total": getattr(prof, "ac_total", getattr(prof, "natural_dex_ac", 0)),
         "ready_to_combat_id": getattr(prof, "ready_to_combat_id", None),
         "ready_to_combat_name": getattr(prof, "ready_to_combat_name", None),
         "worn_armor": (
@@ -173,9 +169,8 @@ def profile_from_raw(data: dict) -> CharacterProfile:
         dexterity=int(data.get("dexterity", 0)),
         constitution=int(data.get("constitution", 0)),
         charisma=int(data.get("charisma", 0)),
-        ac=int(data.get("ac", 0)),
         natural_dex_ac=int(data.get("natural_dex_ac", 0)),
-        ac_total=int(data.get("ac_total", int(data.get("ac", 0)))),
+        ac_total=int(data.get("ac_total", int(data.get("natural_dex_ac", 0)))),
         ready_to_combat_id=data.get("ready_to_combat_id"),
         ready_to_combat_name=data.get("ready_to_combat_name"),
         worn_armor=(
