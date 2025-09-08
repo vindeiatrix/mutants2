@@ -62,7 +62,6 @@ def recompute_from_exp(player) -> None:
     for short, attr in _ATTR_MAP.items():
         setattr(player, attr, base[short])
     player.max_hp = base["hp"]
-    player.ac = base["ac"]
     level = 1
 
     while True:

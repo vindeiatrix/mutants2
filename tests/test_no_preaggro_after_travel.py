@@ -66,7 +66,6 @@ def test_no_preaggro_after_travel(cli):
 
 def test_travel_same_century_ticks(cli):
     out = cli.run(["travel 2000"])
-    lines = [ln for ln in out.strip().splitlines()]
     assert "You're already in the 20th Century!" in out
     assert "footsteps" not in out.lower()
     assert "Compass" not in out

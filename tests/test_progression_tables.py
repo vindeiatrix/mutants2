@@ -1,5 +1,4 @@
 import pytest
-
 from mutants2.engine.player import Player
 from mutants2.engine import leveling
 from mutants2.data.class_tables import BASE_LEVEL1, PROGRESSION
@@ -20,7 +19,6 @@ def test_level1_stats(clazz):
     base = BASE_LEVEL1[clazz]
     assert p.max_hp == base["hp"]
     assert p.hp == base["hp"]
-    assert p.ac == base["ac"]
     for short, attr in ATTR_MAP.items():
         assert getattr(p, attr) == base[short]
 

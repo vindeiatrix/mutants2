@@ -57,7 +57,6 @@ class Player:
     dexterity: int = 0
     constitution: int = 0
     charisma: int = 0
-    ac: int = 0
     natural_dex_ac: int = 0
     ac_total: int = 0
     ready_to_combat_id: str | None = None
@@ -76,21 +75,18 @@ class Player:
 
     def recompute_ac(self) -> None:
         """Recompute natural and total armour class."""
-        self.natural_dex_ac = self.dexterity // 10
-
-        def _armor_bonus() -> int:
-            if self.worn_armor:
-                key = (
-                    self.worn_armor["key"]
-                    if isinstance(self.worn_armor, dict)
-                    else self.worn_armor
-                )
-                idef = get_item_def_by_key(key)
-                if idef:
-                    return idef.ac_bonus
-            return 0
-
-        self.ac_total = self.ac + self.natural_dex_ac + _armor_bonus()
+        self.natural_dex_ac = 1 + (self.dexterity // 10)
+        worn_bonus = 0
+        if self.worn_armor:
+            key = (
+                self.worn_armor["key"]
+                if isinstance(self.worn_armor, dict)
+                else self.worn_armor
+            )
+            idef = get_item_def_by_key(key)
+            if idef:
+                worn_bonus = idef.ac_bonus
+        self.ac_total = self.natural_dex_ac + worn_bonus
 
     @property
     def x(self) -> int:
@@ -137,57 +133,31 @@ class Player:
     def inventory_names_in_order(self) -> list[str]:
         """Return inventory item names preserving pickup order.
 
-        Names are returned without enchant levels for prefix matching. Any item
-        currently worn as armour is excluded from the listing so that it does
-        not appear in inventory displays or prefix matching.
+        Names are returned without enchant levels for prefix matching.
         """
 
         names: list[str] = []
-        worn_key: str | None = None
-        if self.worn_armor:
-            worn_inst = coerce_item(self.worn_armor)
-            worn_key = resolve_key(worn_inst["key"])
-        skipped = False
         for val in self.inventory:
             inst = coerce_item(val)
             key = resolve_key(inst["key"])
-            if worn_key and not skipped and key == worn_key:
-                skipped = True
-                continue
             idef = get_item_def_by_key(key)
             names.append(display_item_name_plain(inst, idef))
         return names
 
     def inventory_display_names(self) -> list[str]:
         names: list[str] = []
-        worn_key: str | None = None
-        if self.worn_armor:
-            worn_inst = coerce_item(self.worn_armor)
-            worn_key = resolve_key(worn_inst["key"])
-        skipped = False
         for val in self.inventory:
             inst = coerce_item(val)
             key = resolve_key(inst["key"])
-            if worn_key and not skipped and key == worn_key:
-                skipped = True
-                continue
             idef = get_item_def_by_key(key)
             names.append(display_item_name_plain(inst, idef))
         return names
 
     def inventory_weight_lbs(self) -> int:
         total = 0
-        worn_key: str | None = None
-        if self.worn_armor:
-            worn_inst = coerce_item(self.worn_armor)
-            worn_key = resolve_key(worn_inst["key"])
-        skipped = False
         for val in self.inventory:
             inst = coerce_item(val)
             key = resolve_key(inst["key"])
-            if worn_key and not skipped and key == worn_key:
-                skipped = True
-                continue
             item = get_item_def_by_key(key)
             if item and item.weight_lbs:
                 total += item.weight_lbs
@@ -316,16 +286,10 @@ class Player:
         if ion_value is None:
             return None
         self.inventory.remove(inv_obj)
-        worn_inst = coerce_item(self.worn_armor) if self.worn_armor else None
-        wield_inst = coerce_item(self.wielded_weapon) if self.wielded_weapon else None
-        if self.worn_armor is inv_obj or (
-            worn_inst is not None and worn_inst == inv_inst
-        ):
+        if self.worn_armor is inv_obj:
             self.worn_armor = None
             self.recompute_ac()
-        if self.wielded_weapon is inv_obj or (
-            wield_inst is not None and wield_inst == inv_inst
-        ):
+        if self.wielded_weapon is inv_obj:
             self.wielded_weapon = None
         self.ions += ion_value
         return replace(item, ion_value=ion_value)

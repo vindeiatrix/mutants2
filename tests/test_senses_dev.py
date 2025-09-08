@@ -22,7 +22,7 @@ def test_shadow_render_once(cli_runner):
             "look",
         ]
     )
-    assert "You see shadows to the east" in out
+    assert out.count("You see shadows") == 1
 
 
 def test_debug_clear(cli_runner):
