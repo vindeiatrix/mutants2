@@ -15,6 +15,10 @@ python -m mutants2
 pytest
 ```
 
+## Contributing / Agents
+
+See [Agents Playbook](docs/agents.md) for roles, guardrails, routing rules, CI gates, and checklists.
+
 ### Dev mode
 Set `MUTANTS2_DEV=1` or run `python -m mutants2 --dev` to enable `debug` commands:
 
