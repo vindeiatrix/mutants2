@@ -102,7 +102,7 @@ def test_cannot_wield_worn_item():
         w.add_ground_item(2000, 0, 0, "bug-skin")
 
     out, _, _ = run_commands(["get bug", "wear bug", "wield bug"], setup=setup)
-    assert "You're not carrying a Bug-Skin." in out
+    assert "You're not carrying bug." in out
     assert "You cannot wield" not in out
     assert "You're not ready to combat anyone." not in out
 
@@ -131,7 +131,7 @@ def test_inventory_commands_ignore_worn():
         ["get bug", "wear bug", "drop bug", "convert bug", "wield bug"],
         setup=setup,
     )
-    assert out.count("You're not carrying a Bug-Skin.") == 3
+    assert out.count("You're not carrying bug.") == 3
     assert "You are here." not in out and "Compass:" not in out
     assert p.worn_armor is not None
 

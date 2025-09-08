@@ -75,7 +75,7 @@ class Player:
 
     def recompute_ac(self) -> None:
         """Recompute natural and total armour class."""
-        self.natural_dex_ac = 1 + (self.dexterity // 10)
+        self.natural_dex_ac = self.dexterity // 10
         worn_bonus = 0
         if self.worn_armor:
             key = (

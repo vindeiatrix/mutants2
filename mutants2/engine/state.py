@@ -95,7 +95,7 @@ def apply_profile(p: "Player", prof: CharacterProfile) -> None:
     p.dexterity = getattr(prof, "dexterity", 0)
     p.constitution = getattr(prof, "constitution", 0)
     p.charisma = getattr(prof, "charisma", 0)
-    p.natural_dex_ac = getattr(prof, "natural_dex_ac", 1 + p.dexterity // 10)
+    p.natural_dex_ac = getattr(prof, "natural_dex_ac", p.dexterity // 10)
     p.ac_total = getattr(prof, "ac_total", p.natural_dex_ac)
     p.ready_to_combat_id = getattr(prof, "ready_to_combat_id", None)
     p.ready_to_combat_name = getattr(prof, "ready_to_combat_name", None)

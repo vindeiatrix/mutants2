@@ -77,7 +77,7 @@ def test_convert_worn_bug_skin(tmp_path):
         ],
         tmp_path / "worn",
     )
-    assert yellow("You're not carrying a Bug-Skin.") in out
+    assert yellow("You're not carrying bug.") in out
     assert "vanishes with a flash" not in out
     assert p.ions == 0
     assert p.worn_armor is not None
