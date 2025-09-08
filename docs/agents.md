@@ -15,7 +15,7 @@ This document defines the contracts our agents (and humans) must follow.
 - **item color** — Ground item names and exit description segments after the en-dash (e.g., `area continues.`).
 - **yellow** — Generic feedback & help; prompts; “lovely” look-for-item line; inventory-scope failures (`You can't see <raw_subject>.`, `You're not carrying <raw_subject>.`); shadows header.
 - **white** — Class selection menu; inventory list body; monster names shown in room renders (from look or `look <dir>`); monster taunts/native attacks (e.g., `Critter-750 bites you!`).
-- **red** — Room header/description; ion conversion feedback; kill & loot/rewards; monster arrival/leave; “crumbling to dust” after loot; weapon/armor crack; ranged “blinding flash”; monster spell preamble; spell damage descriptions; monster picks up an item; monster converts an item to ions; monster drops an item.
+- **red** — Room header/description; kill/collect/drop/crumble lines; ion conversion feedback; monster arrival/leave; weapon/armor crack; ranged “blinding flash”; monster spell preamble; spell damage descriptions; monster picks up an item; monster converts an item to ions; monster drops an item.
 
 Numbers are always plain (no commas).
 
@@ -48,8 +48,11 @@ Numbers are always plain (no commas).
 ## Monsters, targeting, and rewards
 - Multiple monsters can share a tile; names include a **unique 4-digit suffix** (e.g., `Mutant-1846`).
 - **`combat <monster>`** selects a target (consumes a turn) and prints **“You’re ready to combat <Name>!”**; legacy `attack` is removed.
-- Wielding hits only if **ready to combat** someone.  
+- Wielding hits only if **ready to combat** someone.
 - On kill: award **20000 riblets** and **20000 ions**.
+
+## Loot rules
+- Every monster drops a Skull on death (placed on ground and announced).
 
 ## Inventory vs worn vs wield
 - **Worn items are not inventory:** `drop/convert/wield/wear` **exclude worn**; only **`remove`** acts on worn.

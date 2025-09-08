@@ -516,7 +516,7 @@ def make_context(p, w, save, *, dev: bool = False):
         print(generic_fb("***"))
         print(generic_fb(f"You wield the {display_item_name_plain(inst, idef)}."))
         key = inst["key"]
-        dmg, killed, name_mon = combat.player_attack(p, w, key)
+        dmg, killed, name_mon = combat.player_attack(context, key)
         print(generic_fb("***"))
         print(generic_fb(f"You hit {name_mon} for {dmg} damage.  (temp)"))
         context._needs_render = False
