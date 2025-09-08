@@ -53,9 +53,9 @@ def test_same_century_travel_teleports(tmp_path, monkeypatch):
     lines = out.splitlines()
     idxs = [i for i, ln in enumerate(lines) if ln == "travel 2100"]
     second = idxs[1]
-    assert "You're already in the 21st Century!" in lines[second + 1]
+    assert "ZAAAAPPPPP!! You've been sent to the year 2100 A.D." in lines[second + 1]
     look_idx = lines.index("look", second + 1)
-    assert any("Compass" in ln for ln in lines[second + 1 : look_idx])
+    assert all("Compass" not in ln for ln in lines[second + 1 : look_idx])
     assert any("Compass: (0E : 0N)" in ln for ln in lines[look_idx + 1 :])
 
 
@@ -67,6 +67,6 @@ def test_travel_triggers_arrival(tmp_path, monkeypatch):
     w.place_monster(2000, 1, 0, "mutant")
     w.monster_here(2000, 1, 0)["aggro"] = True
     out = run_cli(w, ["travel 2000"], tmp_path, monkeypatch)
-    assert "You're already in the 20th Century!" in out
+    assert "ZAAAAPPPPP!! You've been sent to the year 2000 A.D." in out
     assert "has just arrived from the east" in out
     assert "Compass" not in out

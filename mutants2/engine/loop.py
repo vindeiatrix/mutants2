@@ -11,12 +11,12 @@ from .player import class_key
 def should_render_room(cmd: str, args: list[str], moved: bool) -> bool:
     """Return ``True`` if the full room view should be printed.
 
-    Only movement/travel that actually changes the room and a bare ``look``
-    request trigger a render. All other commands suppress the room block.
+    Movement that actually changes the room and a bare ``look`` request
+    trigger a render.  ``travel`` always suppresses the room block.
     """
 
     c = cmd.lower()
-    if c in {"north", "south", "east", "west", "last", "travel"}:
+    if c in {"north", "south", "east", "west", "last"}:
         return moved
     if c == "look" and not args:
         return True
