@@ -19,4 +19,24 @@ def test_look_ground_item_not_carried(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow("It looks like a lovely Nuclear-Rock!") in out
+    assert yellow("You can't see Nuclear-Rock.") in out
+    assert "You are here." not in out
+    assert "Compass:" not in out
+
+
+def test_look_worn_item_not_carried(tmp_path):
+    persistence.SAVE_PATH = tmp_path / "save.json"
+    w = world_mod.World(seeded_years={2000})
+    p = Player(year=2000, clazz="Warrior")
+    p.inventory.append("bug-skin")
+    save = persistence.Save()
+    save.last_topup_date = datetime.date.today().isoformat()
+    ctx = make_context(p, w, save)
+    ctx.dispatch_line("wear bug")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        ctx.dispatch_line("look bug")
+    out = buf.getvalue()
+    assert yellow("You can't see Bug-Skin.") in out
+    assert "You are here." not in out
+    assert "Compass:" not in out

@@ -55,7 +55,7 @@ def test_same_century_travel_teleports(tmp_path, monkeypatch):
     second = idxs[1]
     assert "You're already in the 21st Century!" in lines[second + 1]
     look_idx = lines.index("look", second + 1)
-    assert not any("Compass" in ln for ln in lines[second + 1 : look_idx])
+    assert any("Compass" in ln for ln in lines[second + 1 : look_idx])
     assert any("Compass: (0E : 0N)" in ln for ln in lines[look_idx + 1 :])
 
 

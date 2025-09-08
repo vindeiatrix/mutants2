@@ -6,6 +6,7 @@ import pytest
 from mutants2.cli.shell import make_context
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
+from mutants2.ui.theme import yellow
 
 
 @pytest.fixture
@@ -50,7 +51,7 @@ def test_look_dir_and_blocked(cli):
 def test_look_item_and_monster(cli, world):
     world.place_item(2000, 0, 0, "gold_chunk")
     out = cli.run(["look gold"])
-    assert "lovely gold-chunk" in out.lower()
+    assert yellow("You can't see Gold-Chunk.") in out
     world.place_monster(2000, 1, 0, "mutant")
     out = cli.run(["look mut"])
-    assert "not carrying a mut" in out.lower()
+    assert yellow("You can't see Mut.") in out

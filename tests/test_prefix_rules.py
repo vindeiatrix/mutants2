@@ -61,7 +61,7 @@ def test_command_prefix_3_to_full(cli):
     for i, cmd in enumerate(cmds):
         out = cli.run([cmd])
         assert "ZAAAAPPPPP!!" in out
-        assert "Compass:" not in out
+        assert "Compass:" in out
         if i < len(cmds) - 1:
             cli.run(["travel 2000"])
     out = cli.run(["tr 2100"])
