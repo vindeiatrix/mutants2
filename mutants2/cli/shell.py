@@ -23,6 +23,7 @@ from ..engine.loop import (
     start_realtime_tick,
     stop_realtime_tick,
     TICK_SECONDS,
+    should_render_room,
 )
 from ..engine.leveling import recompute_from_exp
 from ..engine.player import (
@@ -47,7 +48,7 @@ from ..engine.macros import MacroStore
 from ..engine.types import Direction
 from ..engine.world import ALLOWED_CENTURIES, LOWEST_CENTURY, HIGHEST_CENTURY
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
-from ..ui.strings import GET_WHAT, DROP_WHAT, NOT_CARRYING
+from ..ui.strings import GET_WHAT, DROP_WHAT, NOT_CARRYING, CANT_SEE
 from ..ui.theme import red, SEP, yellow, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import (
@@ -507,7 +508,11 @@ def make_context(p, w, save, *, dev: bool = False):
         key = resolve_key_prefix(raw, inv_keys)
         if not key:
             name = raw
-            if worn_key and resolve_key_prefix(raw, [worn_key]) == worn_key and worn_inst:
+            if (
+                worn_key
+                and resolve_key_prefix(raw, [worn_key]) == worn_key
+                and worn_inst
+            ):
                 idef_w = get_item_def_by_key(worn_key)
                 name = display_item_name_plain(worn_inst, idef_w)
             print(yellow("***"))
@@ -529,7 +534,11 @@ def make_context(p, w, save, *, dev: bool = False):
                 break
         if inst_match is None:
             name = raw
-            if worn_key and resolve_key_prefix(raw, [worn_key]) == worn_key and worn_inst:
+            if (
+                worn_key
+                and resolve_key_prefix(raw, [worn_key]) == worn_key
+                and worn_inst
+            ):
                 idef_w = get_item_def_by_key(worn_key)
                 name = display_item_name_plain(worn_inst, idef_w)
             print(yellow("***"))
@@ -605,7 +614,6 @@ def make_context(p, w, save, *, dev: bool = False):
             )
             if yells:
                 context._entry_yells.extend(yells)
-            context._needs_render = True
             return True
 
         raw = " ".join(args).strip()
@@ -619,24 +627,30 @@ def make_context(p, w, save, *, dev: bool = False):
             print(f"It's a {mname}.")
             return True
 
-        ground_objs = w.ground.get((p.year, p.x, p.y), [])
-        cand_keys = [resolve_key(coerce_item(obj)["key"]) for obj in p.inventory] + [
-            resolve_key(coerce_item(obj)["key"]) for obj in ground_objs
-        ]
-        key = resolve_key_prefix(raw, cand_keys)
+        worn_key = None
+        if p.worn_armor:
+            worn_key = resolve_key(coerce_item(p.worn_armor)["key"])
+
+        inv_keys: list[str] = []
+        for obj in p.inventory:
+            inst = coerce_item(obj)
+            key = resolve_key(inst["key"])
+            if worn_key and key == worn_key:
+                continue
+            inv_keys.append(key)
+
+        key = resolve_key_prefix(raw, inv_keys)
         inst_match: ItemInstance | None = None
         if key:
             for obj in p.inventory:
                 inst = coerce_item(obj)
-                if resolve_key(inst["key"]) == key:
+                k = resolve_key(inst["key"])
+                if worn_key and k == worn_key:
+                    continue
+                if k == key:
                     inst_match = inst
                     break
-            if inst_match is None:
-                for obj in ground_objs:
-                    inst = coerce_item(obj)
-                    if resolve_key(inst["key"]) == key:
-                        inst_match = inst
-                        break
+
         if inst_match:
             print(yellow("***"))
             idef = get_item_def_by_key(inst_match["key"])
@@ -658,6 +672,31 @@ def make_context(p, w, save, *, dev: bool = False):
             print(yellow(f"It looks like a lovely {base_name}!"))
             return True
 
+        ground_objs = w.ground.get((p.year, p.x, p.y), [])
+        cand_elsewhere = [resolve_key(coerce_item(obj)["key"]) for obj in ground_objs]
+        if worn_key:
+            cand_elsewhere.append(worn_key)
+        key_elsewhere = resolve_key_prefix(raw, cand_elsewhere)
+        name = raw.title()
+        found_elsewhere = False
+        if key_elsewhere:
+            found_elsewhere = True
+            if worn_key and key_elsewhere == worn_key and p.worn_armor:
+                inst = coerce_item(p.worn_armor)
+                idef = get_item_def_by_key(inst["key"])
+                name = display_item_name_plain(inst, idef)
+            else:
+                for obj in ground_objs:
+                    inst = coerce_item(obj)
+                    if resolve_key(inst["key"]) == key_elsewhere:
+                        idef = get_item_def_by_key(inst["key"])
+                        name = display_item_name_plain(inst, idef)
+                        break
+        else:
+            item_def = items.find_by_name(raw)
+            if item_def:
+                name = item_def.name
+
         d = parse_dir_any_prefix(q)
         if d:
             if not w.is_open(p.year, p.x, p.y, d):
@@ -675,10 +714,10 @@ def make_context(p, w, save, *, dev: bool = False):
             return True
 
         print(yellow("***"))
-        print(yellow(NOT_CARRYING.format(raw)))
+        print(yellow(CANT_SEE.format(name)))
         context._needs_render = False
         context._suppress_room_render = True
-        return False
+        return found_elsewhere
 
     def handle_combat(args: list[str]) -> bool:
         if not args:
@@ -755,17 +794,15 @@ def make_context(p, w, save, *, dev: bool = False):
     def handle_command(cmd: str, args: list[str]) -> bool:
         nonlocal last_move
         turn = False
+        before_pos = (p.year, p.x, p.y)
         if cmd == "look":
             turn = handle_look(args)
         elif cmd == "last":
             moved = False
             if last_move:
                 moved = p.move(last_move, w)
-                if p._last_move_struck_back:
-                    context._suppress_room_render = True
             if moved or p._last_move_struck_back:
                 turn = True
-            context._needs_render = True
         elif cmd == "class":
             macro_store.save_profile(class_key(p.clazz or "default"))
             persistence.save(p, w, save)
@@ -1078,7 +1115,6 @@ def make_context(p, w, save, *, dev: bool = False):
                 context._suppress_room_render = True
             if moved or p._last_move_struck_back:
                 turn = True
-            context._needs_render = True
         elif cmd == "travel":
             turn = handle_travel(args)
         elif cmd == "exit":
@@ -1091,6 +1127,10 @@ def make_context(p, w, save, *, dev: bool = False):
         else:
             print("Unknown command.")
             return False
+        moved_after = (p.year, p.x, p.y) != before_pos
+        render = should_render_room(cmd, args, moved_after)
+        context._needs_render = render
+        context._suppress_room_render = not render
         context._last_turn_consumed = turn
         persistence.save(p, w, save)
         return True

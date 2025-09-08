@@ -23,7 +23,9 @@ from .macros import MacroStore
 
 from . import gen
 
-SAVE_SCHEMA = 4
+# Bump this when the save format changes in a breaking way. Older saves are
+# discarded rather than migrated.
+SAVE_SCHEMA = 5
 
 
 @dataclass
@@ -67,7 +69,7 @@ def load() -> tuple[
         data.pop("walls", None)
         data.pop("blocked", None)
         if data.get("schema") != SAVE_SCHEMA:
-            print("Save schema mismatch; deleting old save and starting fresh.")
+            print("Incompatible save schema; deleting old save and starting fresh.")
             try:
                 SAVE_PATH.unlink()
             except FileNotFoundError:
@@ -252,6 +254,8 @@ def load() -> tuple[
 
 def save(player: Player, world: World, save_meta: Save) -> None:
     SAVE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # Ensure armour class fields are persisted consistently.
+    player.recompute_ac()
     if player.clazz:
         k = class_key(player.clazz)
         save_meta.profiles[k] = profile_from_player(player)

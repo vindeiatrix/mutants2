@@ -2,7 +2,7 @@ from mutants2.engine.player import Player
 
 
 def test_natural_dex_ac_values():
-    cases = {9: 0, 10: 1, 15: 1, 29: 2, 30: 3}
+    cases = {9: 0, 10: 1, 19: 1, 20: 2, 29: 2, 30: 3}
     for dex, expected in cases.items():
         p = Player()
         p.dexterity = dex

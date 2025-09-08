@@ -15,6 +15,16 @@ python -m mutants2
 pytest
 ```
 
+## Recent breaking changes
+
+- Save schema bumped to `5`. Older saves are discarded on load and a fresh
+  world is seeded automatically.
+- Natural armour from Dexterity is now `DEX // 10` and stacks with worn armour.
+- `look <item>` only works for items in your inventory. Looking for an item on
+  the ground or one you're wearing prints `You can't see <Item-Name>.` and does
+  not refresh the room.
+- The room view now only refreshes after movement/travel or a bare `look`.
+
 ### Dev mode
 Set `MUTANTS2_DEV=1` or run `python -m mutants2 --dev` to enable `debug` commands:
 
