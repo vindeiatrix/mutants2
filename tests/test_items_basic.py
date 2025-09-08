@@ -92,10 +92,10 @@ def test_pickup_and_drop_roundtrip(tmp_path):
         tmp_path,
     )
     out = result.stdout
-    assert "You pick up Ion-Decay." in out
+    assert "You pick up An Ion-Decay." in out
     assert white("Ion-Decay.") in out
-    assert "You drop Ion-Decay." in out
-    after = out.split("You drop Ion-Decay.")[-1]
+    assert "You drop An Ion-Decay." in out
+    after = out.split("You drop An Ion-Decay.")[-1]
     assert "On the ground lies:" in after and "Ion-Decay" in after
     assert "(empty)" not in after
 

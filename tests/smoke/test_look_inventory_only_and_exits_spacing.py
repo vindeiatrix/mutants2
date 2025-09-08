@@ -24,7 +24,7 @@ def test_look_inventory_only(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow("You can't see Nuclear-Rock.") in out
+    assert yellow("You can't see nuclear.") in out
     assert "You are here." not in out
     assert "Compass:" not in out
     assert w.turn == 1

@@ -76,9 +76,9 @@ def test_directions_special(cli):
 
 def test_item_prefix_first_match(cli, world_with_items):
     out = cli.run(["get n"])
-    assert "You pick up Nuclear-thong." in out
+    assert "You pick up A Nuclear-thong." in out
     out2 = cli.run(["dro nuc"])
-    assert "You drop Nuclear-thong." in out2
+    assert "You drop A Nuclear-thong." in out2
 
 
 def test_look_monster_precedence(cli, world_with_monster_and_item_N_on_tile):

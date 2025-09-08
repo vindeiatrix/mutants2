@@ -9,6 +9,7 @@ from mutants2.engine.player import Player, INVENTORY_LIMIT
 from mutants2.engine.world import World
 from mutants2.engine import items
 from mutants2.ui.theme import yellow
+from mutants2.ui.articles import article_for
 
 
 def run(cmds: list[str], *, p: Player, w: World):
@@ -48,7 +49,7 @@ def test_inventory_limit_swap():
     assert yellow("***") in out
     assert yellow(f"The {victim_name} fell out of your sack!") in out
     assert out.index(f"The {victim_name} fell out of your sack!") < out.index(
-        "You pick up Bottle-Cap."
+        "You pick up A Bottle-Cap."
     )
 
 
@@ -73,9 +74,11 @@ def test_ground_limit_swap():
     gift_name = items.REGISTRY[gift["key"]].name
     assert yellow("***") in out
     assert (
-        yellow(f"{items.article_name(gift_name)} has magically appeared in your hand!")
+        yellow(
+            f"{article_for(gift_name)} {gift_name} has magically appeared in your hand!"
+        )
         in out
     )
-    assert out.index("You drop Cigarette-Butt.") < out.index(
-        f"{items.article_name(gift_name)} has magically appeared in your hand!"
+    assert out.index("You drop A Cigarette-Butt.") < out.index(
+        f"{article_for(gift_name)} {gift_name} has magically appeared in your hand!"
     )

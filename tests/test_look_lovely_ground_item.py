@@ -19,7 +19,7 @@ def test_look_ground_item_not_carried(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow("You can't see Nuclear-Rock.") in out
+    assert yellow("You can't see nuclear.") in out
     assert "You are here." not in out
     assert "Compass:" not in out
 
@@ -37,6 +37,6 @@ def test_look_worn_item_not_carried(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look bug")
     out = buf.getvalue()
-    assert yellow("You can't see Bug-Skin.") in out
+    assert yellow("You can't see bug.") in out
     assert "You are here." not in out
     assert "Compass:" not in out

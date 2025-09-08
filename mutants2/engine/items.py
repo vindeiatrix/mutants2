@@ -5,6 +5,7 @@ import collections
 from .types import ItemInstance
 from ..ui.theme import yellow
 from ..ui.wrap import wrap_paragraph_ansi
+from ..ui.articles import article_for
 from .util.names import norm_name
 
 NBSP = "\u00a0"
@@ -287,7 +288,7 @@ def describe(name: str) -> str:
 def article_name(name: str) -> str:
     parts = name.split("-")
     t = "-".join(p[:1].upper() + p[1:] for p in parts)
-    return f"A {t}"
+    return f"{article_for(t)} {t}"
 
 
 def stack_for_render(item_names: list[str]) -> list[str]:

@@ -49,18 +49,18 @@ def inventory_with_ion_items(tmp_path):
 def test_get_does_not_render(cli_runner, tile_with_item):
     out = cli_runner.run_commands(["look", "get nuc"])
     assert out.count("***") >= 2
-    assert "You pick up Nuclear-thong." in out
+    assert "You pick up A Nuclear-thong." in out
 
 
 def test_drop_does_not_render(cli_runner, inventory_with_item):
     out = cli_runner.run_commands(["dro nuc"])
     assert out.count("***") == 1
-    assert "You drop Nuclear-thong." in out
+    assert "You drop A Nuclear-thong." in out
 
 
 def test_item_prefix_first_match_cli_runner(cli_runner, inventory_with_ion_items):
     out = cli_runner.run_commands(["dro ion"])
-    assert "You drop Ion-Decay." in out
+    assert "You drop An Ion-Decay." in out
 
 
 def test_abbrev_rules(cli_runner):

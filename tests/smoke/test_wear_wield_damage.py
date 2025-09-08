@@ -156,7 +156,7 @@ def test_drop_and_convert_prefer_inventory_copy():
     out, w, p = run_commands(
         ["get bug", "get bug", "wear bug", "drop bug"], setup=setup
     )
-    assert "You drop Bug-Skin." in out
+    assert "You drop A Bug-Skin." in out
     assert "You're not carrying" not in out
     assert p.worn_armor is not None
     assert len(p.inventory) == 0
