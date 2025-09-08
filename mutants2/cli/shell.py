@@ -335,27 +335,21 @@ def make_context(p, w, save, *, dev: bool = False):
             context._suppress_room_render = True
             return False
         if year_input < LOWEST_CENTURY or year_input > HIGHEST_CENTURY:
-            print(yellow("You can only travel from year 2000 to 3000!"))
+            print(yellow(f"You can only travel from year 2000 to {HIGHEST_CENTURY}!"))
             context._needs_render = False
             context._suppress_room_render = True
             return False
         target = max(c for c in ALLOWED_CENTURIES if c <= year_input)
-        if target == p.year:
-            p.travel(w, target)
-            ord_century = ordinal(target // 100)
-            print(yellow(f"You're already in the {ord_century} Century!"))
-        else:
-            steps = abs(target - p.year) // 100
-            cost = ION_TRAVEL_COST * steps
-            if p.ions < cost:
-                print(yellow("***"))
-                print(yellow("You don't have enough ions to create a portal."))
-            else:
-                p.ions -= cost
-                p.travel(w, target)
-                print(
-                    yellow(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D.")
-                )
+        steps = abs(target - p.year) // 100
+        cost = ION_TRAVEL_COST * steps
+        if p.ions < cost:
+            print(yellow("***"))
+            print(yellow("You don't have enough ions to create a portal."))
+            context._suppress_room_render = True
+            return False
+        p.ions -= cost
+        p.travel(w, target)
+        print(yellow(f"ZAAAAPPPPP!! You've been sent to the year {target} A.D."))
         context._suppress_room_render = True
         context._suppress_entry_aggro = True
         context._skip_movement_tick = False

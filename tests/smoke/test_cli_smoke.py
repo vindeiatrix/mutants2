@@ -15,5 +15,6 @@ def test_travel_smoke():
     lines = out.strip().splitlines()
     assert lines[0] == "travel 2100"
     assert lines.count("travel 2100") == 1
-    assert "Compass:" in out
+    assert "ZAAAAPPPPP!! You've been sent to the year 2100 A.D." in out
+    assert "Compass:" not in out
     assert "footsteps" not in out.lower()

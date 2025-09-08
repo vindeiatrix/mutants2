@@ -52,6 +52,6 @@ def test_travel_insufficient_ions_no_move():
 
 def test_same_century_travel_free_and_resets_position():
     out, p = run(["east", "travel 2700"], ions=5_000, start_year=2700, start_pos=(1, 0))
-    assert yellow("You're already in the 27th Century!") in out
+    assert yellow("ZAAAAPPPPP!! You've been sent to the year 2700 A.D.") in out
     assert p.ions == 5_000
     assert p.positions[2700] == (0, 0)
