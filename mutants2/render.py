@@ -3,7 +3,7 @@ from __future__ import annotations
 from .ui.theme import red, green, cyan, yellow, white, SEP
 from .ui.render import enumerate_duplicates, wrap_ansi
 from .ui.wrap import wrap_list_ansi
-from .engine import items as items_mod
+from .ui.articles import article_for
 
 
 def _room_desc(world, year, x, y):
@@ -51,9 +51,10 @@ def render_room_at(
             out.append(cyan(f"{d:<5} – area continues."))
 
     # (d/e) ground items followed by a single separator
-    ground_names = [
-        items_mod.article_name(it.name) for it in world.items_on_ground(year, x, y)
-    ]
+    ground_names = []
+    for it in world.items_on_ground(year, x, y):
+        name = "-".join(p[:1].upper() + p[1:] for p in it.name.split("-"))
+        ground_names.append(f"{article_for(name)} {name}")
     if ground_names:
         out.append(yellow("On the ground lies:"))
         items = enumerate_duplicates(ground_names)

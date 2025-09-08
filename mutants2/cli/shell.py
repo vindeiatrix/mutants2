@@ -50,6 +50,7 @@ from ..engine.types import Direction
 from ..engine.world import ALLOWED_CENTURIES, LOWEST_CENTURY, HIGHEST_CENTURY
 from ..ui.help import MACROS_HELP, ABBREVIATIONS_NOTE, COMMANDS_HELP, USAGE
 from ..ui.strings import GET_WHAT, DROP_WHAT, not_carrying, CANT_SEE
+from ..ui.articles import article_for
 from ..ui.theme import red, SEP, yellow, white
 from ..data.config import ION_TRAVEL_COST, HEAL_K
 from ..ui.render import (
@@ -376,7 +377,7 @@ def make_context(p, w, save, *, dev: bool = False):
         if overflow:
             print(yellow("***"))
             print(yellow(f"The {overflow} fell out of your sack!"))
-        print(f"You pick up {idef.name}.")
+        print(f"You pick up {article_for(idef.name)} {idef.name}.")
         return False
 
     def handle_drop(args: list[str]) -> bool:
@@ -395,7 +396,11 @@ def make_context(p, w, save, *, dev: bool = False):
         idef = get_item_def_by_key(key)
         name = display_item_name_plain(inst, idef)
         ok, msg, sack_name, gift_name = p.drop_to_ground(idef.name if idef else key, w)
-        print(f"You drop {name}." if ok else (msg or "You can’t drop that here."))
+        print(
+            f"You drop {article_for(name)} {name}."
+            if ok
+            else (msg or "You can’t drop that here.")
+        )
         if sack_name:
             print(yellow("***"))
             print(yellow(f"The {sack_name} fell out of your sack!"))
@@ -403,7 +408,7 @@ def make_context(p, w, save, *, dev: bool = False):
             print(yellow("***"))
             print(
                 yellow(
-                    f"{items.article_name(gift_name)} has magically appeared in your hand!"
+                    f"{article_for(gift_name)} {gift_name} has magically appeared in your hand!"
                 )
             )
         return False
@@ -607,25 +612,7 @@ def make_context(p, w, save, *, dev: bool = False):
         if worn_key:
             cand_elsewhere.append(worn_key)
         key_elsewhere = resolve_key_prefix(raw, cand_elsewhere)
-        name = raw.title()
-        found_elsewhere = False
-        if key_elsewhere:
-            found_elsewhere = True
-            if worn_key and key_elsewhere == worn_key and p.worn_armor:
-                inst = coerce_item(p.worn_armor)
-                idef = get_item_def_by_key(inst["key"])
-                name = display_item_name_plain(inst, idef)
-            else:
-                for obj in ground_objs:
-                    inst = coerce_item(obj)
-                    if resolve_key(inst["key"]) == key_elsewhere:
-                        idef = get_item_def_by_key(inst["key"])
-                        name = display_item_name_plain(inst, idef)
-                        break
-        else:
-            item_def = items.find_by_name(raw)
-            if item_def:
-                name = item_def.name
+        found_elsewhere = bool(key_elsewhere)
 
         d = parse_dir_any_prefix(q)
         if d:
@@ -644,7 +631,7 @@ def make_context(p, w, save, *, dev: bool = False):
             return True
 
         print(yellow("***"))
-        print(yellow(CANT_SEE.format(name)))
+        print(yellow(CANT_SEE.format(raw)))
         context._needs_render = False
         context._suppress_room_render = True
         return found_elsewhere

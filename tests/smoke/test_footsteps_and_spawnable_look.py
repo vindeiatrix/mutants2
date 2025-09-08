@@ -57,4 +57,4 @@ def test_spawnable_look_lovely(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow("You can't see Nuclear-Rock.") in out
+    assert yellow("You can't see nuclear.") in out

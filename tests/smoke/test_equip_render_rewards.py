@@ -34,7 +34,7 @@ def test_get_suppresses_room_render():
         w.add_ground_item(2000, 0, 0, {"key": "skull"})
 
     out, _, _ = run_commands(["get skull"], setup=setup)
-    assert "You pick up Skull." in out
+    assert "You pick up A Skull." in out
     assert "You are here." not in out
     assert "Compass:" not in out
 

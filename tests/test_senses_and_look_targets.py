@@ -51,7 +51,7 @@ def test_look_dir_and_blocked(cli):
 def test_look_item_and_monster(cli, world):
     world.place_item(2000, 0, 0, "gold_chunk")
     out = cli.run(["look gold"])
-    assert yellow("You can't see Gold-Chunk.") in out
+    assert yellow("You can't see gold.") in out
     world.place_monster(2000, 1, 0, "mutant")
     out = cli.run(["look mut"])
-    assert yellow("You can't see Mut.") in out
+    assert yellow("You can't see mut.") in out
