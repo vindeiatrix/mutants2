@@ -5,7 +5,7 @@ import datetime
 from mutants2.engine import persistence, items
 from mutants2.engine.player import Player
 from mutants2.engine.world import World
-from mutants2.ui.theme import yellow, red
+from mutants2.ui.theme import yellow, red, COLOR_ITEM
 
 
 def test_monster_bait_conversion(cli_runner, tmp_path):
@@ -24,7 +24,7 @@ def test_monster_bait_conversion(cli_runner, tmp_path):
     assert red("The Monster-Bait vanishes with a flash!") in out
     assert red("You convert the Monster-Bait into 10000 ions.") in out
     assert "(empty)" not in out
-    assert "Ions         : 40000" in out
+    assert f"{COLOR_ITEM('Ions         :')} 40000" in out
 
 
 def test_convert_gibberish(cli_runner):
@@ -35,7 +35,7 @@ def test_convert_gibberish(cli_runner):
 def test_travel_rounding_and_stats(cli_runner):
     out = cli_runner.run_commands(["tra 2345", "status"])
     assert yellow("ZAAAAPPPPP!! You've been sent to the year 2300 A.D.") in out
-    assert "Year A.D.     : 2300" in out
+    assert f"{COLOR_ITEM('Year A.D.     :')} 2300" in out
 
 
 def test_travel_out_of_range(cli_runner):

@@ -5,7 +5,7 @@ import io
 from mutants2.engine import persistence, world as world_mod
 from mutants2.engine.player import Player
 from mutants2.cli.shell import make_context
-from mutants2.ui.theme import yellow, cyan, blue
+from mutants2.ui.theme import COLOR_HEADER, COLOR_ITEM
 
 
 def _ctx(tmp_path):
@@ -24,7 +24,7 @@ def test_look_inventory_only(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow("You can't see nuclear.") in out
+    assert COLOR_HEADER("You can't see nuclear.") in out
     assert "You are here." not in out
     assert "Compass:" not in out
     assert w.turn == 1
@@ -33,7 +33,7 @@ def test_look_inventory_only(tmp_path):
         ctx.dispatch_line("get nuclear-rock")
         ctx.dispatch_line("look nuclear")
     out = buf.getvalue()
-    assert yellow("It looks like a lovely Nuclear-Rock!") in out
+    assert COLOR_HEADER("It looks like a lovely Nuclear-Rock!") in out
     assert "You are here." not in out
     assert "Compass:" not in out
     assert w.turn == 3
@@ -45,11 +45,12 @@ def test_exit_spacing(tmp_path):
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("look")
     out = buf.getvalue()
-    north_line = f"{cyan('north')} – {blue('area continues.')}"
-    south_line = f"{cyan('south')} – {blue('area continues.')}"
-    east_line = f"{cyan('east')}  – {blue('area continues.')}"
-    west_line = f"{cyan('west')}  – {blue('area continues.')}"
+    north_line = f"{COLOR_HEADER('north')} – {COLOR_ITEM('area continues.')}"
+    south_line = f"{COLOR_HEADER('south')} – {COLOR_ITEM('area continues.')}"
+    east_line = f"{COLOR_HEADER('east')}  – {COLOR_ITEM('area continues.')}"
+    west_line = f"{COLOR_HEADER('west')}  – {COLOR_ITEM('area continues.')}"
     assert north_line in out
     assert south_line in out
     assert east_line in out
     assert west_line in out
+    assert "\x1b[34m" not in out

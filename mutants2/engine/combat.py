@@ -7,8 +7,9 @@ import math
 from .leveling import check_level_up
 from . import items as items_mod
 from ..data.config import AC_DIVISOR
-from ..ui.render import render_kill_block, fmt
-from ..ui.theme import yellow
+from ..ui.render import render_kill_block
+from ..ui.theme import SEP
+from ..ui.strings import kill_reward
 
 MONSTER_XP = 20_000
 
@@ -47,7 +48,8 @@ def player_attack(player, world, weapon_key: str):
         riblets = 20_000
         player.ions += ions
         player.riblets += riblets
-        xp = award_kill(player)
-        render_kill_block(name, xp, riblets, ions)
-        print(yellow(f"You gain {fmt(riblets)} riblets and {fmt(ions)} ions."))
+        award_kill(player)
+        render_kill_block(riblets, ions)
+        print(SEP)
+        print(kill_reward(f"{name} is crumbling to dust!"))
     return dmg, killed, name

@@ -76,4 +76,5 @@ def test_target_cleared_on_monster_death():
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         ctx.dispatch_line("status")
-    assert "Ready to Combat: NO ONE" in buf.getvalue()
+    out = re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
+    assert "Ready to Combat: NO ONE" in out

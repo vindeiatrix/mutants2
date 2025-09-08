@@ -11,11 +11,11 @@ This document defines the contracts our agents (and humans) must follow.
 
 ## Color palette & usage
 - **green** — Compass line (e.g., `Compass: (0E : 0N)`).
-- **cyan** — Cardinal direction token on exit lines (`north`, `south`, `east`, `west`).
-- **blue** — Exit description segment after the en-dash (e.g., `area continues.`).  If an exit copy variant is used, the whole post-dash portion is blue.
-- **yellow** — Generic feedback & help; prompts; “lovely” look-for-item line; inventory-scope failures (`You can't see <raw_subject>.`, `You're not carrying <raw_subject>.`); shadows header; ground header (`On the ground lies:`).
+- **header color** — Section titles like `On the ground lies:` and cardinal direction words (`north`, `south`, `east`, `west`).
+- **item color** — Ground item names and exit description segments after the en-dash (e.g., `area continues.`).
+- **yellow** — Generic feedback & help; prompts; “lovely” look-for-item line; inventory-scope failures (`You can't see <raw_subject>.`, `You're not carrying <raw_subject>.`); shadows header.
 - **white** — Class selection menu; inventory list body; monster names shown in room renders (from look or `look <dir>`); monster taunts/native attacks (e.g., `Critter-750 bites you!`).
-- **red** — Room header/description; ion conversion feedback; kill & loot/rewards; monster arrival/leave; “crumbling to dust” after loot; weapon/armor crack; ranged “blinding flash”; monster spell preamble; spell damage descriptions.
+- **red** — Room header/description; ion conversion feedback; kill & loot/rewards; monster arrival/leave; “crumbling to dust” after loot; weapon/armor crack; ranged “blinding flash”; monster spell preamble; spell damage descriptions; monster picks up an item; monster converts an item to ions; monster drops an item.
 
 Numbers are always plain (no commas).
 
