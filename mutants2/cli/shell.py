@@ -713,7 +713,7 @@ def make_context(p, w, save, *, dev: bool = False):
         if names:
             labels = enumerate_duplicates(names)
             wrapped = wrap_list_ansi(labels)
-            lines.extend(white(ln) for ln in wrapped.splitlines())
+            lines.extend(generic_fb(ln) for ln in wrapped.splitlines())
         for ln in lines:
             print(ln)
 

@@ -11,8 +11,8 @@ This document defines the contracts our agents (and humans) must follow.
 
 ## Color palette & usage
 - **green** — Compass line (e.g., `Compass: (0E : 0N)`).
-- **header color** — Section titles like `On the ground lies:` and cardinal direction words (`north`, `south`, `east`, `west`).
-- **item color** — Ground item names and exit description segments after the en-dash (e.g., `area continues.`).
+- **header color** — Section titles like `On the ground lies:` and cardinal direction words (`north`, `south`, `east`, `west`); stats inventory header and inline list.
+- **item color** — Ground item names and exit description segments after the en-dash (e.g., `area continues.`); no lighter variant exists.
 - **yellow** — Generic feedback & help; prompts; “lovely” look-for-item line; inventory-scope failures (`You can't see <raw_subject>.`, `You're not carrying <raw_subject>.`); shadows header.
 - **white** — Class selection menu; inventory list body; monster names shown in room renders (from look or `look <dir>`); monster taunts/native attacks (e.g., `Critter-750 bites you!`).
 - **red** — Room header/description; kill/collect/drop/crumble lines; ion conversion feedback; monster arrival/leave; weapon/armor crack; ranged “blinding flash”; monster spell preamble; spell damage descriptions; monster picks up an item; monster converts an item to ions; monster drops an item.
