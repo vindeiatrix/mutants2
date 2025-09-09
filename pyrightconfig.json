@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/config.schema.json",
+  "include": ["mutants2"],
+  "exclude": [
+    "tests",
+    "scripts",
+    "docs",
+    "**/__pycache__"
+  ],
+  "typeCheckingMode": "basic"
+}

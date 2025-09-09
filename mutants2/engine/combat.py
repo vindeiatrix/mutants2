@@ -47,7 +47,7 @@ def handle_monster_death(ctx: SimpleNamespace, mon) -> None:
     drops = [coerce_item(d) for d in mon.get("gear", [])]
     mdef = monsters_mod.REGISTRY.get(mon.get("key"))
     mtype = mdef.name if mdef else "Unknown"
-    drops.append({"key": "skull", "monster_type": mtype})
+    drops.append({"key": "skull", "monster_type": mtype})  # type: ignore[arg-type]
     name = str(mon.get("name", ""))
     for inst in drops:
         w.add_ground_item(p.year, p.x, p.y, inst)

@@ -10,15 +10,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
-[tool.pytest.ini_options]
-addopts = "-q"
-markers = [
-  "ui",
-  "smoke",
-  "items",
-  "combat",
-]
-
 [project.optional-dependencies]
 dev = [
   "pytest",
@@ -26,6 +17,7 @@ dev = [
   "black",
   "ruff",
   "mypy",
+  "vulture",
   "pyright",
 ]
 

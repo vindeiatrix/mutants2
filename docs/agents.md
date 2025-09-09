@@ -1,7 +1,7 @@
 # Mutants2 — Agents & Single Source of Truth
 
 This document defines the contracts our agents (and humans) must follow.  
-**CI gates:** run `black .`, `ruff .`, `pyright`, `vulture`, and `pytest` before submitting changes.
+**CI gates:** run `black .`, `ruff .`, `pyright`, and `pytest` before submitting changes.
 
 ## Guardrails (always on)
 - **Canonical keys:** Use lowercase underscore keys in code/tests (e.g., `nuclear_rock`, `bug_skin`).
@@ -70,3 +70,9 @@ Numbers are always plain (no commas).
 ## Profiles & saves
 - Class menu order: **Thief, Priest, Wizard, Warrior, Mage**; **independent profiles** (year, coords, inventory, ions).
 - First-time world entry per class grants **30000 ions**; “Ready to Combat” resets on death and on any exit.
+
+## Speed Mode
+
+Default checks are limited to `pyright` (basic) on `mutants2/`, `ruff`, `black`, and about ten smoke tests.
+The full test suite lives in `tests/slow/` and runs only on demand or in the weekly maintenance workflow.
+Do not re-expand the default checks unless required. Add new smoke tests only when new contracts must be locked.
