@@ -7,15 +7,9 @@ import math
 from types import SimpleNamespace
 
 from .leveling import check_level_up
-from . import items as items_mod, monsters as monsters_mod
-from .items_util import coerce_item
-from ..ui.items_render import display_item_name_plain
-from ..engine.items_resolver import get_item_def_by_key
-from ..ui.articles import article_for
+from . import items as items_mod
+from .loot_flow import perform_loot_flow
 from ..data.config import AC_DIVISOR
-from ..ui.render import render_kill_block
-from ..ui.theme import SEP
-from ..ui.strings import kill_reward
 
 MONSTER_XP = 20_000
 
@@ -31,33 +25,27 @@ def award_kill(player) -> int:
     return MONSTER_XP
 
 
-def handle_monster_death(ctx: SimpleNamespace, mon) -> None:
-    """Handle XP, loot drops, and crumble messaging for a slain monster."""
 
-    p = ctx.player
-    w = ctx.world
+def _kill_monster(ctx: SimpleNamespace, world, player, mon, year: int, x: int, y: int) -> None:
+    """Single entry point for handling monster deaths."""
 
-    ions = 20_000
-    riblets = 20_000
-    p.ions += ions
-    p.riblets += riblets
-    award_kill(p)
-    render_kill_block(riblets, ions)
+    xp = award_kill(player)
+    riblets = mon.get("riblets_reward", 20_000)
+    ions = mon.get("ions_reward", 20_000)
+    player.riblets += riblets
+    player.ions += ions
 
-    drops = [coerce_item(d) for d in mon.get("gear", [])]
-    mdef = monsters_mod.REGISTRY.get(mon.get("key"))
-    mtype = mdef.name if mdef else "Unknown"
-    drops.append({"key": "skull", "monster_type": mtype})  # type: ignore[arg-type]
-    name = str(mon.get("name", ""))
-    for inst in drops:
-        w.add_ground_item(p.year, p.x, p.y, inst)
-        idef = get_item_def_by_key(inst["key"])
-        iname = display_item_name_plain(inst, idef)
-        art = article_for(iname)
-        print(kill_reward(f"{art} {iname} is falling from {name}'s body!"))
+    perform_loot_flow(
+        world=world,
+        player=player,
+        monster=mon,
+        tile=(year, x, y),
+        xp=xp,
+        riblets=riblets,
+        ions=ions,
+    )
 
-    print(SEP)
-    print(kill_reward(f"{name} is crumbling to dust!"))
+    world.remove_monster(year, x, y)
 
 
 def player_attack(ctx: SimpleNamespace, weapon_key: str):
@@ -82,5 +70,5 @@ def player_attack(ctx: SimpleNamespace, weapon_key: str):
     name = str(mon.get("name", ""))
     killed = w.damage_monster(p.year, p.x, p.y, dmg, p)
     if killed:
-        handle_monster_death(ctx, mon)
+        _kill_monster(ctx, w, p, mon, p.year, p.x, p.y)
     return dmg, killed, name

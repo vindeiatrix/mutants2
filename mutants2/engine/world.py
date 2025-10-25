@@ -210,6 +210,10 @@ class World:
             return items[0]
         return None
 
+    def ground_items(self, year: int, x: int, y: int) -> list[ItemInstance]:
+        """Return all ground items at the given tile."""
+        return self.ground.get((year, x, y), [])
+
     def set_ground_item(
         self, year: int, x: int, y: int, item_key: Optional[str]
     ) -> None:
