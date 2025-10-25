@@ -55,9 +55,11 @@ def render_room_at(
 
     # (c) exits
     for d in ("north", "south", "east", "west"):
-        if world.is_open(year, x, y, d):
-            # Pad direction labels to align the separator across lines.
-            out.append(render_single_exit(d, "area continues."))
+        if not world.is_open(year, x, y, d):
+            # Hide terrain, boundaries, or gates that block the way
+            continue
+        # Pad direction labels to align the separator across lines.
+        out.append(render_single_exit(d, "area continues."))
 
     # (d/e) ground items followed by a single separator
     ground_names = []
